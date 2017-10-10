@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    >
+    <data>
+        <variable
+            name="record"
+            type="com.google.cloud.android.speech.RecordList.RecordDTO">
+        </variable>
+        <variable
+            name="item"
+            type="com.google.cloud.android.speech.RecordList.RecordViewHolder">
+        </variable>
+    </data>
+    <android.support.v7.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:onClick="@{item::onItemClick}">
+
+            <TextView
+                android:id="@+id/recordDuration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{record.duration}" />
+
+            <TextView
+                android:id="@+id/recordTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{record.title}" />
+
+            <TextView
+                android:id="@+id/recordTag"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{record.tagList[0]}"/>
+
+
+        </LinearLayout>
+    </android.support.v7.widget.CardView>
+
+</layout>
