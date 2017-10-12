@@ -15,7 +15,7 @@ import io.realm.RealmResults;
  * Created by samsung on 2017-10-06.
  */
 
-public class RecordAdapter extends RecyclerView.Adapter<RecordViewHolder> {
+public class RecordListAdapter extends RecyclerView.Adapter<RecordListViewHolder> {
 
     RealmResults<RecordRealm> realmResults;
 
@@ -23,13 +23,15 @@ public class RecordAdapter extends RecyclerView.Adapter<RecordViewHolder> {
         this.realmResults = realmResults;
     }
     @Override
-    public RecordViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecordListViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_record,parent,false);
-        return new RecordViewHolder(view,parent.getContext());
+        return new RecordListViewHolder(view,parent.getContext());
     }
 
     @Override
-    public void onBindViewHolder(RecordViewHolder holder, int position) {
+    public void onBindViewHolder(RecordListViewHolder holder, int position) {
+
+
         RecordDTO recordDTO = new RecordDTO(realmResults.get(position));
         holder.setData(realmResults.get(position));
         holder.binding.setRecord(recordDTO);

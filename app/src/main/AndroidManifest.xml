@@ -29,7 +29,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Speech"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".View.Recording.MainActivity"></activity>
+        <activity android:name=".View.Recording.RecordActivity"></activity>
 
         <service android:name=".View.Recording.SpeechService" />
 

@@ -241,6 +241,10 @@ public class SpeechService extends Service {
         mListeners.remove(listener);
     }
 
+    public boolean hasListener(){
+        return mListeners!=null;
+    }
+
 
 
     /**

@@ -1,12 +1,16 @@
 package com.google.cloud.android.speech.Data.DTO;
 
 import android.databinding.BindingAdapter;
+import android.databinding.BindingConversion;
 import android.widget.TextView;
 
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.Data.Realm.StringRealm;
+import com.google.cloud.android.speech.Util.DateUtil;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 import io.realm.Realm;
 
@@ -15,17 +19,17 @@ import io.realm.Realm;
  */
 
 public class RecordDTO {
-    private String title="";
-    private int duration=0;
-    private ArrayList<String> tagList=new ArrayList<>();
+    private String title = "";
+    private int duration = 0;
+    private ArrayList<String> tagList = new ArrayList<>();
     private long startMillis = -1;
 
 
     public RecordDTO(RecordRealm recordRealm) {
         this.title = recordRealm.getTitle();
         this.duration = recordRealm.getDuration();
-        this.startMillis=recordRealm.getStartMillis();
-        for(StringRealm s:recordRealm.getTagList()){
+        this.startMillis = recordRealm.getStartMillis();
+        for (StringRealm s : recordRealm.getTagList()) {
             this.tagList.add(s.getString());
         }
     }
@@ -76,7 +80,8 @@ public class RecordDTO {
 
     @BindingAdapter("android:text")
     public static void setText(TextView view, int value) {
-        view.setText(Integer.toString(value));
+        String timeString = DateUtil.durationToDate(value);
+        view.setText(timeString);
     }
 
 

@@ -14,11 +14,11 @@ import com.google.cloud.android.speech.databinding.ItemResultBinding;
  * Created by samsung on 2017-10-08.
  */
 
-public class ResultViewHolder extends RecyclerView.ViewHolder {
+public class RecordViewHolder extends RecyclerView.ViewHolder {
 
     ItemResultBinding binding;
 
-    ResultViewHolder(View view) {
+    RecordViewHolder(View view) {
         super(view);
         binding = DataBindingUtil.bind(view);
 

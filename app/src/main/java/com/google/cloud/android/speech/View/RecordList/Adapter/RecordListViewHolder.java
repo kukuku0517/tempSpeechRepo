@@ -14,7 +14,7 @@ import com.google.cloud.android.speech.databinding.ItemRecordBinding;
  * Created by samsung on 2017-10-06.
  */
 
-public class RecordViewHolder extends RecyclerView.ViewHolder {
+public class RecordListViewHolder extends RecyclerView.ViewHolder {
     ItemRecordBinding binding;
     RecordRealm recordRealm;
     Context context;
@@ -22,7 +22,7 @@ public class RecordViewHolder extends RecyclerView.ViewHolder {
     public void setData(RecordRealm recordRealm){
         this.recordRealm=recordRealm;
     }
-    public RecordViewHolder(View itemView,Context context) {
+    public RecordListViewHolder(View itemView, Context context) {
         super(itemView);
         this.context=context;
         binding = DataBindingUtil.bind(itemView);

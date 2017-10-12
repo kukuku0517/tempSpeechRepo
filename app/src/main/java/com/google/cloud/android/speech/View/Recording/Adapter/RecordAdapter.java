@@ -13,24 +13,24 @@ import java.util.ArrayList;
  * Created by samsung on 2017-10-08.
  */
 
-public class ResultAdapter extends RecyclerView.Adapter<ResultViewHolder> {
+public class RecordAdapter extends RecyclerView.Adapter<RecordViewHolder> {
 
     private final ArrayList<String> mResults = new ArrayList<>();
 
-    public ResultAdapter(ArrayList<String> results) {
+    public RecordAdapter(ArrayList<String> results) {
         if (results != null) {
             mResults.addAll(results);
         }
     }
 
     @Override
-    public ResultViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecordViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_result, parent, false);
-        return new ResultViewHolder(view);
+        return new RecordViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(ResultViewHolder holder, int position) {
+    public void onBindViewHolder(RecordViewHolder holder, int position) {
         holder.binding.setResult(mResults.get(position));
     }
 

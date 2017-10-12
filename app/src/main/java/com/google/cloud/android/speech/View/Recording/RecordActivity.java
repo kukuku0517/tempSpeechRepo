@@ -49,16 +49,15 @@ import com.google.cloud.android.speech.View.RecordList.NewRecordDialog;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
 import com.google.cloud.android.speech.Data.Realm.WordRealm;
-import com.google.cloud.android.speech.View.Recording.Adapter.ResultAdapter;
+import com.google.cloud.android.speech.View.Recording.Adapter.RecordAdapter;
 
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import io.realm.Realm;
-import io.realm.RealmList;
 
 
-public class MainActivity extends AppCompatActivity implements MessageDialogFragment.Listener, NewRecordDialog.NewRecordDialogListener {
+public class RecordActivity extends AppCompatActivity implements MessageDialogFragment.Listener, NewRecordDialog.NewRecordDialogListener {
 
     private static final String FRAGMENT_MESSAGE_DIALOG = "message_dialog";
 
@@ -103,11 +102,12 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
     // View references
     private TextView mStatus;
     private TextView mText;
-    private ResultAdapter mAdapter;
+    private RecordAdapter mAdapter;
     private RecyclerView mRecyclerView;
     private Context context = this;
     private Button recordBtn, stopBtn;
 
+    boolean serviceBinded = false;
     private Realm realm;
     private RecordRealm record;
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_record);
 
         final Resources resources = getResources();
         final Resources.Theme theme = getTheme();
@@ -146,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
             @Override
             public void onClick(View v) {
                 bindService(new Intent(context, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
-
+                serviceBinded = true;
                 // Start listening to voices
 //        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
 //                == PackageManager.PERMISSION_GRANTED) {
@@ -177,11 +177,13 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
             @Override
             public void onClick(View v) {
                 stopVoiceRecorder();
-
+                serviceBinded = false;
                 // Stop Cloud Speech API
                 mSpeechService.removeListener(mSpeechServiceListener);
                 unbindService(mServiceConnection);
                 mSpeechService = null;
+
+                onBackPressed();
 
                 //TODO save Duration or get Duration first loading from directory
 
@@ -195,7 +197,7 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         final ArrayList<String> results = savedInstanceState == null ? null :
                 savedInstanceState.getStringArrayList(STATE_RESULTS);
-        mAdapter = new ResultAdapter(results);
+        mAdapter = new RecordAdapter(results);
         mRecyclerView.setAdapter(mAdapter);
     }
 
@@ -240,8 +242,15 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
         stopVoiceRecorder();
 
         // Stop Cloud Speech API
-        mSpeechService.removeListener(mSpeechServiceListener);
-        unbindService(mServiceConnection);
+        if (mSpeechService != null) {
+            if (mSpeechService.hasListener()) {
+                mSpeechService.removeListener(mSpeechServiceListener);
+            }
+        }
+        if(serviceBinded){
+            unbindService(mServiceConnection);
+
+        }
         mSpeechService = null;
 
         super.onStop();
@@ -375,11 +384,11 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
                                     long recordStart = record.getStartMillis();
                                     if (recordStart == -1) {
                                         record.setStartMillis(sentenceStart);
-                                        recordStart=sentenceStart;
+                                        recordStart = sentenceStart;
                                     }
 
                                     SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
-                                    sentence.setStartMillis(sentenceStart-recordStart);
+                                    sentence.setStartMillis(sentenceStart - recordStart);
                                     StringTokenizer st = new StringTokenizer(text);
                                     while (st.hasMoreTokens()) {
                                         String token = st.nextToken();

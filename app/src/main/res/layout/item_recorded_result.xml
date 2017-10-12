@@ -5,11 +5,11 @@
 
         <variable
             name="sentenceString"
-            type="String"/>
+            type="String" />
 
         <variable
             name="sentenceTime"
-            type="String"/>
+            type="String" />
     </data>
 
     <android.support.v7.widget.CardView
@@ -24,11 +24,21 @@
             android:orientation="vertical">
 
 
-            <TextView
-                android:id="@+id/tv_content"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:id="@+id/ll_container"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@{sentenceString}" />
+                android:orientation="vertical"
+                android:background="@android:color/holo_green_dark">
+
+                <!--<TextView-->
+                    <!--android:id="@+id/tv_content"-->
+                    <!--android:layout_width="match_parent"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:text="@{sentenceString}" />-->
+
+            </LinearLayout>
+
 
             <TextView
                 android:id="@+id/tv_time"
