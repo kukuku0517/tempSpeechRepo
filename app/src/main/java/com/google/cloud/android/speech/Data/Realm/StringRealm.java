@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.RecordList;
+package com.google.cloud.android.speech.Data.Realm;
 
 import io.realm.RealmObject;
 
@@ -6,13 +6,13 @@ import io.realm.RealmObject;
  * Created by samsung on 2017-10-07.
  */
 
-public class RealmString extends RealmObject {
+public class StringRealm extends RealmObject {
     private String string;
 
-    public RealmString(){
+    public StringRealm(){
 
     }
-    public RealmString(String string) {
+    public StringRealm(String string) {
         this.string = string;
     }
 

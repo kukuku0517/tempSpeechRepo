@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.Recording;
+package com.google.cloud.android.speech.View.RecordResult.Adapter;
 
 import android.databinding.DataBindingUtil;
 import android.support.v7.widget.RecyclerView;
@@ -21,5 +21,9 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder{
     public ResultRealmViewHolder(View view) {
         super(view);
         binding= DataBindingUtil.bind(view);
+    }
+
+    void onClickView(View view){
+
     }
 }

@@ -1,7 +1,8 @@
-package com.google.cloud.android.speech.RealmData;
+package com.google.cloud.android.speech.Util;
+
+import com.google.cloud.android.speech.Data.Realm.RecordRealmObject;
 
 import io.realm.Realm;
-import io.realm.RealmObject;
 import io.realm.RealmResults;
 
 /**

@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.RecordList;
+package com.google.cloud.android.speech.View.RecordList;
 
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
@@ -8,10 +8,13 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
-import com.google.cloud.android.speech.RealmData.RecordRealm;
-import com.google.cloud.android.speech.Recording.MainActivity;
+import com.google.cloud.android.speech.Data.Realm.RecordRealm;
+import com.google.cloud.android.speech.View.RecordList.Adapter.RecordAdapter;
+import com.google.cloud.android.speech.View.Recording.MainActivity;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.databinding.ActivityListBinding;
+
+
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
@@ -47,7 +50,7 @@ public class ListActivity extends AppCompatActivity implements ListHandler {
     }
 
     @Override
-    public void onFabBtnClick(View view) {
+    public void onClickFab(View view) {
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
     }

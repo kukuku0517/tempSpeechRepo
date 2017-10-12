@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.android.speech.Recording;
+package com.google.cloud.android.speech.View.Recording;
 
 import android.app.Service;
 import android.content.Context;
@@ -128,7 +128,7 @@ public class SpeechService extends Service {
             }
             if (text != null) {
                 for (Listener listener : mListeners) {
-                    listener.onSpeechRecognized(text, isFinal,0);
+                    listener.onSpeechRecognized(text, isFinal,startMillis);
                 }
             }
         }

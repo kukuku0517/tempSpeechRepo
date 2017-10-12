@@ -4,11 +4,11 @@
     <data>
         <variable
             name="record"
-            type="com.google.cloud.android.speech.RecordList.RecordDTO">
+            type="com.google.cloud.android.speech.Data.DTO.RecordDTO">
         </variable>
         <variable
             name="item"
-            type="com.google.cloud.android.speech.RecordList.RecordViewHolder">
+            type="com.google.cloud.android.speech.View.RecordList.Adapter.RecordViewHolder">
         </variable>
     </data>
     <android.support.v7.widget.CardView
@@ -20,8 +20,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:onClick="@{item::onItemClick}">
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/recordDuration"

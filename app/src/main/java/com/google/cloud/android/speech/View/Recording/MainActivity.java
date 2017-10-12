@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.android.speech.Recording;
+package com.google.cloud.android.speech.View.Recording;
 
 import android.Manifest;
 import android.app.Activity;
@@ -37,25 +37,25 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
 import com.google.cloud.android.speech.R;
-import com.google.cloud.android.speech.RealmData.RealmUtil;
-import com.google.cloud.android.speech.RecordList.NewRecordDialog;
-import com.google.cloud.android.speech.RealmData.RecordRealm;
-import com.google.cloud.android.speech.RealmData.SentenceRealm;
-import com.google.cloud.android.speech.RealmData.WordRealm;
+import com.google.cloud.android.speech.Util.RealmUtil;
+import com.google.cloud.android.speech.View.RecordList.NewRecordDialog;
+import com.google.cloud.android.speech.Data.Realm.RecordRealm;
+import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
+import com.google.cloud.android.speech.Data.Realm.WordRealm;
+import com.google.cloud.android.speech.View.Recording.Adapter.ResultAdapter;
 
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import io.realm.Realm;
+import io.realm.RealmList;
 
 
 public class MainActivity extends AppCompatActivity implements MessageDialogFragment.Listener, NewRecordDialog.NewRecordDialogListener {
@@ -158,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
                     realm.executeTransaction(new Realm.Transaction() {
                         @Override
                         public void execute(Realm realm) {
-                            record =new RealmUtil<RecordRealm>().createObject(realm,RecordRealm.class);
+                            record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
                         }
                     });
 
@@ -182,6 +182,10 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
                 mSpeechService.removeListener(mSpeechServiceListener);
                 unbindService(mServiceConnection);
                 mSpeechService = null;
+
+                //TODO save Duration or get Duration first loading from directory
+
+
             }
         });
 
@@ -312,6 +316,7 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
             }
         });
         mVoiceRecorder = new VoiceRecorder(mVoiceCallback);
+        mVoiceRecorder.setTitle(title);
         mVoiceRecorder.start();
     }
 
@@ -352,7 +357,7 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
     private final SpeechService.Listener mSpeechServiceListener =
             new SpeechService.Listener() {
                 @Override
-                public void onSpeechRecognized(final String text, final boolean isFinal, final long startMillis) {
+                public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart) {
                     if (isFinal) {
 
                         Log.i(TAG, "dismiss");
@@ -367,18 +372,24 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
                                     mText.setText(null);
 
                                     realm.beginTransaction();
-//                                    SentenceRealm sentence = realm.createObject(SentenceRealm.class);
-                                    SentenceRealm sentence=new RealmUtil<SentenceRealm>().createObject(realm,SentenceRealm.class);
-                                    sentence.setStartMillis(startMillis);
+                                    long recordStart = record.getStartMillis();
+                                    if (recordStart == -1) {
+                                        record.setStartMillis(sentenceStart);
+                                        recordStart=sentenceStart;
+                                    }
+
+                                    SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
+                                    sentence.setStartMillis(sentenceStart-recordStart);
                                     StringTokenizer st = new StringTokenizer(text);
                                     while (st.hasMoreTokens()) {
                                         String token = st.nextToken();
-//                                        WordRealm word = realm.createObject(WordRealm.class);
-                                        WordRealm word=new RealmUtil<WordRealm>().createObject(realm,WordRealm.class);
+                                        WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
                                         word.setWord(token);
                                         sentence.getWordList().add(word);
                                     }
                                     record.getSentenceRealms().add(sentence);
+
+
                                     realm.commitTransaction();
 
                                     mAdapter.addResult(text);
@@ -391,9 +402,6 @@ public class MainActivity extends AppCompatActivity implements MessageDialogFrag
                     }
                 }
             };
-
-
-
 
 
 }

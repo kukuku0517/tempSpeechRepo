@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.RealmData;
+package com.google.cloud.android.speech.Data.Realm;
 
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;

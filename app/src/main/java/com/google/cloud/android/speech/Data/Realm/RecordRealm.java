@@ -1,6 +1,4 @@
-package com.google.cloud.android.speech.RealmData;
-
-import com.google.cloud.android.speech.RecordList.RealmString;
+package com.google.cloud.android.speech.Data.Realm;
 
 import java.util.ArrayList;
 
@@ -12,14 +10,23 @@ import io.realm.annotations.PrimaryKey;
  * Created by samsung on 2017-10-07.
  */
 
-public class RecordRealm extends RealmObject implements RecordRealmObject  {
+public class RecordRealm extends RealmObject implements RecordRealmObject {
 
     @PrimaryKey
     private int id;
     private String title = "";
     private int duration = 0;
-    private RealmList<RealmString> tagList = new RealmList<>();
+    private RealmList<StringRealm> tagList = new RealmList<>();
     private RealmList<SentenceRealm> sentenceList = new RealmList<>();
+    private long startMillis = -1;
+
+    public long getStartMillis() {
+        return startMillis;
+    }
+
+    public void setStartMillis(long startMillis) {
+        this.startMillis = startMillis;
+    }
 
     @Override
     public int getId() {
@@ -64,14 +71,14 @@ public class RecordRealm extends RealmObject implements RecordRealmObject  {
         this.duration = duration;
     }
 
-    public RealmList<RealmString> getTagList() {
+    public RealmList<StringRealm> getTagList() {
 
         return tagList;
     }
 
     public void setTagList(ArrayList<String> tagList) {
         for (String s : tagList) {
-            this.tagList.add(new RealmString(s));
+            this.tagList.add(new StringRealm(s));
         }
     }
 }

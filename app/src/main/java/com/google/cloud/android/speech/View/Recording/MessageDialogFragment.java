@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.android.speech.Recording;
+package com.google.cloud.android.speech.View.Recording;
 
 import android.app.Dialog;
 import android.content.DialogInterface;

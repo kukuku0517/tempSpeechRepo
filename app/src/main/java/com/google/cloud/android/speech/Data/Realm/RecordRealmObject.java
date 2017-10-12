@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.RealmData;
+package com.google.cloud.android.speech.Data.Realm;
 
 import io.realm.RealmModel;
 import io.realm.RealmObject;
@@ -9,7 +9,8 @@ import io.realm.annotations.PrimaryKey;
  */
 
 public interface RecordRealmObject extends RealmModel {
-    public abstract int getId();
-    public abstract void setId(int id);
+    int getId();
+
+    void setId(int id);
 
 }

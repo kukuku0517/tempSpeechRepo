@@ -1,9 +1,10 @@
-package com.google.cloud.android.speech.RecordList;
+package com.google.cloud.android.speech.Data.DTO;
 
 import android.databinding.BindingAdapter;
 import android.widget.TextView;
 
-import com.google.cloud.android.speech.RealmData.RecordRealm;
+import com.google.cloud.android.speech.Data.Realm.RecordRealm;
+import com.google.cloud.android.speech.Data.Realm.StringRealm;
 
 import java.util.ArrayList;
 
@@ -14,23 +15,19 @@ import io.realm.Realm;
  */
 
 public class RecordDTO {
-    String title="";
-    int duration=0;
-    ArrayList<String> tagList=new ArrayList<>();
+    private String title="";
+    private int duration=0;
+    private ArrayList<String> tagList=new ArrayList<>();
+    private long startMillis = -1;
 
-    public RecordDTO(String title, int duration, ArrayList<String> tagList) {
-        this.title = title;
-        this.duration = duration;
-        this.tagList = tagList;
-    }
 
     public RecordDTO(RecordRealm recordRealm) {
         this.title = recordRealm.getTitle();
         this.duration = recordRealm.getDuration();
-        for(RealmString s:recordRealm.getTagList()){
+        this.startMillis=recordRealm.getStartMillis();
+        for(StringRealm s:recordRealm.getTagList()){
             this.tagList.add(s.getString());
         }
-
     }
 
     public static RecordRealm toRealm(RecordDTO recordDTO) {
@@ -40,6 +37,7 @@ public class RecordDTO {
         recordRealm.setTitle(recordDTO.getTitle());
         recordRealm.setDuration(recordDTO.getDuration());
         recordRealm.setTagList(recordDTO.getTagList());
+        recordRealm.setStartMillis(recordDTO.getStartMillis());
         realm.commitTransaction();
         return recordRealm;
     }
@@ -66,6 +64,14 @@ public class RecordDTO {
 
     public void setTagList(ArrayList<String> tagList) {
         this.tagList = tagList;
+    }
+
+    public long getStartMillis() {
+        return startMillis;
+    }
+
+    public void setStartMillis(long startMillis) {
+        this.startMillis = startMillis;
     }
 
     @BindingAdapter("android:text")

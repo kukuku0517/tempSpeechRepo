@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.RecordList;
+package com.google.cloud.android.speech.View.RecordList;
 
 import android.app.Activity;
 import android.app.Dialog;

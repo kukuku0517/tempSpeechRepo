@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.android.speech.Recording;
+package com.google.cloud.android.speech.View.Recording;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
@@ -22,6 +22,8 @@ import android.media.MediaRecorder;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.util.Log;
+
+import com.google.cloud.android.speech.Util.FileUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -50,6 +52,7 @@ public class VoiceRecorder {
     private static final int MAX_SPEECH_LENGTH_MILLIS = 30 * 1000;
     private static final String AUDIO_RECORDER_FILE_EXT_WAV = ".wav";
     private static String AUDIO_RECORDER_FOLDER = "Music";
+    private static String TITLE = "";
 
     int BufferElements2Rec = 1024; // want to play 2048 (2K) since 2 bytes we
     // use only 1024
@@ -58,9 +61,10 @@ public class VoiceRecorder {
     private FileOutputStream os;
     private static String TAG = "kjh";
     private int recorderSampleRate = 44100;
-    private int bufferSize=0;
+    private int bufferSize = 0;
 
     private static final String AUDIO_RECORDER_TEMP_FILE = "record_temp.pcm";
+
     public static abstract class Callback {
 
         /**
@@ -110,6 +114,10 @@ public class VoiceRecorder {
         mCallback = callback;
     }
 
+    public void setTitle(String title) {
+        TITLE = title;
+    }
+
     /**
      * Starts recording audio.
      * <p>
@@ -120,7 +128,7 @@ public class VoiceRecorder {
         stop();
 
         try {
-            os = new FileOutputStream(getTempFilename());
+            os = new FileOutputStream(FileUtil.getTempFilename());
             isRecording = true;
             Log.d(TAG, "open filestream");
         } catch (FileNotFoundException e) {
@@ -158,8 +166,8 @@ public class VoiceRecorder {
                 try {
                     Log.d(TAG, "recording en");
                     os.close();
-                    Log.d(TAG,getTempFilename()+":"+getFilename());
-                    copyWaveFile(getTempFilename(),getFilename());
+                    Log.d(TAG, FileUtil.getTempFilename() + ":" + FileUtil.getFilename(TITLE));
+                    copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE));
                     deleteTempFile();
 
                     isRecording = false;
@@ -170,7 +178,6 @@ public class VoiceRecorder {
 
         }
     }
-
 
 
     /**
@@ -210,7 +217,7 @@ public class VoiceRecorder {
             if (sizeInBytes == AudioRecord.ERROR_BAD_VALUE) {
                 continue;
             }
-            recorderSampleRate=sampleRate;
+            recorderSampleRate = sampleRate;
             bufferSize = sizeInBytes;
             final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
                     sampleRate, CHANNEL, ENCODING, sizeInBytes);
@@ -288,51 +295,51 @@ public class VoiceRecorder {
 
     }
 
-    private String getFilename(){
-        String filepath = Environment.getExternalStorageDirectory().getPath();
-
-
-        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
-
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-
-        return (file.getAbsolutePath() + "/" + System.currentTimeMillis() +
-                AUDIO_RECORDER_FILE_EXT_WAV);
-    }
-
-    private String getTempFilename() {
-        String filepath = Environment.getExternalStorageDirectory().getPath();
-
-
-        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
-
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-
-        File tempFile = new File(filepath,AUDIO_RECORDER_TEMP_FILE);
-
-        if (tempFile.exists())
-            tempFile.delete();
-
-        return (file.getAbsolutePath() + "/" + AUDIO_RECORDER_TEMP_FILE);
-    }
+//    private String getFilename() {
+//        String filepath = Environment.getExternalStorageDirectory().getPath();
+//
+//
+//        File file = new File(filepath, AUDIO_RECORDER_FOLDER);
+//
+//        if (!file.exists()) {
+//            file.mkdirs();
+//        }
+//        String fileName = (TITLE==null|TITLE.equals(""))?String.valueOf(System.currentTimeMillis()):TITLE;
+//        return (file.getAbsolutePath() + "/" + fileName +
+//                AUDIO_RECORDER_FILE_EXT_WAV);
+//    }
+//
+//    private String getTempFilename() {
+//        String filepath = Environment.getExternalStorageDirectory().getPath();
+//
+//
+//        File file = new File(filepath, AUDIO_RECORDER_FOLDER);
+//
+//        if (!file.exists()) {
+//            file.mkdirs();
+//        }
+//
+//        File tempFile = new File(filepath, AUDIO_RECORDER_TEMP_FILE);
+//
+//        if (tempFile.exists())
+//            tempFile.delete();
+//
+//        return (file.getAbsolutePath() + "/" + AUDIO_RECORDER_TEMP_FILE);
+//    }
 
     private void deleteTempFile() {
-        File file = new File(getTempFilename());
+        File file = new File(FileUtil.getTempFilename());
         file.delete();
     }
 
-    private void copyWaveFile(String inFilename,String outFilename){
+    private void copyWaveFile(String inFilename, String outFilename) {
         FileInputStream in = null;
         FileOutputStream out = null;
         long totalAudioLen = 0;
         long totalDataLen = totalAudioLen + 36;
         long longSampleRate = recorderSampleRate;
         int channels = 1;
-        long byteRate = RECORDER_BPP *recorderSampleRate* channels/8;
+        long byteRate = RECORDER_BPP * recorderSampleRate * channels / 8;
 
         byte[] data = new byte[bufferSize];
 
@@ -345,7 +352,7 @@ public class VoiceRecorder {
             WriteWaveFileHeader(out, totalAudioLen, totalDataLen,
                     longSampleRate, channels, byteRate);
 
-            while(in.read(data) != -1) {
+            while (in.read(data) != -1) {
                 out.write(data);
             }
 
@@ -361,8 +368,7 @@ public class VoiceRecorder {
     private void WriteWaveFileHeader(
             FileOutputStream out, long totalAudioLen,
             long totalDataLen, long longSampleRate, int channels,
-            long byteRate) throws IOException
-    {
+            long byteRate) throws IOException {
         byte[] header = new byte[44];
 
         header[0] = 'R';  // RIFF/WAVE header

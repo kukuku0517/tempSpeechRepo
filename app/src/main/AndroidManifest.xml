@@ -29,18 +29,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Speech"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".Recording.MainActivity"></activity>
+        <activity android:name=".View.Recording.MainActivity"></activity>
 
-        <service android:name=".Recording.SpeechService" />
+        <service android:name=".View.Recording.SpeechService" />
 
-        <activity android:name=".RecordList.ListActivity">
+        <activity android:name=".View.RecordList.ListActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".RecordingResult.RecordResultActivity"></activity>
+        <activity android:name=".View.RecordResult.RecordResultActivity"></activity>
     </application>
 
 </manifest>

@@ -9,7 +9,7 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="textPersonName"
-      />
+        />
     <EditText
         android:id="@+id/et_new_record_tag"
         android:layout_width="match_parent"

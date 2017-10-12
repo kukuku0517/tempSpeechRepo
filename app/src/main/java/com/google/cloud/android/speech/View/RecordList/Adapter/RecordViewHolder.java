@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.RecordList;
+package com.google.cloud.android.speech.View.RecordList.Adapter;
 
 import android.content.Context;
 import android.content.Intent;
@@ -6,8 +6,8 @@ import android.databinding.DataBindingUtil;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
-import com.google.cloud.android.speech.RealmData.RecordRealm;
-import com.google.cloud.android.speech.RecordingResult.RecordResultActivity;
+import com.google.cloud.android.speech.Data.Realm.RecordRealm;
+import com.google.cloud.android.speech.View.RecordResult.RecordResultActivity;
 import com.google.cloud.android.speech.databinding.ItemRecordBinding;
 
 /**

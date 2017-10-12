@@ -1,10 +1,8 @@
-package com.google.cloud.android.speech.RealmData;
+package com.google.cloud.android.speech.Data.Realm;
 
 import io.realm.RealmList;
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
-
-import static android.os.Build.VERSION_CODES.M;
 
 /**
  * Created by samsung on 2017-10-07.
