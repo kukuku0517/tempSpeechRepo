@@ -15,8 +15,8 @@ public class DateUtil {
         return String.format("%d:%d:%d",h,m,s);
     }
 
-    public static String millisToDate(int value){
+    public static String millisToDate(long value){
         Date date = new Date(value);
-        return new SimpleDateFormat("HH:mm:ss").format(date);
+        return new SimpleDateFormat("yyyy/MM/dd").format(date);
     }
 }

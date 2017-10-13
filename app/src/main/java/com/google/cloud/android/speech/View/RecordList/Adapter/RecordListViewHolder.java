@@ -9,13 +9,14 @@ import android.view.View;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.View.RecordResult.RecordResultActivity;
 import com.google.cloud.android.speech.databinding.ItemRecordBinding;
+import com.google.cloud.android.speech.databinding.ItemRecordListBinding;
 
 /**
  * Created by samsung on 2017-10-06.
  */
 
 public class RecordListViewHolder extends RecyclerView.ViewHolder {
-    ItemRecordBinding binding;
+    ItemRecordListBinding binding;
     RecordRealm recordRealm;
     Context context;
 

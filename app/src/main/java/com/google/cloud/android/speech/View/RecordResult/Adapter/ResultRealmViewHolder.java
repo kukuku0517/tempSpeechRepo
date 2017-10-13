@@ -7,8 +7,7 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import com.google.cloud.android.speech.R;
-import com.google.cloud.android.speech.databinding.ItemRecordedResultBinding;
-
+import com.google.cloud.android.speech.databinding.ItemRecordResultBinding;
 
 /**
  * Created by samsung on 2017-10-08.
@@ -16,7 +15,7 @@ import com.google.cloud.android.speech.databinding.ItemRecordedResultBinding;
 
 public class ResultRealmViewHolder extends RecyclerView.ViewHolder{
 
-    ItemRecordedResultBinding binding;
+    ItemRecordResultBinding binding;
 
     public ResultRealmViewHolder(View view) {
         super(view);

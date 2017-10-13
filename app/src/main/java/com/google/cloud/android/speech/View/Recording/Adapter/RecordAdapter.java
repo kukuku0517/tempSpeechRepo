@@ -31,7 +31,7 @@ public class RecordAdapter extends RecyclerView.Adapter<RecordViewHolder> {
 
     @Override
     public void onBindViewHolder(RecordViewHolder holder, int position) {
-        holder.binding.setResult(mResults.get(position));
+//        holder.binding.setResult(mResults.get(position));
     }
 
     @Override

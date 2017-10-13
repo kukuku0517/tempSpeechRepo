@@ -135,6 +135,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         mediaPlayer.prepareAsync();
         mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override

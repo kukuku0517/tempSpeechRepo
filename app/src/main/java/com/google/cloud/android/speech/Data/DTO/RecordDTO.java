@@ -84,5 +84,11 @@ public class RecordDTO {
         view.setText(timeString);
     }
 
+    @BindingAdapter("android:text")
+    public static void setText(TextView view, long value) {
+        String timeString = DateUtil.millisToDate(value);
+        view.setText(timeString);
+    }
+
 
 }

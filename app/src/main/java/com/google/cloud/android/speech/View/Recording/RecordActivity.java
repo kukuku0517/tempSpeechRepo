@@ -24,6 +24,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -41,16 +42,21 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.google.cloud.android.speech.R;
+import com.google.cloud.android.speech.Util.FileUtil;
 import com.google.cloud.android.speech.Util.RealmUtil;
 import com.google.cloud.android.speech.View.RecordList.NewRecordDialog;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
 import com.google.cloud.android.speech.Data.Realm.WordRealm;
-import com.google.cloud.android.speech.View.Recording.Adapter.RecordAdapter;
+import com.google.cloud.android.speech.View.Recording.Adapter.RecordRealmAdapter;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
@@ -64,6 +70,8 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     private static final String STATE_RESULTS = "results";
 
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 1;
+    private static final int REQUEST_FILE_AUDIO_PERMISSION = 2;
+
 
     private SpeechService mSpeechService;
 
@@ -102,10 +110,10 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     // View references
     private TextView mStatus;
     private TextView mText;
-    private RecordAdapter mAdapter;
+    private RecordRealmAdapter mAdapter;
     private RecyclerView mRecyclerView;
     private Context context = this;
-    private Button recordBtn, stopBtn;
+    private ImageButton recordBtn, stopBtn;
 
     boolean serviceBinded = false;
     private Realm realm;
@@ -117,14 +125,68 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
             mSpeechService = SpeechService.from(binder);
             mSpeechService.addListener(mSpeechServiceListener);
             mStatus.setVisibility(View.VISIBLE);
+            serviceBinded = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             mSpeechService = null;
+            serviceBinded=false;
         }
 
     };
+
+    private void initialize(int requestCode) {
+        bindService(new Intent(context, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
+
+        String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+        if (checkPermissions(context, PERMISSIONS)) {
+
+            NewRecordDialog dialog = new NewRecordDialog();
+            dialog.setRequestCode(requestCode);
+            dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
+
+
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
+                Manifest.permission.RECORD_AUDIO) || ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            showPermissionMessageDialog();
+        } else {
+            ActivityCompat.requestPermissions((Activity) context, PERMISSIONS,
+                    requestCode);
+        }
+    }
+
+    private boolean checkPermissions(Context context, String... permissions) {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
+            for (String permission : permissions) {
+                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION || requestCode == REQUEST_FILE_AUDIO_PERMISSION) {
+            if (permissions.length == 2 && grantResults.length == 2
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+
+                NewRecordDialog dialog = new NewRecordDialog();
+                dialog.setRequestCode(requestCode);
+                dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
+
+            } else {
+                showPermissionMessageDialog();
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,37 +201,17 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
         mStatus = (TextView) findViewById(R.id.status);
         mText = (TextView) findViewById(R.id.text);
-        recordBtn = (Button) findViewById(R.id.record);
-        stopBtn = (Button) findViewById(R.id.stop);
+        recordBtn = (ImageButton) findViewById(R.id.record);
+        stopBtn = (ImageButton) findViewById(R.id.stop);
+
+        bindService(new Intent(context, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
+
 
         recordBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                bindService(new Intent(context, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
-                serviceBinded = true;
-                // Start listening to voices
-//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-//                == PackageManager.PERMISSION_GRANTED) {
-//            startVoiceRecorder();
-                String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
-                if (checkPermissions(context, PERMISSIONS)) {
-                    startVoiceRecorder();
-                    realm.executeTransaction(new Realm.Transaction() {
-                        @Override
-                        public void execute(Realm realm) {
-                            record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
-                        }
-                    });
-
-                } else if (ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
-                        Manifest.permission.RECORD_AUDIO) || ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    showPermissionMessageDialog();
-                } else {
-                    ActivityCompat.requestPermissions((Activity) context, PERMISSIONS,
-                            REQUEST_RECORD_AUDIO_PERMISSION);
-                }
+                initialize(REQUEST_RECORD_AUDIO_PERMISSION);
             }
         });
 
@@ -192,24 +234,22 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         });
 
         realm = Realm.getDefaultInstance();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+
+                record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
+            }
+        });
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         final ArrayList<String> results = savedInstanceState == null ? null :
                 savedInstanceState.getStringArrayList(STATE_RESULTS);
-        mAdapter = new RecordAdapter(results);
-        mRecyclerView.setAdapter(mAdapter);
-    }
 
-    private boolean checkPermissions(Context context, String... permissions) {
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
-            for (String permission : permissions) {
-                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
-                    return false;
-                }
-            }
-        }
-        return true;
+
+        mAdapter = new RecordRealmAdapter(record.getSentenceRealms(),true,true,this);
+        mRecyclerView.setAdapter(mAdapter);
     }
 
     @Override
@@ -247,7 +287,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 mSpeechService.removeListener(mSpeechServiceListener);
             }
         }
-        if(serviceBinded){
+        if (serviceBinded) {
             unbindService(mServiceConnection);
 
         }
@@ -259,30 +299,12 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (mAdapter != null) {
-            outState.putStringArrayList(STATE_RESULTS, mAdapter.getResults());
-        }
+//        if (mAdapter != null) {
+//            outState.putStringArrayList(STATE_RESULTS, mAdapter.getResults());
+//        }
     }
 
     final String TAG = "Speech";
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
-            if (permissions.length == 2 && grantResults.length == 2
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, permissions[0]);
-                Log.d(TAG, permissions[1]);
-
-                startVoiceRecorder();
-            } else {
-                showPermissionMessageDialog();
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -294,24 +316,15 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_file:
-                mSpeechService.recognizeInputStream(getResources().openRawResource(R.raw.audio));
+                initialize(REQUEST_FILE_AUDIO_PERMISSION);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    private void startVoiceRecorder() {
-        if (mVoiceRecorder != null) {
-            mVoiceRecorder.stop();
-        }
-        DialogFragment dialog = new NewRecordDialog();
-        dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
-
-    }
-
     @Override
-    public void onDialogPositiveClick(final String title, String tag) {
+    public void onDialogPositiveClick(final String title, String tag,int requestCode) {
         StringTokenizer st = new StringTokenizer(tag);
         final ArrayList<String> tags = new ArrayList<>();
         while (st.hasMoreTokens()) {
@@ -320,17 +333,40 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
+
                 record.setTitle(title);
                 record.setTagList(tags);
             }
         });
-        mVoiceRecorder = new VoiceRecorder(mVoiceCallback);
-        mVoiceRecorder.setTitle(title);
-        mVoiceRecorder.start();
+
+        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
+            startVoiceRecorder();
+        } else if (requestCode == REQUEST_FILE_AUDIO_PERMISSION) {
+            mSpeechService.recognizeFileStream(FileUtil.getFilename("ㅈ"));
+//            try {
+//                FileInputStream fileInputStream = new FileInputStream(file);
+//
+//                mSpeechService.recognizeInputStream(fileInputStream);
+//            } catch (FileNotFoundException e) {
+//                e.printStackTrace();
+//            }
+        }
+
     }
 
     @Override
     public void onDialogNegativeClick() {
+
+    }
+
+    private void startVoiceRecorder() {
+        if (mVoiceRecorder != null) {
+            mVoiceRecorder.stop();
+        }
+
+        mVoiceRecorder = new VoiceRecorder(mVoiceCallback);
+        mVoiceRecorder.setTitle(record.getTitle());
+        mVoiceRecorder.start();
 
     }
 
@@ -368,9 +404,11 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 @Override
                 public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart) {
                     if (isFinal) {
-
                         Log.i(TAG, "dismiss");
-                        mVoiceRecorder.dismiss();
+                        if(mVoiceRecorder!=null){
+
+                            mVoiceRecorder.dismiss();
+                        }
                     }
                     if (mText != null && !TextUtils.isEmpty(text)) {
                         runOnUiThread(new Runnable() {
@@ -401,7 +439,6 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
                                     realm.commitTransaction();
 
-                                    mAdapter.addResult(text);
                                     mRecyclerView.smoothScrollToPosition(0);
                                 } else {
                                     mText.setText(text);

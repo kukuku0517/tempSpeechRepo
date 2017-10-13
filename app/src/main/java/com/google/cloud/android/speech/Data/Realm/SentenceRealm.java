@@ -1,5 +1,11 @@
 package com.google.cloud.android.speech.Data.Realm;
 
+import android.databinding.BindingAdapter;
+import android.view.View;
+import android.widget.TextView;
+
+import com.google.cloud.android.speech.Util.DateUtil;
+
 import io.realm.RealmList;
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
@@ -43,4 +49,8 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
         this.id = id;
     }
 
+    @BindingAdapter("android:text")
+    public static void setText(TextView v, int value){
+        v.setText(DateUtil.durationToDate(value));
+    }
 }

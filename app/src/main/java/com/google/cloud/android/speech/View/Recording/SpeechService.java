@@ -20,6 +20,11 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Path;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.AudioTrack;
+import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Handler;
@@ -44,8 +49,15 @@ import com.google.cloud.speech.v1.StreamingRecognitionConfig;
 import com.google.cloud.speech.v1.StreamingRecognitionResult;
 import com.google.cloud.speech.v1.StreamingRecognizeRequest;
 import com.google.cloud.speech.v1.StreamingRecognizeResponse;
+import com.google.common.io.Files;
 import com.google.protobuf.ByteString;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -69,6 +81,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.internal.DnsNameResolverProvider;
+import io.grpc.internal.IoUtils;
 import io.grpc.okhttp.OkHttpChannelProvider;
 import io.grpc.stub.StreamObserver;
 
@@ -83,7 +96,7 @@ public class SpeechService extends Service {
          * @param text    The text.
          * @param isFinal {@code true} when the API finished processing audio.
          */
-        void onSpeechRecognized(String text, boolean isFinal,long startMillis);
+        void onSpeechRecognized(String text, boolean isFinal, long startMillis);
 
     }
 
@@ -93,9 +106,13 @@ public class SpeechService extends Service {
     private static final String PREF_ACCESS_TOKEN_VALUE = "access_token_value";
     private static final String PREF_ACCESS_TOKEN_EXPIRATION_TIME = "access_token_expiration_time";
 
-    /** We reuse an access token if its expiration time is longer than this. */
+    /**
+     * We reuse an access token if its expiration time is longer than this.
+     */
     private static final int ACCESS_TOKEN_EXPIRATION_TOLERANCE = 30 * 60 * 1000; // thirty minutes
-    /** We refresh the current access token before it expires. */
+    /**
+     * We refresh the current access token before it expires.
+     */
     private static final int ACCESS_TOKEN_FETCH_MARGIN = 60 * 1000; // one minute
 
     public static final List<String> SCOPE =
@@ -115,20 +132,22 @@ public class SpeechService extends Service {
             = new StreamObserver<StreamingRecognizeResponse>() {
         @Override
         public void onNext(StreamingRecognizeResponse response) {
-            Log.i(TAG,"answer received");
+            Log.i(TAG, "answer received");
             String text = null;
             boolean isFinal = false;
             if (response.getResultsCount() > 0) {
                 final StreamingRecognitionResult result = response.getResults(0);
                 isFinal = result.getIsFinal();
                 if (result.getAlternativesCount() > 0) {
+
                     final SpeechRecognitionAlternative alternative = result.getAlternatives(0);
                     text = alternative.getTranscript();
                 }
             }
             if (text != null) {
                 for (Listener listener : mListeners) {
-                    listener.onSpeechRecognized(text, isFinal,startMillis);
+                    listener.onSpeechRecognized(text, isFinal, startMillis);
+                    Log.i(TAG, text);
                 }
             }
         }
@@ -159,7 +178,7 @@ public class SpeechService extends Service {
             }
             if (text != null) {
                 for (Listener listener : mListeners) {
-                    listener.onSpeechRecognized(text, true,startMillis);
+                    listener.onSpeechRecognized(text, true, 0);
                 }
             }
         }
@@ -241,10 +260,9 @@ public class SpeechService extends Service {
         mListeners.remove(listener);
     }
 
-    public boolean hasListener(){
-        return mListeners!=null;
+    public boolean hasListener() {
+        return mListeners != null;
     }
-
 
 
     /**
@@ -252,13 +270,13 @@ public class SpeechService extends Service {
      *
      * @param sampleRate The sample rate of the audio.
      */
-    public void startRecognizing(int sampleRate,long startMillis) {
+    public void startRecognizing(int sampleRate, long startMillis) {
         if (mApi == null) {
             Log.i(TAG, "API not ready. Ignoring the request.");
             return;
         }
 
-        this.startMillis=startMillis;
+        this.startMillis = startMillis;
 
         // Configure the API
         mRequestObserver = mApi.streamingRecognize(mResponseObserver);
@@ -284,6 +302,8 @@ public class SpeechService extends Service {
      * @param data The audio data.
      * @param size The number of elements that are actually relevant in the {@code data}.
      */
+
+
     public void recognize(byte[] data, int size) {
         if (mRequestObserver == null) {
             return;
@@ -292,7 +312,7 @@ public class SpeechService extends Service {
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                 .setAudioContent(ByteString.copyFrom(data, 0, size))
                 .build());
-        Log.i(TAG,"buffer sent");
+        Log.i(TAG, "buffer sent");
     }
 
     /**
@@ -304,7 +324,7 @@ public class SpeechService extends Service {
         }
         mRequestObserver.onCompleted();
         mRequestObserver = null;
-        Log.i(TAG,"2 : observer nullified");
+        Log.i(TAG, "2 : observer nullified");
     }
 
     /**
@@ -313,24 +333,110 @@ public class SpeechService extends Service {
      * @param stream The audio data.
      */
 
-    public void recognizeInputStream(InputStream stream) {
-        try {
-            mApi.recognize(
-                    RecognizeRequest.newBuilder()
-                            .setConfig(RecognitionConfig.newBuilder()
-                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-                                    .setLanguageCode("en-US")
-                                    .setSampleRateHertz(16000)
+    private static final int[] SAMPLE_RATE_CANDIDATES = new int[]{16000, 11025, 22050, 44100};
+    private static final int CHANNEL = AudioFormat.CHANNEL_IN_MONO;
+    private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+    private int recorderSampleRate = 44100;
+    private int bufferSize = 0;
+    private byte[] mBuffer;
 
-                                    .build())
-                            .setAudio(RecognitionAudio.newBuilder()
-                                    .setContent(ByteString.readFrom(stream))
-                                    .build())
-                            .build(),
-                    mFileResponseObserver);
-        } catch (IOException e) {
-            Log.e(TAG, "Error loading the input", e);
+    //buffer size 구하기위한 임시 함수
+    private AudioRecord createAudioRecord() {
+        for (int sampleRate : SAMPLE_RATE_CANDIDATES) {
+            final int sizeInBytes = AudioRecord.getMinBufferSize(sampleRate, CHANNEL, ENCODING);
+
+            if (sizeInBytes == AudioRecord.ERROR_BAD_VALUE) {
+                continue;
+            }
+            recorderSampleRate = sampleRate;
+            bufferSize = sizeInBytes;
+            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                    sampleRate, CHANNEL, ENCODING, sizeInBytes);
+            if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
+                mBuffer = new byte[sizeInBytes];
+                return audioRecord;
+            } else {
+                audioRecord.release();
+            }
         }
+        return null;
+    }
+
+
+//    public void recognizeInputStream(InputStream stream) {
+//        try {
+//            mApi.recognize(
+//                    RecognizeRequest.newBuilder()
+//                            .setConfig(RecognitionConfig.newBuilder()
+//                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+//                                    .setLanguageCode(getDefaultLanguageCode())
+//                                    .setSampleRateHertz(16000)
+//                                    .build())
+//                            .setAudio(RecognitionAudio.newBuilder()
+//                                    .setContent(ByteString.readFrom(stream))
+//                                    .build())
+//                            .build(),
+//                    mFileResponseObserver);
+//        } catch (IOException e) {
+//            Log.e(TAG, "Error loading the input", e);
+//        }
+//
+//
+//    }
+
+
+    public int getValidSampleRates() {
+        int sampleRate = 8000;
+        for (int rate : new int[]{8000, 11025, 16000, 22050, 44100}) {  // add the rates you wish to check against
+            int bufferSize = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_CONFIGURATION_DEFAULT, AudioFormat.ENCODING_PCM_16BIT);
+            if (bufferSize > 0) {
+                sampleRate = rate;
+            }
+        }
+        Log.i(TAG, String.valueOf(sampleRate));
+        return sampleRate;
+    }
+
+    public void recognizeFileStream(String fileName) {
+        try {
+            FileInputStream stream = new FileInputStream(new File(fileName));
+
+            getValidSampleRates();
+
+            byte[] data = IoUtils.toByteArray(new FileInputStream(new File(fileName)));
+
+            mRequestObserver = mApi.streamingRecognize(mResponseObserver);
+            createAudioRecord();
+            getValidSampleRates();
+
+            Log.i(TAG, "1 : observer created");
+            mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
+                            .setConfig(RecognitionConfig.newBuilder()
+                                    .setLanguageCode(getDefaultLanguageCode())
+                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+                                    .setSampleRateHertz(16000)
+                                    .build())
+                            .setInterimResults(true)
+                            .setSingleUtterance(false)
+                            .build())
+                    .build());
+
+            while (true) {
+                if (stream.read(mBuffer, 0, bufferSize) == -1) {
+                    break;
+                }
+
+                mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                        .setAudioContent(ByteString.copyFrom(mBuffer))
+                        .build());
+            }
+            int a = 0;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private class SpeechBinder extends Binder {

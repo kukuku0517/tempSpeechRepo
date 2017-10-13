@@ -50,8 +50,6 @@ public class VoiceRecorder {
     private static final int AMPLITUDE_THRESHOLD = 1500;
     private static final int SPEECH_TIMEOUT_MILLIS = 2000;
     private static final int MAX_SPEECH_LENGTH_MILLIS = 30 * 1000;
-    private static final String AUDIO_RECORDER_FILE_EXT_WAV = ".wav";
-    private static String AUDIO_RECORDER_FOLDER = "Music";
     private static String TITLE = "";
 
     int BufferElements2Rec = 1024; // want to play 2048 (2K) since 2 bytes we
@@ -63,7 +61,6 @@ public class VoiceRecorder {
     private int recorderSampleRate = 44100;
     private int bufferSize = 0;
 
-    private static final String AUDIO_RECORDER_TEMP_FILE = "record_temp.pcm";
 
     public static abstract class Callback {
 
@@ -185,8 +182,8 @@ public class VoiceRecorder {
      */
     public void dismiss() {
         if (mLastVoiceHeardMillis != Long.MAX_VALUE) {
-            mLastVoiceHeardMillis = Long.MAX_VALUE;
             mCallback.onVoiceEnd();
+            mLastVoiceHeardMillis = Long.MAX_VALUE;
         }
     }
 
@@ -213,7 +210,7 @@ public class VoiceRecorder {
     private AudioRecord createAudioRecord() {
         for (int sampleRate : SAMPLE_RATE_CANDIDATES) {
             final int sizeInBytes = AudioRecord.getMinBufferSize(sampleRate, CHANNEL, ENCODING);
-
+            Log.i(TAG, sizeInBytes + ": bufferSize");
             if (sizeInBytes == AudioRecord.ERROR_BAD_VALUE) {
                 continue;
             }
@@ -221,6 +218,8 @@ public class VoiceRecorder {
             bufferSize = sizeInBytes;
             final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
                     sampleRate, CHANNEL, ENCODING, sizeInBytes);
+
+            Log.i(TAG, recorderSampleRate+":sample rate");
             if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
                 mBuffer = new byte[sizeInBytes];
                 return audioRecord;
@@ -228,6 +227,7 @@ public class VoiceRecorder {
                 audioRecord.release();
             }
         }
+
         return null;
     }
 
