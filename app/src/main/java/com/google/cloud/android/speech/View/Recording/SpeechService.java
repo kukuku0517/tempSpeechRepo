@@ -1,29 +1,11 @@
-/*
- * Copyright (C) 2017 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.google.cloud.android.speech.View.Recording;
 
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Path;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
-import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Binder;
@@ -37,10 +19,12 @@ import android.util.Log;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.android.speech.Data.Realm.RecordRealm;
+import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
+import com.google.cloud.android.speech.Data.Realm.WordRealm;
 import com.google.cloud.android.speech.R;
-import com.google.cloud.speech.v1.RecognitionAudio;
+import com.google.cloud.android.speech.Util.RealmUtil;
 import com.google.cloud.speech.v1.RecognitionConfig;
-import com.google.cloud.speech.v1.RecognizeRequest;
 import com.google.cloud.speech.v1.RecognizeResponse;
 import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
@@ -49,15 +33,10 @@ import com.google.cloud.speech.v1.StreamingRecognitionConfig;
 import com.google.cloud.speech.v1.StreamingRecognitionResult;
 import com.google.cloud.speech.v1.StreamingRecognizeRequest;
 import com.google.cloud.speech.v1.StreamingRecognizeResponse;
-import com.google.common.io.Files;
 import com.google.protobuf.ByteString;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -68,6 +47,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 
 import io.grpc.CallOptions;
@@ -84,9 +64,12 @@ import io.grpc.internal.DnsNameResolverProvider;
 import io.grpc.internal.IoUtils;
 import io.grpc.okhttp.OkHttpChannelProvider;
 import io.grpc.stub.StreamObserver;
-
+import io.realm.Realm;
 
 public class SpeechService extends Service {
+    private Realm realm;
+    private RecordRealm record;
+    private VoiceRecorder mVoiceRecorder;
 
     public interface Listener {
 
@@ -99,6 +82,132 @@ public class SpeechService extends Service {
         void onSpeechRecognized(String text, boolean isFinal, long startMillis);
 
     }
+
+    private final Listener mSpeechServiceListener =
+            new Listener() {
+                @Override
+                public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart) {
+                    if (isFinal) {
+                        Log.i(TAG, "dismiss");
+                        if (mVoiceRecorder != null) {
+                            mVoiceRecorder.dismiss();
+                        }
+                    }
+                    //mText != null &&
+                    if (!TextUtils.isEmpty(text)) {
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                if (isFinal) {
+//                                    Log.i(TAG, "** final");
+//                                    mText.setText(null);
+//
+//                                    realm.beginTransaction();
+//                                    long recordStart = record.getStartMillis();
+//                                    if (recordStart == -1) {
+//                                        record.setStartMillis(sentenceStart);
+//                                        recordStart = sentenceStart;
+//                                    }
+//
+//                                    SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
+//                                    sentence.setStartMillis(sentenceStart - recordStart);
+//                                    StringTokenizer st = new StringTokenizer(text);
+//                                    while (st.hasMoreTokens()) {
+//                                        String token = st.nextToken();
+//                                        WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
+//                                        word.setWord(token);
+//                                        sentence.getWordList().add(word);
+//                                    }
+//                                    record.getSentenceRealms().add(sentence);
+//
+//
+//                                    realm.commitTransaction();
+//
+//                                    mRecyclerView.smoothScrollToPosition(0);
+//                                } else {
+//                                    mText.setText(text);
+//                                }
+//                            }
+//                        });
+
+
+                            if (isFinal) {
+                                Log.i(TAG, "** final");
+
+                                realm.beginTransaction();
+                                long recordStart = record.getStartMillis();
+                                if (recordStart == -1) {
+                                    record.setStartMillis(sentenceStart);
+                                    recordStart = sentenceStart;
+                                }
+
+                                SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
+                                sentence.setStartMillis(sentenceStart - recordStart);
+                                StringTokenizer st = new StringTokenizer(text);
+                                while (st.hasMoreTokens()) {
+                                    String token = st.nextToken();
+                                    WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
+                                    word.setWord(token);
+                                    sentence.getWordList().add(word);
+                                }
+                                record.getSentenceRealms().add(sentence);
+
+                                realm.commitTransaction();
+
+//                                mRecyclerView.smoothScrollToPosition(0);
+                            } else { //not final -> send temp text to record activity
+//                                mText.setText(text);
+                            }
+
+                    }
+
+                }
+            };
+
+    public void initRecorder(final String title, final ArrayList<String> tags) {
+
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
+                        record.setTitle(title);
+                        record.setTagList(tags);
+                    }
+                });
+
+
+        mVoiceRecorder = new VoiceRecorder(mVoiceCallback);
+        mVoiceRecorder.setTitle(record.getTitle());
+        mVoiceRecorder.start();
+
+    }
+
+    private final VoiceRecorder.Callback mVoiceCallback = new VoiceRecorder.Callback() {
+
+        @Override
+        public void onVoiceStart(long startMillis) {
+//            showStatus(true);
+            startRecognizing(mVoiceRecorder.getSampleRate(), startMillis);
+
+        }
+
+        @Override
+        public void onVoice(byte[] data, int size) {
+            recognize(data, size);
+
+            Log.i(TAG,"still alive");
+
+        }
+
+        @Override
+        public void onVoiceEnd() {
+
+            finishRecognizing();
+
+        }
+
+    };
+
 
     private static final String TAG = "SpeechService";
 
@@ -120,8 +229,8 @@ public class SpeechService extends Service {
     private static final String HOSTNAME = "speech.googleapis.com";
     private static final int PORT = 443;
 
-    private final SpeechBinder mBinder = new SpeechBinder();
-    private final ArrayList<Listener> mListeners = new ArrayList<>();
+    private final SpeechBinder2 mBinder = new SpeechBinder2();
+    private final ArrayList<SpeechService.Listener> mListeners = new ArrayList<>();
     private volatile AccessTokenTask mAccessTokenTask;
     private SpeechGrpc.SpeechStub mApi;
     private static Handler mHandler;
@@ -145,7 +254,7 @@ public class SpeechService extends Service {
                 }
             }
             if (text != null) {
-                for (Listener listener : mListeners) {
+                for (SpeechService.Listener listener : mListeners) {
                     listener.onSpeechRecognized(text, isFinal, startMillis);
                     Log.i(TAG, text);
                 }
@@ -177,7 +286,7 @@ public class SpeechService extends Service {
                 }
             }
             if (text != null) {
-                for (Listener listener : mListeners) {
+                for (SpeechService.Listener listener : mListeners) {
                     listener.onSpeechRecognized(text, true, 0);
                 }
             }
@@ -198,19 +307,24 @@ public class SpeechService extends Service {
     private StreamObserver<StreamingRecognizeRequest> mRequestObserver;
 
     public static SpeechService from(IBinder binder) {
-        return ((SpeechBinder) binder).getService();
+        return ((SpeechBinder2) binder).getService();
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
+        realm = Realm.getDefaultInstance();
         mHandler = new Handler();
+        this.addListener(mSpeechServiceListener);
         fetchAccessToken();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+
+        Log.i(TAG,"dead");
+        this.removeListener(mSpeechServiceListener);
         mHandler.removeCallbacks(mFetchAccessTokenRunnable);
         mHandler = null;
         // Release the gRPC channel.
@@ -252,194 +366,8 @@ public class SpeechService extends Service {
         return mBinder;
     }
 
-    public void addListener(@NonNull Listener listener) {
-        mListeners.add(listener);
-    }
 
-    public void removeListener(@NonNull Listener listener) {
-        mListeners.remove(listener);
-    }
-
-    public boolean hasListener() {
-        return mListeners != null;
-    }
-
-
-    /**
-     * Starts recognizing speech audio.
-     *
-     * @param sampleRate The sample rate of the audio.
-     */
-    public void startRecognizing(int sampleRate, long startMillis) {
-        if (mApi == null) {
-            Log.i(TAG, "API not ready. Ignoring the request.");
-            return;
-        }
-
-        this.startMillis = startMillis;
-
-        // Configure the API
-        mRequestObserver = mApi.streamingRecognize(mResponseObserver);
-
-        Log.i(TAG, "1 : observer created");
-        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
-                        .setConfig(RecognitionConfig.newBuilder()
-                                .setLanguageCode(getDefaultLanguageCode())
-                                .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-                                .setSampleRateHertz(sampleRate)
-                                .build())
-                        .setInterimResults(true)
-                        .setSingleUtterance(false)
-                        .build())
-                .build());
-    }
-
-    /**
-     * Recognizes the speech audio. This method should be called every time a chunk of byte buffer
-     * is ready.
-     *
-     * @param data The audio data.
-     * @param size The number of elements that are actually relevant in the {@code data}.
-     */
-
-
-    public void recognize(byte[] data, int size) {
-        if (mRequestObserver == null) {
-            return;
-        }
-        // Call the streaming recognition API
-        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                .setAudioContent(ByteString.copyFrom(data, 0, size))
-                .build());
-        Log.i(TAG, "buffer sent");
-    }
-
-    /**
-     * Finishes recognizing speech audio.
-     */
-    public void finishRecognizing() {
-        if (mRequestObserver == null) {
-            return;
-        }
-        mRequestObserver.onCompleted();
-        mRequestObserver = null;
-        Log.i(TAG, "2 : observer nullified");
-    }
-
-    /**
-     * Recognize all data from the specified {@link InputStream}.
-     *
-     * @param stream The audio data.
-     */
-
-    private static final int[] SAMPLE_RATE_CANDIDATES = new int[]{16000, 11025, 22050, 44100};
-    private static final int CHANNEL = AudioFormat.CHANNEL_IN_MONO;
-    private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
-    private int recorderSampleRate = 44100;
-    private int bufferSize = 0;
-    private byte[] mBuffer;
-
-    //buffer size 구하기위한 임시 함수
-    private AudioRecord createAudioRecord() {
-        for (int sampleRate : SAMPLE_RATE_CANDIDATES) {
-            final int sizeInBytes = AudioRecord.getMinBufferSize(sampleRate, CHANNEL, ENCODING);
-
-            if (sizeInBytes == AudioRecord.ERROR_BAD_VALUE) {
-                continue;
-            }
-            recorderSampleRate = sampleRate;
-            bufferSize = sizeInBytes;
-            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
-                    sampleRate, CHANNEL, ENCODING, sizeInBytes);
-            if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
-                mBuffer = new byte[sizeInBytes];
-                return audioRecord;
-            } else {
-                audioRecord.release();
-            }
-        }
-        return null;
-    }
-
-
-//    public void recognizeInputStream(InputStream stream) {
-//        try {
-//            mApi.recognize(
-//                    RecognizeRequest.newBuilder()
-//                            .setConfig(RecognitionConfig.newBuilder()
-//                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-//                                    .setLanguageCode(getDefaultLanguageCode())
-//                                    .setSampleRateHertz(16000)
-//                                    .build())
-//                            .setAudio(RecognitionAudio.newBuilder()
-//                                    .setContent(ByteString.readFrom(stream))
-//                                    .build())
-//                            .build(),
-//                    mFileResponseObserver);
-//        } catch (IOException e) {
-//            Log.e(TAG, "Error loading the input", e);
-//        }
-//
-//
-//    }
-
-
-    public int getValidSampleRates() {
-        int sampleRate = 8000;
-        for (int rate : new int[]{8000, 11025, 16000, 22050, 44100}) {  // add the rates you wish to check against
-            int bufferSize = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_CONFIGURATION_DEFAULT, AudioFormat.ENCODING_PCM_16BIT);
-            if (bufferSize > 0) {
-                sampleRate = rate;
-            }
-        }
-        Log.i(TAG, String.valueOf(sampleRate));
-        return sampleRate;
-    }
-
-    public void recognizeFileStream(String fileName) {
-        try {
-            FileInputStream stream = new FileInputStream(new File(fileName));
-
-            getValidSampleRates();
-
-            byte[] data = IoUtils.toByteArray(new FileInputStream(new File(fileName)));
-
-            mRequestObserver = mApi.streamingRecognize(mResponseObserver);
-            createAudioRecord();
-            getValidSampleRates();
-
-            Log.i(TAG, "1 : observer created");
-            mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
-                            .setConfig(RecognitionConfig.newBuilder()
-                                    .setLanguageCode(getDefaultLanguageCode())
-                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-                                    .setSampleRateHertz(16000)
-                                    .build())
-                            .setInterimResults(true)
-                            .setSingleUtterance(false)
-                            .build())
-                    .build());
-
-            while (true) {
-                if (stream.read(mBuffer, 0, bufferSize) == -1) {
-                    break;
-                }
-
-                mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                        .setAudioContent(ByteString.copyFrom(mBuffer))
-                        .build());
-            }
-            int a = 0;
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    private class SpeechBinder extends Binder {
+    private class SpeechBinder2 extends Binder {
 
         SpeechService getService() {
             return SpeechService.this;
@@ -536,7 +464,7 @@ public class SpeechService extends Service {
             return new ClientInterceptors.CheckedForwardingClientCall<ReqT, RespT>(
                     next.newCall(method, callOptions)) {
                 @Override
-                protected void checkedStart(Listener<RespT> responseListener, Metadata headers)
+                protected void checkedStart(ClientCall.Listener<RespT> responseListener, Metadata headers)
                         throws StatusException {
                     Metadata cachedSaved;
                     URI uri = serviceUri(next, method);
@@ -621,4 +549,212 @@ public class SpeechService extends Service {
 
     }
 
+
+    public void addListener(@NonNull SpeechService.Listener listener) {
+        mListeners.add(listener);
+    }
+
+    public void removeListener(@NonNull SpeechService.Listener listener) {
+        mListeners.remove(listener);
+    }
+
+    public boolean hasListener() {
+        return mListeners != null;
+    }
+
+
+    /**
+     * Starts recognizing speech audio.
+     *
+     * @param sampleRate The sample rate of the audio.
+     */
+    public void startRecognizing(int sampleRate, long startMillis) {
+        if (mApi == null) {
+            Log.i(TAG, "API not ready. Ignoring the request.");
+            return;
+        }
+
+
+        this.startMillis = startMillis;
+
+        // Configure the API
+        mRequestObserver = mApi.streamingRecognize(mResponseObserver);
+
+        Log.i(TAG, "1 : observer created");
+        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
+                        .setConfig(RecognitionConfig.newBuilder()
+                                .setLanguageCode(getDefaultLanguageCode())
+                                .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+                                .setSampleRateHertz(sampleRate)
+                                .build())
+                        .setInterimResults(true)
+                        .setSingleUtterance(false)
+                        .build())
+                .build());
+    }
+
+    /**
+     * Recognizes the speech audio. This method should be called every time a chunk of byte buffer
+     * is ready.
+     *
+     * @param data The audio data.
+     * @param size The number of elements that are actually relevant in the {@code data}.
+     */
+
+
+    public void recognize(byte[] data, int size) {
+        if (mRequestObserver == null) {
+            return;
+        }
+        // Call the streaming recognition API
+        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                .setAudioContent(ByteString.copyFrom(data, 0, size))
+                .build());
+        Log.i(TAG, "buffer sent");
+    }
+
+    /**
+     * Finishes recognizing speech audio.
+     */
+    public void finishRecognizing() {
+        if (mRequestObserver == null) {
+            return;
+        }
+        mRequestObserver.onCompleted();
+        mRequestObserver = null;
+        Log.i(TAG, "2 : observer nullified");
+    }
+
+    public void stopRecording(){
+        if (mVoiceRecorder != null) {
+            mVoiceRecorder.stop();
+            mVoiceRecorder = null;
+        }
+    }
+
+    /**
+     * Recognize all data from the specified {@link InputStream}.
+     *
+     * @param stream The audio data.
+     */
+
+    private static final int[] SAMPLE_RATE_CANDIDATES = new int[]{16000, 11025, 22050, 44100};
+    private static final int CHANNEL = AudioFormat.CHANNEL_IN_MONO;
+    private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+    private int recorderSampleRate = 44100;
+    private int bufferSize = 0;
+    private byte[] mBuffer;
+
+    //buffer size 구하기위한 임시 함수
+    private AudioRecord createAudioRecord() {
+        for (int sampleRate : SAMPLE_RATE_CANDIDATES) {
+            final int sizeInBytes = AudioRecord.getMinBufferSize(sampleRate, CHANNEL, ENCODING);
+
+            if (sizeInBytes == AudioRecord.ERROR_BAD_VALUE) {
+                continue;
+            }
+            recorderSampleRate = sampleRate;
+            bufferSize = sizeInBytes;
+            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                    sampleRate, CHANNEL, ENCODING, sizeInBytes);
+            if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
+                mBuffer = new byte[sizeInBytes];
+                return audioRecord;
+            } else {
+                audioRecord.release();
+            }
+        }
+        return null;
+    }
+
+
+//    public void recognizeInputStream(InputStream stream) {
+//        try {
+//            mApi.recognize(
+//                    RecognizeRequest.newBuilder()
+//                            .setConfig(RecognitionConfig.newBuilder()
+//                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+//                                    .setLanguageCode(getDefaultLanguageCode())
+//                                    .setSampleRateHertz(16000)
+//                                    .build())
+//                            .setAudio(RecognitionAudio.newBuilder()
+//                                    .setContent(ByteString.readFrom(stream))
+//                                    .build())
+//                            .build(),
+//                    mFileResponseObserver);
+//        } catch (IOException e) {
+//            Log.e(TAG, "Error loading the input", e);
+//        }
+//
+//
+//    }
+
+
+    public int getValidSampleRates() {
+        int sampleRate = 8000;
+        for (int rate : new int[]{8000, 11025, 16000, 22050, 44100}) {  // add the rates you wish to check against
+            int bufferSize = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_CONFIGURATION_DEFAULT, AudioFormat.ENCODING_PCM_16BIT);
+            if (bufferSize > 0) {
+                sampleRate = rate;
+            }
+        }
+        Log.i(TAG, String.valueOf(sampleRate));
+        return sampleRate;
+    }
+
+    public void recognizeFileStream(final String title, final ArrayList<String> tags, String fileName) {
+        try {
+            realm.executeTransaction(new Realm.Transaction() {
+                @Override
+                public void execute(Realm realm) {
+                    record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
+                    record.setTitle(title);
+                    record.setTagList(tags);
+                }
+            });
+
+            FileInputStream stream = new FileInputStream(new File(fileName));
+
+            getValidSampleRates();
+
+            byte[] data = IoUtils.toByteArray(new FileInputStream(new File(fileName)));
+
+            mRequestObserver = mApi.streamingRecognize(mResponseObserver);
+            createAudioRecord();
+            getValidSampleRates();
+
+            Log.i(TAG, "1 : observer created");
+            mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
+                            .setConfig(RecognitionConfig.newBuilder()
+                                    .setLanguageCode(getDefaultLanguageCode())
+                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+                                    .setSampleRateHertz(16000)
+                                    .build())
+                            .setInterimResults(true)
+                            .setSingleUtterance(false)
+                            .build())
+                    .build());
+
+            while (true) {
+                if (stream.read(mBuffer, 0, bufferSize) == -1) {
+                    break;
+                }
+
+                mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                        .setAudioContent(ByteString.copyFrom(mBuffer))
+                        .build());
+            }
+            int a = 0;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
 }
+
+

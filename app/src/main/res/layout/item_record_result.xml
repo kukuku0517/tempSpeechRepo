@@ -31,7 +31,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@android:color/holo_green_dark">
+                android:background="@android:color/holo_green_dark"
+                android:descendantFocusability="beforeDescendants"
+                android:focusableInTouchMode="true">
 
                 <!--<TextView-->
                     <!--android:id="@+id/tv_content"-->

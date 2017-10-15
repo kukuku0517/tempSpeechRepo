@@ -1,25 +1,8 @@
-/*
- * Copyright 2016 Google Inc. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.google.cloud.android.speech.View.Recording;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -31,16 +14,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-
 /**
- * Continuously records audio and notifies the {@link VoiceRecorder.Callback} when voice (or any
- * sound) is heard.
- * <p>
- * <p>The recorded audio format is always {@link AudioFormat#ENCODING_PCM_16BIT} and
- * {@link AudioFormat#CHANNEL_IN_MONO}. This class will automatically pick the right sample rate
- * for the device. Use {@link #getSampleRate()} to get the selected value.</p>
+ * Created by samsung on 2017-10-15.
  */
+
 public class VoiceRecorder {
+
 
     private static final int[] SAMPLE_RATE_CANDIDATES = new int[]{16000, 11025, 22050, 44100};
 
@@ -418,5 +397,4 @@ public class VoiceRecorder {
 
         out.write(header, 0, 44);
     }
-
 }

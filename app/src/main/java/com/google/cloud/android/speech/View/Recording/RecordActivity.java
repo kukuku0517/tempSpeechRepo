@@ -24,39 +24,28 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.DialogFragment;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.google.cloud.android.speech.R;
-import com.google.cloud.android.speech.Util.FileUtil;
 import com.google.cloud.android.speech.Util.RealmUtil;
 import com.google.cloud.android.speech.View.RecordList.NewRecordDialog;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
-import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
-import com.google.cloud.android.speech.Data.Realm.WordRealm;
 import com.google.cloud.android.speech.View.Recording.Adapter.RecordRealmAdapter;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
@@ -73,35 +62,13 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     private static final int REQUEST_FILE_AUDIO_PERMISSION = 2;
 
 
+//    private SpeechService mSpeechService;
+//    private VoiceRecorder mVoiceRecorder;
+//
+//
+
     private SpeechService mSpeechService;
-
     private VoiceRecorder mVoiceRecorder;
-    private final VoiceRecorder.Callback mVoiceCallback = new VoiceRecorder.Callback() {
-
-        @Override
-        public void onVoiceStart(long startMillis) {
-            showStatus(true);
-            if (mSpeechService != null) {
-                mSpeechService.startRecognizing(mVoiceRecorder.getSampleRate(), startMillis);
-            }
-        }
-
-        @Override
-        public void onVoice(byte[] data, int size) {
-            if (mSpeechService != null) {
-                mSpeechService.recognize(data, size);
-            }
-        }
-
-        @Override
-        public void onVoiceEnd() {
-            showStatus(false);
-            if (mSpeechService != null) {
-                mSpeechService.finishRecognizing();
-            }
-        }
-
-    };
 
     // Resource caches
     private int mColorHearing;
@@ -116,6 +83,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     private ImageButton recordBtn, stopBtn;
 
     boolean serviceBinded = false;
+    String fileUri;
     private Realm realm;
     private RecordRealm record;
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -123,7 +91,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             mSpeechService = SpeechService.from(binder);
-            mSpeechService.addListener(mSpeechServiceListener);
+//            mSpeechService.addListener(mSpeechServiceListener);
             mStatus.setVisibility(View.VISIBLE);
             serviceBinded = true;
         }
@@ -131,13 +99,15 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             mSpeechService = null;
-            serviceBinded=false;
+            serviceBinded = false;
         }
 
     };
 
     private void initialize(int requestCode) {
-        bindService(new Intent(context, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
+        Intent intent = new Intent(context, SpeechService.class);
+        startService(intent);
+        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
 
         String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
@@ -192,6 +162,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_record);
+       fileUri= getIntent().getStringExtra("fileUri");
 
         final Resources resources = getResources();
         final Resources.Theme theme = getTheme();
@@ -210,7 +181,6 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         recordBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 initialize(REQUEST_RECORD_AUDIO_PERMISSION);
             }
         });
@@ -221,8 +191,9 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 stopVoiceRecorder();
                 serviceBinded = false;
                 // Stop Cloud Speech API
-                mSpeechService.removeListener(mSpeechServiceListener);
+//                mSpeechService.removeListener(mSpeechServiceListener);
                 unbindService(mServiceConnection);
+                stopService(new Intent(context,SpeechService.class));
                 mSpeechService = null;
 
                 onBackPressed();
@@ -248,7 +219,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 savedInstanceState.getStringArrayList(STATE_RESULTS);
 
 
-        mAdapter = new RecordRealmAdapter(record.getSentenceRealms(),true,true,this);
+        mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, this);
         mRecyclerView.setAdapter(mAdapter);
     }
 
@@ -279,19 +250,19 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     @Override
     protected void onStop() {
         // Stop listening to voice
-        stopVoiceRecorder();
+//        stopVoiceRecorder();
 
         // Stop Cloud Speech API
-        if (mSpeechService != null) {
-            if (mSpeechService.hasListener()) {
-                mSpeechService.removeListener(mSpeechServiceListener);
-            }
-        }
+//        if (mSpeechService != null) {
+//            if (mSpeechService.hasListener()) {
+//                mSpeechService.removeListener(mSpeechServiceListener);
+//            }
+//        }
         if (serviceBinded) {
             unbindService(mServiceConnection);
 
         }
-        mSpeechService = null;
+//        mSpeechService = null;
 
         super.onStop();
     }
@@ -324,25 +295,20 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     }
 
     @Override
-    public void onDialogPositiveClick(final String title, String tag,int requestCode) {
+    public void onDialogPositiveClick(final String title, String tag, int requestCode) {
         StringTokenizer st = new StringTokenizer(tag);
         final ArrayList<String> tags = new ArrayList<>();
         while (st.hasMoreTokens()) {
             tags.add(st.nextToken());
         }
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
 
-                record.setTitle(title);
-                record.setTagList(tags);
-            }
-        });
 
         if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
-            startVoiceRecorder();
+            mSpeechService.initRecorder(title, tags);
         } else if (requestCode == REQUEST_FILE_AUDIO_PERMISSION) {
-            mSpeechService.recognizeFileStream(FileUtil.getFilename("ㅈ"));
+
+//            mSpeechService.recognizeFileStream(FileUtil.getFilename(fileUri));
+            mSpeechService.recognizeFileStream(title, tags, fileUri);
 //            try {
 //                FileInputStream fileInputStream = new FileInputStream(file);
 //
@@ -359,23 +325,14 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
     }
 
-    private void startVoiceRecorder() {
-        if (mVoiceRecorder != null) {
-            mVoiceRecorder.stop();
-        }
-
-        mVoiceRecorder = new VoiceRecorder(mVoiceCallback);
-        mVoiceRecorder.setTitle(record.getTitle());
-        mVoiceRecorder.start();
-
-    }
 
 
     private void stopVoiceRecorder() {
-        if (mVoiceRecorder != null) {
-            mVoiceRecorder.stop();
-            mVoiceRecorder = null;
-        }
+//        if (mVoiceRecorder != null) {
+//            mVoiceRecorder.stop();
+//            mVoiceRecorder = null;
+//        }
+        mSpeechService.stopRecording();
     }
 
     private void showPermissionMessageDialog() {
@@ -399,55 +356,55 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 REQUEST_RECORD_AUDIO_PERMISSION);
     }
 
-    private final SpeechService.Listener mSpeechServiceListener =
-            new SpeechService.Listener() {
-                @Override
-                public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart) {
-                    if (isFinal) {
-                        Log.i(TAG, "dismiss");
-                        if(mVoiceRecorder!=null){
-
-                            mVoiceRecorder.dismiss();
-                        }
-                    }
-                    if (mText != null && !TextUtils.isEmpty(text)) {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (isFinal) {
-                                    Log.i(TAG, "** final");
-                                    mText.setText(null);
-
-                                    realm.beginTransaction();
-                                    long recordStart = record.getStartMillis();
-                                    if (recordStart == -1) {
-                                        record.setStartMillis(sentenceStart);
-                                        recordStart = sentenceStart;
-                                    }
-
-                                    SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
-                                    sentence.setStartMillis(sentenceStart - recordStart);
-                                    StringTokenizer st = new StringTokenizer(text);
-                                    while (st.hasMoreTokens()) {
-                                        String token = st.nextToken();
-                                        WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
-                                        word.setWord(token);
-                                        sentence.getWordList().add(word);
-                                    }
-                                    record.getSentenceRealms().add(sentence);
-
-
-                                    realm.commitTransaction();
-
-                                    mRecyclerView.smoothScrollToPosition(0);
-                                } else {
-                                    mText.setText(text);
-                                }
-                            }
-                        });
-                    }
-                }
-            };
+//    private final SpeechService.Listener mSpeechServiceListener =
+//            new SpeechService.Listener() {
+//                @Override
+//                public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart) {
+//                    if (isFinal) {
+//                        Log.i(TAG, "dismiss");
+//                        if (mVoiceRecorder != null) {
+//
+//                            mVoiceRecorder.dismiss();
+//                        }
+//                    }
+//                    if (mText != null && !TextUtils.isEmpty(text)) {
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                if (isFinal) {
+//                                    Log.i(TAG, "** final");
+//                                    mText.setText(null);
+//
+//                                    realm.beginTransaction();
+//                                    long recordStart = record.getStartMillis();
+//                                    if (recordStart == -1) {
+//                                        record.setStartMillis(sentenceStart);
+//                                        recordStart = sentenceStart;
+//                                    }
+//
+//                                    SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
+//                                    sentence.setStartMillis(sentenceStart - recordStart);
+//                                    StringTokenizer st = new StringTokenizer(text);
+//                                    while (st.hasMoreTokens()) {
+//                                        String token = st.nextToken();
+//                                        WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
+//                                        word.setWord(token);
+//                                        sentence.getWordList().add(word);
+//                                    }
+//                                    record.getSentenceRealms().add(sentence);
+//
+//
+//                                    realm.commitTransaction();
+//
+//                                    mRecyclerView.smoothScrollToPosition(0);
+//                                } else {
+//                                    mText.setText(text);
+//                                }
+//                            }
+//                        });
+//                    }
+//                }
+//            };
 
 
 }

@@ -74,24 +74,34 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
                 }
             });
 
-            editText.addTextChangedListener(new TextWatcher() {
+            editText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                 @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-                }
-
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-                }
-
-                @Override
-                public void afterTextChanged(Editable s) {
-                    realm.beginTransaction();
-                    w.setWord(s.toString());
-                    realm.commitTransaction();
+                public void onFocusChange(View v, boolean hasFocus) {
+                    if (!hasFocus) {
+                        realm.beginTransaction();
+                        w.setWord(((EditText) v).getText().toString());
+                        realm.commitTransaction();
+                    }
                 }
             });
+//            editText.addTextChangedListener(new TextWatcher() {
+//                @Override
+//                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+//
+//                }
+//
+//                @Override
+//                public void onTextChanged(CharSequence s, int start, int before, int count) {
+//
+//                }
+//
+//                @Override
+//                public void afterTextChanged(Editable s) {
+//                    realm.beginTransaction();
+//                    w.setWord(s.toString());
+//                    realm.commitTransaction();
+//                }
+//            });
             layout.addView(editText);
 
         }
