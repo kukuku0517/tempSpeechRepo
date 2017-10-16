@@ -34,6 +34,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -83,6 +84,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     private ImageButton recordBtn, stopBtn;
 
     boolean serviceBinded = false;
+    boolean isRecording=false;
     String fileUri;
     private Realm realm;
     private RecordRealm record;
@@ -91,25 +93,49 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             mSpeechService = SpeechService.from(binder);
+
+            recordId = mSpeechService.getRecordId();
 //            mSpeechService.addListener(mSpeechServiceListener);
             mStatus.setVisibility(View.VISIBLE);
             serviceBinded = true;
+
+            realm.executeTransaction(new Realm.Transaction() {
+                @Override
+                public void execute(Realm realm) {
+                    Log.d(TAG, "in service" + String.valueOf(recordId));
+                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+
+                }
+            });
+
+            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
+//        final ArrayList<String> results = savedInstanceState == null ? null :
+//                savedInstanceState.getStringArrayList(STATE_RESULTS);
+//
+
+            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
+            mRecyclerView.setAdapter(mAdapter);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            mSpeechService = null;
+//            mSpeechService = null;
             serviceBinded = false;
         }
 
     };
 
-    private void initialize(int requestCode) {
+    private int recordId;
+
+    private void initialize(final int requestCode) {
+
+
         Intent intent = new Intent(context, SpeechService.class);
         startService(intent);
         bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
 
-        String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
 
         if (checkPermissions(context, PERMISSIONS)) {
 
@@ -120,7 +146,8 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
         } else if (ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
                 Manifest.permission.RECORD_AUDIO) || ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
+                Manifest.permission.READ_EXTERNAL_STORAGE)) {
             showPermissionMessageDialog();
         } else {
             ActivityCompat.requestPermissions((Activity) context, PERMISSIONS,
@@ -162,8 +189,9 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_record);
-       fileUri= getIntent().getStringExtra("fileUri");
+        fileUri = getIntent().getStringExtra("fileUri");
 
+        realm=Realm.getDefaultInstance();
         final Resources resources = getResources();
         final Resources.Theme theme = getTheme();
         mColorHearing = ResourcesCompat.getColor(resources, R.color.status_hearing, theme);
@@ -175,8 +203,11 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         recordBtn = (ImageButton) findViewById(R.id.record);
         stopBtn = (ImageButton) findViewById(R.id.stop);
 
-        bindService(new Intent(context, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
+//        bindService(new Intent(context, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
 
+        if(SpeechService.isRecording){
+            initialize(REQUEST_RECORD_AUDIO_PERMISSION);
+        }
 
         recordBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -193,7 +224,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 // Stop Cloud Speech API
 //                mSpeechService.removeListener(mSpeechServiceListener);
                 unbindService(mServiceConnection);
-                stopService(new Intent(context,SpeechService.class));
+                stopService(new Intent(context, SpeechService.class));
                 mSpeechService = null;
 
                 onBackPressed();
@@ -204,23 +235,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
             }
         });
 
-        realm = Realm.getDefaultInstance();
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
 
-                record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
-            }
-        });
-
-        mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        final ArrayList<String> results = savedInstanceState == null ? null :
-                savedInstanceState.getStringArrayList(STATE_RESULTS);
-
-
-        mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, this);
-        mRecyclerView.setAdapter(mAdapter);
     }
 
     @Override
@@ -302,8 +317,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
             tags.add(st.nextToken());
         }
 
-
-        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
+        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION && !isRecording) {
             mSpeechService.initRecorder(title, tags);
         } else if (requestCode == REQUEST_FILE_AUDIO_PERMISSION) {
 
@@ -324,7 +338,6 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     public void onDialogNegativeClick() {
 
     }
-
 
 
     private void stopVoiceRecorder() {

@@ -10,7 +10,7 @@
 
         <variable
             name="item"
-            type="com.google.cloud.android.speech.View.RecordList.Adapter.RecordListViewHolder"></variable>
+            type="com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmViewHolder"></variable>
     </data>
 
     <android.support.v7.widget.CardView

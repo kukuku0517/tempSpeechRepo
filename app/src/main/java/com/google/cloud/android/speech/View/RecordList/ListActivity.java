@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.support.v4.content.CursorLoader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -21,9 +20,8 @@ import android.util.Log;
 import android.view.View;
 
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
-import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
 import com.google.cloud.android.speech.Util.FileUtil;
-import com.google.cloud.android.speech.View.RecordList.Adapter.RecordListAdapter;
+import com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmAdapter;
 import com.google.cloud.android.speech.View.Recording.RecordActivity;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.databinding.ActivityListBinding;
@@ -34,13 +32,12 @@ import java.io.IOException;
 
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
-import io.realm.RealmList;
 import io.realm.RealmResults;
 
 public class ListActivity extends AppCompatActivity implements ListHandler {
 
     RecyclerView recyclerView;
-    RecordListAdapter adapter;
+    ListRealmAdapter adapter;
     Realm realm;
     ActivityListBinding binding;
     private static final int AUDIO_FILE_REQUEST = 0;
@@ -60,58 +57,57 @@ public class ListActivity extends AppCompatActivity implements ListHandler {
         Realm.setDefaultConfiguration(config);
 
         realm = Realm.getDefaultInstance();
-        RealmResults<RecordRealm> result = realm.where(RecordRealm.class).findAll();
-        MediaPlayer mediaPlayer = new MediaPlayer();
-        mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted",true).findAll();
+
         for (final RecordRealm record : result) {
             if (record.getDuration() == 0) {
                 String filePath = FileUtil.getFilename(record.getTitle());
                 Uri mUri = Uri.fromFile(new File(filePath));
                 //TODO uncomment this
-//                try {
-//                    mediaPlayer.setDataSource(this, mUri);
-//                    mediaPlayer.prepareAsync();
-//                    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-//                        @Override
-//                        public void onPrepared(MediaPlayer mp) {
-//                            realm.beginTransaction();
-//                            record.setDuration(mp.getDuration());
-//                            realm.commitTransaction();
-//                        }
-//                    });
-//
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
+                try {
+                    MediaPlayer mediaPlayer = new MediaPlayer();
+                    mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                    mediaPlayer.setDataSource(this, mUri);
+                    mediaPlayer.prepareAsync();
+                    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                        @Override
+                        public void onPrepared(MediaPlayer mp) {
+                            realm.beginTransaction();
+                            record.setDuration(mp.getDuration());
+                            realm.commitTransaction();
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
             }
         }
 
         recyclerView = (RecyclerView) findViewById(R.id.rv_record);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new RecordListAdapter();
+        adapter = new ListRealmAdapter(result,true,true,this);
         recyclerView.setAdapter(adapter);
-        adapter.setRealmResults(result);
 
     }
 
     @Override
     public void onClickFab(View view) {
-//        Intent intent = new Intent(this, RecordActivity.class);
-//        startActivity(intent);
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-
-        // Filter to only show results that can be "opened", such as a
-        // file (as opposed to a list of contacts or timezones)
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-
-        // Filter to show only images, using the image MIME data type.
-        // If one wanted to search for ogg vorbis files, the type would be "audio/ogg".
-        // To search for all documents available via installed storage providers,
-        // it would be "*/*".
-        intent.setType("audio/*");
-
-        startActivityForResult(intent, AUDIO_FILE_REQUEST);
+        Intent intent = new Intent(this, RecordActivity.class);
+        startActivity(intent);
+//        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+//
+//        // Filter to only show results that can be "opened", such as a
+//        // file (as opposed to a list of contacts or timezones)
+//        intent.addCategory(Intent.CATEGORY_OPENABLE);
+//
+//        // Filter to show only images, using the image MIME data type.
+//        // If one wanted to search for ogg vorbis files, the type would be "audio/ogg".
+//        // To search for all documents available via installed storage providers,
+//        // it would be "*/*".
+//        intent.setType("audio/*");
+//
+//        startActivityForResult(intent, AUDIO_FILE_REQUEST);
 
     }
 

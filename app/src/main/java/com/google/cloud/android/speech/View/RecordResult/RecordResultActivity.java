@@ -132,20 +132,20 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mediaPlayer.setDataSource(this, mUri);
 
+            mediaPlayer.prepareAsync();
+            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    int total = mp.getDuration();
+                    isPlaying=true;
+                    seekbar.setMax(total);
+
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        mediaPlayer.prepareAsync();
-        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-            @Override
-            public void onPrepared(MediaPlayer mp) {
-                int total = mp.getDuration();
-                isPlaying=true;
-                seekbar.setMax(total);
-
-            }
-        });
 
         mRecyclerView = (RecyclerView) findViewById(R.id.rv_record_result);
         mAdapter = new ResultRealmAdapter(sentenceResults, true, true,this);

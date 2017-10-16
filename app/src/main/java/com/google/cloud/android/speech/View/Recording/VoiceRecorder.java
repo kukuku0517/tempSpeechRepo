@@ -3,6 +3,8 @@ package com.google.cloud.android.speech.View.Recording;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -63,6 +65,12 @@ public class VoiceRecorder {
          */
         public void onVoiceEnd() {
         }
+
+        public void onConvertEnd(){
+
+        }
+
+
     }
 
     private final Callback mCallback;
@@ -142,14 +150,33 @@ public class VoiceRecorder {
                 try {
                     Log.d(TAG, "recording en");
                     os.close();
-                    Log.d(TAG, FileUtil.getTempFilename() + ":" + FileUtil.getFilename(TITLE));
-                    copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE));
-                    deleteTempFile();
 
                     isRecording = false;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
+//                new Thread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Log.i(TAG, String.valueOf(111111));
+//                        copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE));
+//                        deleteTempFile();
+//
+//                        Log.i(TAG, String.valueOf(2222222));
+//                        Handler handler = new Handler(Looper.getMainLooper());
+//
+//                        handler.post(new Runnable() {
+//                            @Override
+//                            public void run() {
+//
+//                                Log.i(TAG, String.valueOf(33333333));
+//                                mCallback.onConvertEnd();
+//                            }
+//                        });
+//                    }
+//                }).start();
+
             }
 
         }
@@ -189,7 +216,7 @@ public class VoiceRecorder {
     private AudioRecord createAudioRecord() {
         for (int sampleRate : SAMPLE_RATE_CANDIDATES) {
             final int sizeInBytes = AudioRecord.getMinBufferSize(sampleRate, CHANNEL, ENCODING);
-            Log.i(TAG, sizeInBytes + ": bufferSize");
+//            Log.i(TAG, sizeInBytes + ": bufferSize");
             if (sizeInBytes == AudioRecord.ERROR_BAD_VALUE) {
                 continue;
             }
@@ -198,7 +225,7 @@ public class VoiceRecorder {
             final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
                     sampleRate, CHANNEL, ENCODING, sizeInBytes);
 
-            Log.i(TAG, recorderSampleRate+":sample rate");
+//            Log.i(TAG, recorderSampleRate+":sample rate");
             if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
                 mBuffer = new byte[sizeInBytes];
                 return audioRecord;
@@ -239,6 +266,7 @@ public class VoiceRecorder {
                             mCallback.onVoiceStart(mVoiceStartedMillis);
                         }
                         mCallback.onVoice(mBuffer, size);
+                        Log.i(TAG,"onVoice");
                         mLastVoiceHeardMillis = now;
                         if (now - mVoiceStartedMillis > MAX_SPEECH_LENGTH_MILLIS) { //인식중 + 최대시간 초과
                             end();

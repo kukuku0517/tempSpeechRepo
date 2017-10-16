@@ -19,6 +19,15 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
     private RealmList<StringRealm> tagList = new RealmList<>();
     private RealmList<SentenceRealm> sentenceList = new RealmList<>();
     private long startMillis = -1;
+    private boolean converted=false;
+
+    public boolean isConverted() {
+        return converted;
+    }
+
+    public void setConverted(boolean converted) {
+        this.converted = converted;
+    }
 
     public long getStartMillis() {
         return startMillis;

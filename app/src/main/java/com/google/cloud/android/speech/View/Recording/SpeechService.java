@@ -1,5 +1,7 @@
 package com.google.cloud.android.speech.View.Recording;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -11,10 +13,12 @@ import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
@@ -24,6 +28,7 @@ import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
 import com.google.cloud.android.speech.Data.Realm.WordRealm;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Util.RealmUtil;
+import com.google.cloud.android.speech.View.RecordList.ListActivity;
 import com.google.cloud.speech.v1.RecognitionConfig;
 import com.google.cloud.speech.v1.RecognizeResponse;
 import com.google.cloud.speech.v1.SpeechGrpc;
@@ -83,6 +88,59 @@ public class SpeechService extends Service {
 
     }
 
+public static    boolean isRecording = false;
+
+    boolean isRecording() {
+        return isRecording;
+    }
+
+    public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart) {
+        if (isFinal) {
+            Log.i(TAG, "dismiss");
+            if (mVoiceRecorder != null) {
+                mVoiceRecorder.dismiss();
+            }
+        }
+        //mText != null &&
+        if (!TextUtils.isEmpty(text)) {
+
+            if (isFinal) {
+//                Log.i(TAG, "** final");
+                Realm realm = Realm.getDefaultInstance();
+
+                realm.beginTransaction();
+                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+                long recordStart = record.getStartMillis();
+                if (recordStart == -1) {
+                    record.setStartMillis(sentenceStart);
+                    recordStart = sentenceStart;
+                }
+
+                SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
+                sentence.setStartMillis(sentenceStart - recordStart);
+
+                Log.i(TAG + "record", String.valueOf(recordStart));
+                Log.i(TAG + "sentence", String.valueOf(sentenceStart));
+
+                StringTokenizer st = new StringTokenizer(text);
+                while (st.hasMoreTokens()) {
+                    String token = st.nextToken();
+                    WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
+                    word.setWord(token);
+                    sentence.getWordList().add(word);
+                }
+                record.getSentenceRealms().add(sentence);
+
+                realm.commitTransaction();
+//                                mRecyclerView.smoothScrollToPosition(0);
+            } else { //not final -> send temp text to record activity
+//                                mText.setText(text);
+            }
+
+        }
+
+    }
+
     private final Listener mSpeechServiceListener =
             new Listener() {
                 @Override
@@ -95,6 +153,7 @@ public class SpeechService extends Service {
                     }
                     //mText != null &&
                     if (!TextUtils.isEmpty(text)) {
+
 //                        runOnUiThread(new Runnable() {
 //                            @Override
 //                            public void run() {
@@ -131,51 +190,61 @@ public class SpeechService extends Service {
 //                        });
 
 
-                            if (isFinal) {
-                                Log.i(TAG, "** final");
+                        if (isFinal) {
+//                            Log.i(TAG, "** final");
 
-                                realm.beginTransaction();
-                                long recordStart = record.getStartMillis();
-                                if (recordStart == -1) {
-                                    record.setStartMillis(sentenceStart);
-                                    recordStart = sentenceStart;
-                                }
-
-                                SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
-                                sentence.setStartMillis(sentenceStart - recordStart);
-                                StringTokenizer st = new StringTokenizer(text);
-                                while (st.hasMoreTokens()) {
-                                    String token = st.nextToken();
-                                    WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
-                                    word.setWord(token);
-                                    sentence.getWordList().add(word);
-                                }
-                                record.getSentenceRealms().add(sentence);
-
-                                realm.commitTransaction();
-
-//                                mRecyclerView.smoothScrollToPosition(0);
-                            } else { //not final -> send temp text to record activity
-//                                mText.setText(text);
+                            realm.beginTransaction();
+                            long recordStart = record.getStartMillis();
+                            if (recordStart == -1) {
+                                record.setStartMillis(sentenceStart);
+                                recordStart = sentenceStart;
                             }
+
+                            SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
+                            sentence.setStartMillis(sentenceStart - recordStart);
+                            StringTokenizer st = new StringTokenizer(text);
+                            while (st.hasMoreTokens()) {
+                                String token = st.nextToken();
+                                WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
+                                word.setWord(token);
+                                sentence.getWordList().add(word);
+                            }
+                            record.getSentenceRealms().add(sentence);
+
+                            realm.commitTransaction();
+//                                mRecyclerView.smoothScrollToPosition(0);
+                        } else { //not final -> send temp text to record activity
+//                                mText.setText(text);
+                        }
 
                     }
 
                 }
             };
 
+    int recordId;
+
+    public void setRecordId(int recordId) {
+        this.recordId = recordId;
+    }
+
+    public int getRecordId() {
+        return recordId;
+    }
+
     public void initRecorder(final String title, final ArrayList<String> tags) {
+
 
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
-                record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
-                        record.setTitle(title);
-                        record.setTagList(tags);
-                    }
-                });
+                record.setTitle(title);
+                record.setTagList(tags);
+                recordId = record.getId();
+            }
+        });
 
-
+        isRecording = true;
         mVoiceRecorder = new VoiceRecorder(mVoiceCallback);
         mVoiceRecorder.setTitle(record.getTitle());
         mVoiceRecorder.start();
@@ -195,7 +264,7 @@ public class SpeechService extends Service {
         public void onVoice(byte[] data, int size) {
             recognize(data, size);
 
-            Log.i(TAG,"still alive");
+//            Log.i(TAG, "still alive");
 
         }
 
@@ -206,6 +275,19 @@ public class SpeechService extends Service {
 
         }
 
+        @Override
+        public void onConvertEnd() {
+            Realm realm = Realm.getDefaultInstance();
+         realm.executeTransaction(new Realm.Transaction() {
+             @Override
+             public void execute(Realm realm) {
+
+                 RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+                 record.setConverted(true);
+                 Toast.makeText(getBaseContext(),"convert complete",Toast.LENGTH_SHORT).show();
+             }
+         });
+        }
     };
 
 
@@ -254,10 +336,11 @@ public class SpeechService extends Service {
                 }
             }
             if (text != null) {
-                for (SpeechService.Listener listener : mListeners) {
-                    listener.onSpeechRecognized(text, isFinal, startMillis);
-                    Log.i(TAG, text);
-                }
+//                for (SpeechService.Listener listener : mListeners) {
+//                    listener.onSpeechRecognized(text, isFinal, startMillis);
+//                    Log.i(TAG, text);
+//                }
+                onSpeechRecognized(text, isFinal, startMillis);
             }
         }
 
@@ -310,11 +393,31 @@ public class SpeechService extends Service {
         return ((SpeechBinder2) binder).getService();
     }
 
+
     @Override
     public void onCreate() {
         super.onCreate();
         realm = Realm.getDefaultInstance();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
+                recordId = record.getId();
+                Log.d(TAG, String.valueOf(recordId));
+
+            }
+        });
         mHandler = new Handler();
+        Intent notificationIntent = new Intent(this, ListActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+
+
+        Notification notification = new Notification.Builder(this)
+                .setSmallIcon(R.mipmap.ic_launcher)
+
+                .setContentIntent(pendingIntent).build();
+
+        startForeground(1, notification);
         this.addListener(mSpeechServiceListener);
         fetchAccessToken();
     }
@@ -323,7 +426,7 @@ public class SpeechService extends Service {
     public void onDestroy() {
         super.onDestroy();
 
-        Log.i(TAG,"dead");
+        Log.i(TAG, "dead");
         this.removeListener(mSpeechServiceListener);
         mHandler.removeCallbacks(mFetchAccessTokenRunnable);
         mHandler = null;
@@ -331,11 +434,13 @@ public class SpeechService extends Service {
         if (mApi != null) {
             final ManagedChannel channel = (ManagedChannel) mApi.getChannel();
             if (channel != null && !channel.isShutdown()) {
+
                 try {
                     channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
-                    Log.e(TAG, "Error shutting down the gRPC channel.", e);
+                    e.printStackTrace();
                 }
+
             }
             mApi = null;
         }
@@ -580,7 +685,7 @@ public class SpeechService extends Service {
         // Configure the API
         mRequestObserver = mApi.streamingRecognize(mResponseObserver);
 
-        Log.i(TAG, "1 : observer created");
+//        Log.i(TAG, "1 : observer created");
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                 .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
                         .setConfig(RecognitionConfig.newBuilder()
@@ -611,7 +716,7 @@ public class SpeechService extends Service {
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                 .setAudioContent(ByteString.copyFrom(data, 0, size))
                 .build());
-        Log.i(TAG, "buffer sent");
+//        Log.i(TAG, "buffer sent");
     }
 
     /**
@@ -623,11 +728,12 @@ public class SpeechService extends Service {
         }
         mRequestObserver.onCompleted();
         mRequestObserver = null;
-        Log.i(TAG, "2 : observer nullified");
+//        Log.i(TAG, "2 : observer nullified");
     }
 
-    public void stopRecording(){
+    public void stopRecording() {
         if (mVoiceRecorder != null) {
+            isRecording = false;
             mVoiceRecorder.stop();
             mVoiceRecorder = null;
         }

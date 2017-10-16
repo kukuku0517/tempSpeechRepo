@@ -12,10 +12,10 @@ import com.google.cloud.android.speech.databinding.ItemRecordBinding;
 import com.google.cloud.android.speech.databinding.ItemRecordListBinding;
 
 /**
- * Created by samsung on 2017-10-06.
+ * Created by USER on 2017-10-16.
  */
 
-public class RecordListViewHolder extends RecyclerView.ViewHolder {
+public class ListRealmViewHolder extends RecyclerView.ViewHolder{
     ItemRecordListBinding binding;
     RecordRealm recordRealm;
     Context context;
@@ -23,11 +23,12 @@ public class RecordListViewHolder extends RecyclerView.ViewHolder {
     public void setData(RecordRealm recordRealm){
         this.recordRealm=recordRealm;
     }
-    public RecordListViewHolder(View itemView, Context context) {
-        super(itemView);
+
+
+    public ListRealmViewHolder(View view,Context context) {
+        super(view);
         this.context=context;
         binding = DataBindingUtil.bind(itemView);
-
     }
 
     public void onItemClick(View view){
