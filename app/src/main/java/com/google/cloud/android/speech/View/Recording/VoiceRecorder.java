@@ -66,7 +66,7 @@ public class VoiceRecorder {
         public void onVoiceEnd() {
         }
 
-        public void onConvertEnd(){
+        public void onConvertEnd() {
 
         }
 
@@ -139,6 +139,7 @@ public class VoiceRecorder {
             if (mThread != null) {
                 mThread.interrupt();
                 mThread = null;
+
             }
             if (mAudioRecord != null) {
                 mAudioRecord.stop();
@@ -147,35 +148,62 @@ public class VoiceRecorder {
             }
             mBuffer = null;
             if (isRecording) {
-                try {
+
                     Log.d(TAG, "recording en");
-                    os.close();
-
+//                    new Thread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            try {
+//                                os.close();
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }
+//                    }).start();
                     isRecording = false;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
 
-//                new Thread(new Runnable() {
+
+
+//                Log.i(TAG, String.valueOf(111111));
+//                copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE));
+//                deleteTempFile();
+//
+//                Log.i(TAG, String.valueOf(2222222));
+//                Handler handler = new Handler(Looper.getMainLooper());
+//
+//                handler.post(new Runnable() {
 //                    @Override
 //                    public void run() {
-//                        Log.i(TAG, String.valueOf(111111));
-//                        copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE));
-//                        deleteTempFile();
 //
-//                        Log.i(TAG, String.valueOf(2222222));
-//                        Handler handler = new Handler(Looper.getMainLooper());
-//
-//                        handler.post(new Runnable() {
-//                            @Override
-//                            public void run() {
-//
-//                                Log.i(TAG, String.valueOf(33333333));
-//                                mCallback.onConvertEnd();
-//                            }
-//                        });
+//                        Log.i(TAG, String.valueOf(33333333));
+//                        mCallback.onConvertEnd();
 //                    }
-//                }).start();
+//                });
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            os.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        Log.i(TAG, String.valueOf(111111));
+                        copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE));
+                        deleteTempFile();
+
+                        Log.i(TAG, String.valueOf(2222222));
+                        Handler handler = new Handler(Looper.getMainLooper());
+
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                Log.i(TAG, String.valueOf(33333333));
+                                mCallback.onConvertEnd();
+                            }
+                        });
+                    }
+                }).start();
 
             }
 
@@ -252,13 +280,16 @@ public class VoiceRecorder {
                         break;
                     }
                     short sData[] = new short[BufferElements2Rec];
-
-                    final int size = mAudioRecord.read(mBuffer, 0, bufferSize);
-                    try {
-                        os.write(mBuffer);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    int size=0;
+                    if (mAudioRecord != null) {
+                        size = mAudioRecord.read(mBuffer, 0, bufferSize);
+                        try {
+                            os.write(mBuffer);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
+
                     final long now = System.currentTimeMillis();
                     if (isHearingVoice(mBuffer, size)) {
                         if (mLastVoiceHeardMillis == Long.MAX_VALUE) {
@@ -266,7 +297,7 @@ public class VoiceRecorder {
                             mCallback.onVoiceStart(mVoiceStartedMillis);
                         }
                         mCallback.onVoice(mBuffer, size);
-                        Log.i(TAG,"onVoice");
+                        Log.i(TAG, "onVoice");
                         mLastVoiceHeardMillis = now;
                         if (now - mVoiceStartedMillis > MAX_SPEECH_LENGTH_MILLIS) { //인식중 + 최대시간 초과
                             end();

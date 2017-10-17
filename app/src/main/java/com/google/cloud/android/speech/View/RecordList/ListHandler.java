@@ -8,5 +8,6 @@ import android.view.View;
  */
 
 public interface ListHandler {
-    void onClickFab(View view);
+    void onClickFabRecord(View view);
+    void onClickFabFile(View view);
 }

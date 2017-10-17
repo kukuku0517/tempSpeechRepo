@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.support.annotation.Nullable;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,6 +47,7 @@ public class RecordRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
         return new RecordRealmViewHolder(v);
     }
 
+    String TAG = "Speech";
 
     @Override
     public void onBindViewHolder(RecordRealmViewHolder holder, final int position) {
@@ -53,6 +55,7 @@ public class RecordRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
 
         SentenceRealm sentenceRealm = getItem(position);
         holder.binding.setSentence(sentenceRealm);
+        Log.i(TAG, DateUtil.durationToDate((int) sentenceRealm.getStartMillis()));
         StringBuilder s = new StringBuilder();
 
         LinearLayout layout = holder.binding.llContainer;

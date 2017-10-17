@@ -20,7 +20,7 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
     private int id;
 
     private   RealmList<WordRealm> wordList;
-    private long startMillis;
+    private int startMillis;
 
     public RealmList<WordRealm> getWordList() {
         return wordList;
@@ -30,11 +30,11 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
         this.wordList = wordList;
     }
 
-    public long getStartMillis() {
+    public int getStartMillis() {
         return startMillis;
     }
 
-    public void setStartMillis(long startMillis) {
+    public void setStartMillis(int startMillis) {
         this.startMillis = startMillis;
     }
 
