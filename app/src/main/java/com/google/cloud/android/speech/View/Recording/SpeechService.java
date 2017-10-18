@@ -13,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -28,12 +29,12 @@ import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
 import com.google.cloud.android.speech.Data.Realm.WordRealm;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Util.RealmUtil;
+import com.google.cloud.android.speech.View.RecordList.Adapter.ProcessEvent;
 import com.google.cloud.android.speech.View.RecordList.ListActivity;
+import com.google.cloud.speech.v1.LongRunningRecognizeRequest;
 import com.google.cloud.speech.v1.RecognitionConfig;
-import com.google.cloud.speech.v1.RecognizeResponse;
 import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
-import com.google.cloud.speech.v1.SpeechRecognitionResult;
 import com.google.cloud.speech.v1.StreamingRecognitionConfig;
 import com.google.cloud.speech.v1.StreamingRecognitionResult;
 import com.google.cloud.speech.v1.StreamingRecognizeRequest;
@@ -74,17 +75,24 @@ import io.grpc.stub.StreamObserver;
 import io.realm.Realm;
 
 public class SpeechService extends Service {
+
     private Realm realm;
     private RecordRealm record;
+    private RecordRealm fileRecord;
     private VoiceRecorder mVoiceRecorder;
 
     public static boolean isRecording = false;
 
-    boolean isRecording() {
+   public boolean isRecording() {
         return isRecording;
     }
 
-    private int recordId;
+
+    public    boolean isFileRecognizing(){
+        return fileId==-1?false:true;
+    }
+    private int recordId = -1;
+    private int fileId = -1;
 
     private final VoiceRecorder.Callback mVoiceCallback = new VoiceRecorder.Callback() {
         @Override
@@ -104,20 +112,73 @@ public class SpeechService extends Service {
 
         @Override
         public void onConvertEnd() {
-            Realm realm = Realm.getDefaultInstance();
-            realm.executeTransaction(new Realm.Transaction() {
-                @Override
-                public void execute(Realm realm) {
-                    RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
-                    record.setConverted(true);
-                    Toast.makeText(getBaseContext(), "convert complete", Toast.LENGTH_SHORT).show();
-                   stopForeground(true);
-                }
-            });
+            stopRecognizing(RECORD);
+
+            stopService();
         }
     };
 
-    public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart) {
+    private int RECORD=0;
+    private int FILE=1;
+
+    public int getFileId(){
+        return fileId;
+    }
+    private void stopService() {
+        if (recordId == -1 && fileId == -1) {
+            stopForeground(true);
+        }
+    }
+
+    private void stopRecognizing(final int type) {
+        Realm realm = Realm.getDefaultInstance();
+        realm.beginTransaction();
+
+        int id = type==RECORD?recordId:fileId;
+        Log.d(TAG,"fileId in stop :"+fileId);
+        RecordRealm record = realm.where(RecordRealm.class).equalTo("id", id).findFirst();
+        record.setConverted(true);
+        if(type==RECORD){
+            recordId=-1;
+        }else{
+            fileId=-1;
+        }
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getBaseContext(), "convert complete", Toast.LENGTH_SHORT).show();
+
+            }
+        });
+
+        realm.commitTransaction();
+//        realm.executeTransaction(new Realm.Transaction() {
+//            @Override
+//            public void execute(Realm realm) {
+//                int id = type==RECORD?recordId:fileId;
+//                Log.d(TAG,"fileId in stop :"+fileId);
+//                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", id).findFirst();
+//                record.setConverted(true);
+//                if(type==RECORD){
+//                    recordId=-1;
+//                }else{
+//                    fileId=-1;
+//                }
+//                Handler handler = new Handler(Looper.getMainLooper());
+//                handler.post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Toast.makeText(getBaseContext(), "convert complete", Toast.LENGTH_SHORT).show();
+//
+//                    }
+//                });
+//
+//            }
+//        });
+    }
+
+    public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart, int id) {
         if (isFinal) {
             Log.i(TAG, "dismiss");
             if (mVoiceRecorder != null) {
@@ -128,15 +189,12 @@ public class SpeechService extends Service {
             if (isFinal) {
                 Realm realm = Realm.getDefaultInstance();
                 realm.beginTransaction();
-                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", id).findFirst();
                 long recordStart = record.getStartMillis();
                 if (recordStart == -1) {
                     record.setStartMillis(sentenceStart);
                     recordStart = sentenceStart;
                 }
-
-                Log.i("SpeechFile", String.valueOf(recordId));
-                Log.i("SpeechFile", record.getTitle());
 
                 SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
                 sentence.setStartMillis((int) (sentenceStart - recordStart));
@@ -167,6 +225,8 @@ public class SpeechService extends Service {
     public int getRecordId() {
         return recordId;
     }
+
+
 
     public void initRecorder(final String title, final ArrayList<String> tags) {
         realm.executeTransaction(new Realm.Transaction() {
@@ -215,6 +275,7 @@ public class SpeechService extends Service {
             = new StreamObserver<StreamingRecognizeResponse>() {
         @Override
         public void onNext(StreamingRecognizeResponse response) {
+
             Log.i(TAG, "answer received");
             String text = null;
             boolean isFinal = false;
@@ -222,8 +283,8 @@ public class SpeechService extends Service {
                 final StreamingRecognitionResult result = response.getResults(0);
                 isFinal = result.getIsFinal();
                 if (result.getAlternativesCount() > 0) {
-
                     final SpeechRecognitionAlternative alternative = result.getAlternatives(0);
+
                     text = alternative.getTranscript();
                 }
             }
@@ -233,7 +294,8 @@ public class SpeechService extends Service {
 //                    listener.onSpeechRecognized(text, isFinal, startMillis);
 //                    Log.i(TAG, text);
 //                }
-                onSpeechRecognized(text, isFinal, startMillis);
+                onSpeechRecognized(text, isFinal, startMillis, recordId);
+                EventBus.getDefault().postSticky(new ProcessEvent(recordId,ProcessEvent.RECORD));
             }
         }
 
@@ -248,6 +310,52 @@ public class SpeechService extends Service {
         }
 
     };
+
+    private final StreamObserver<StreamingRecognizeResponse> mFileResponseObserver
+            = new StreamObserver<StreamingRecognizeResponse>() {
+        @Override
+        public void onNext(StreamingRecognizeResponse response) {
+            Log.i(TAG, "answer received");
+            String text = null;
+            boolean isFinal = false;
+            if (response.getResultsCount() > 0) {
+                final StreamingRecognitionResult result = response.getResults(0);
+                isFinal = result.getIsFinal();
+                if (result.getAlternativesCount() > 0) {
+                    final SpeechRecognitionAlternative alternative = result.getAlternatives(0);
+                    text = alternative.getTranscript();
+                }
+            }
+            if (text != null) {
+                Log.i(TAG + "file", text);
+//                for (SpeechService.Listener listener : mListeners) {
+//                    listener.onSpeechRecognized(text, isFinal, startMillis);
+//                    Log.i(TAG, text);
+//                }
+                onSpeechRecognized(text, isFinal, startMillis, fileId);
+
+                EventBus.getDefault().postSticky(new ProcessEvent(fileId,ProcessEvent.FILE));
+            }
+
+            if (isFinal && fileStreamFinished) {
+                stopRecognizing(FILE);
+
+                stopService();
+            }
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            Log.e(TAG, "Error calling the API.", t);
+        }
+
+        @Override
+        public void onCompleted() {
+            Log.i(TAG, "API completed.");
+        }
+
+    };
+
 
 //    private final StreamObserver<RecognizeResponse> mFileResponseObserver
 //            = new StreamObserver<RecognizeResponse>() {
@@ -281,18 +389,14 @@ public class SpeechService extends Service {
 //    };
 
     private StreamObserver<StreamingRecognizeRequest> mRequestObserver;
+    private StreamObserver<StreamingRecognizeRequest> mFileRequestObserver;
 
     public static SpeechService from(IBinder binder) {
         return ((SpeechBinder2) binder).getService();
     }
 
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        realm.init(getBaseContext());
-        realm = Realm.getDefaultInstance();
-
+    public int createRecord() {
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
@@ -300,31 +404,41 @@ public class SpeechService extends Service {
                 recordId = record.getId();
             }
         });
+        return recordId;
+    }
 
+    public int createFileRecord() {
+        realm.beginTransaction();
+        fileRecord = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
+        fileId = fileRecord.getId();
+        realm.commitTransaction();
+        Log.d(TAG,"fileId in craete :"+fileId);
+        return fileId;
+    }
+
+
+    //Realm, accessToken, foreground service 초기화
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        realm.init(getBaseContext());
+        realm = Realm.getDefaultInstance();
         mHandler = new Handler();
         Intent notificationIntent = new Intent(this, ListActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-
-
         Notification notification = new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
-
                 .setContentIntent(pendingIntent).build();
-
         startForeground(1, notification);
-//        this.addListener(mSpeechServiceListener);
         fetchAccessToken();
     }
 
+    //accessToken 제거
     @Override
     public void onDestroy() {
         super.onDestroy();
-//
-        Log.i(TAG, "dead");
-//        this.removeListener(mSpeechServiceListener);
         mHandler.removeCallbacks(mFetchAccessTokenRunnable);
         mHandler = null;
-//         Release the gRPC channel.
         if (mApi != null) {
             final ManagedChannel channel = (ManagedChannel) mApi.getChannel();
             if (channel != null && !channel.isShutdown()) {
@@ -333,29 +447,9 @@ public class SpeechService extends Service {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
             }
             mApi = null;
         }
-    }
-
-    private void fetchAccessToken() {
-        if (mAccessTokenTask != null) {
-            return;
-        }
-        mAccessTokenTask = new AccessTokenTask();
-        mAccessTokenTask.execute();
-    }
-
-    private String getDefaultLanguageCode() {
-        final Locale locale = Locale.getDefault();
-        final StringBuilder language = new StringBuilder(locale.getLanguage());
-        final String country = locale.getCountry();
-        if (!TextUtils.isEmpty(country)) {
-            language.append("-");
-            language.append(country);
-        }
-        return language.toString();
     }
 
     @Nullable
@@ -373,7 +467,6 @@ public class SpeechService extends Service {
 
     }
 
-
     /**
      * Starts recognizing speech audio.
      *
@@ -385,12 +478,10 @@ public class SpeechService extends Service {
             return;
         }
 
-
         this.startMillis = startMillis;
 
         // Configure the API
         mRequestObserver = mApi.streamingRecognize(mResponseObserver);
-
 //        Log.i(TAG, "1 : observer created");
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                 .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
@@ -398,6 +489,11 @@ public class SpeechService extends Service {
                                 .setLanguageCode(getDefaultLanguageCode())
                                 .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
                                 .setSampleRateHertz(sampleRate)
+
+
+
+
+
                                 .build())
                         .setInterimResults(true)
                         .setSingleUtterance(false)
@@ -422,6 +518,7 @@ public class SpeechService extends Service {
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                 .setAudioContent(ByteString.copyFrom(data, 0, size))
                 .build());
+
 //        Log.i(TAG, "buffer sent");
     }
 
@@ -515,17 +612,15 @@ public class SpeechService extends Service {
         return sampleRate;
     }
 
+    private boolean fileStreamFinished = false;
+
     public void recognizeFileStream(final String title, final ArrayList<String> tags, String fileName) {
         try {
             realm.executeTransaction(new Realm.Transaction() {
                 @Override
                 public void execute(Realm realm) {
-                    record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
-                    record.setTitle(title);
-                    record.setTagList(tags);
-                    recordId = record.getId();
-
-                    Log.i("SpeechFile", String.valueOf(recordId));
+                    fileRecord.setTitle(title);
+                    fileRecord.setTagList(tags);
                 }
             });
 
@@ -535,38 +630,64 @@ public class SpeechService extends Service {
 
             byte[] data = IoUtils.toByteArray(new FileInputStream(new File(fileName)));
 
-            mRequestObserver = mApi.streamingRecognize(mResponseObserver);
+            fileStreamFinished = false;
+            mFileRequestObserver = mApi.streamingRecognize(mFileResponseObserver);
             createAudioRecord();
             getValidSampleRates();
 
-            mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                     .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
                             .setConfig(RecognitionConfig.newBuilder()
                                     .setLanguageCode(getDefaultLanguageCode())
                                     .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
                                     .setSampleRateHertz(16000)
+
                                     .build())
                             .setInterimResults(true)
                             .setSingleUtterance(false)
+
                             .build())
                     .build());
-Log.d("buffer", String.valueOf(bufferSize));
+            Log.d("buffer", String.valueOf(bufferSize));
             while (true) {
                 if (stream.read(mBuffer, 0, bufferSize) == -1) {
                     break;
                 }
 
-                mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+
+                mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                         .setAudioContent(ByteString.copyFrom(mBuffer))
+
                         .build());
             }
-            mVoiceCallback.onConvertEnd();
+            fileStreamFinished = true;
+
             int a = 0;
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+    }
+
+
+    private void fetchAccessToken() {
+        if (mAccessTokenTask != null) {
+            return;
+        }
+        mAccessTokenTask = new AccessTokenTask();
+        mAccessTokenTask.execute();
+    }
+
+    private String getDefaultLanguageCode() {
+        final Locale locale = Locale.getDefault();
+        final StringBuilder language = new StringBuilder(locale.getLanguage());
+        final String country = locale.getCountry();
+        if (!TextUtils.isEmpty(country)) {
+            language.append("-");
+            language.append(country);
+        }
+        return language.toString();
     }
 
     private final Runnable mFetchAccessTokenRunnable = new Runnable() {

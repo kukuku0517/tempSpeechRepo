@@ -1,8 +1,10 @@
 package com.google.cloud.android.speech.View.RecordList;
 
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.databinding.DataBindingUtil;
 import android.media.AudioManager;
@@ -10,6 +12,10 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.Process;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.design.widget.TabLayout;
@@ -27,8 +33,10 @@ import android.view.View;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.Util.FileUtil;
 import com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmAdapter;
+import com.google.cloud.android.speech.View.RecordList.Adapter.ProcessEvent;
 import com.google.cloud.android.speech.View.Recording.RecordActivity;
 import com.google.cloud.android.speech.R;
+import com.google.cloud.android.speech.View.Recording.SpeechService;
 import com.google.cloud.android.speech.databinding.ActivityListBinding;
 
 
@@ -50,6 +58,54 @@ public class ListActivity extends AppCompatActivity implements ListHandler, NewR
     private static final int AUDIO_FILE_REQUEST = 0;
     private static final int VIDEO_FILE_REQUEST = 1;
     String TAG = "SpeechAPI";
+
+    public SpeechService mSpeechService;
+Realm realm;
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder binder) {
+            mSpeechService = SpeechService.from(binder);
+            if(mSpeechService.isRecording()){
+                binding.fabRecord.setEnabled(false);
+            }
+            if(mSpeechService.isFileRecognizing()){
+                binding.fabFile.setEnabled(false);
+            }
+
+            //TODO enable after end
+
+
+//            recordId = mSpeechService.getRecordId();
+////            mSpeechService.addListener(mSpeechServiceListener);
+//            mStatus.setVisibility(View.VISIBLE);
+//            serviceBinded = true;
+
+//            realm.executeTransaction(new Realm.Transaction() {
+//                @Override
+//                public void execute(Realm realm) {
+//                    Log.d(TAG, "in service" + String.valueOf(recordId));
+//                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+//
+//                }
+//            });
+//
+//            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+//            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
+////        final ArrayList<String> results = savedInstanceState == null ? null :
+////                savedInstanceState.getStringArrayList(STATE_RESULTS);
+////
+//
+//            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
+//            mRecyclerView.setAdapter(mAdapter);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+
+        }
+
+    };
 
     private class PagerAdapter extends FragmentStatePagerAdapter {
 
@@ -88,6 +144,15 @@ public class ListActivity extends AppCompatActivity implements ListHandler, NewR
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        realm.init(this);
+        RealmConfiguration config = new RealmConfiguration.Builder()
+                .deleteRealmIfMigrationNeeded()
+                .build();
+        Realm.setDefaultConfiguration(config);
+
+        Intent intent = new Intent(this, SpeechService.class);
+        startService(intent);
+        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
 
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_list);

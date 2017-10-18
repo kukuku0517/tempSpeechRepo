@@ -11,6 +11,7 @@ import com.google.cloud.android.speech.Util.DateUtil;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Observable;
 
 import io.realm.Realm;
 
@@ -18,14 +19,20 @@ import io.realm.Realm;
  * Created by samsung on 2017-10-07.
  */
 
-public class RecordDTO {
+public class RecordDTO extends Observable{
     private String title = "";
     private int duration = 0;
     private ArrayList<String> tagList = new ArrayList<>();
     private long startMillis = -1;
 
+public RecordDTO(){
 
+}
     public RecordDTO(RecordRealm recordRealm) {
+       setRealm(recordRealm);
+    }
+
+    public void setRealm(RecordRealm recordRealm){
         this.title = recordRealm.getTitle();
         this.duration = recordRealm.getDuration();
         this.startMillis = recordRealm.getStartMillis();

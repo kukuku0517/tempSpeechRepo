@@ -1,13 +1,20 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context="com.google.cloud.android.speech.View.RecordList.ProcessListFragment">
+<layout>
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        tools:context="com.google.cloud.android.speech.View.RecordList.ProcessListFragment"
+        android:orientation="vertical">
 
-</FrameLayout>
+        <include
+            android:id="@+id/include_record"
+            layout="@layout/item_process"/>
+        <include
+            android:id="@+id/include_file"
+            layout="@layout/item_process"/>
+
+    </LinearLayout>
+
+</layout>

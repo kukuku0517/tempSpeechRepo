@@ -99,8 +99,9 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         super.onDestroy();
         EventBus.getDefault().unregister(this);
     }
+
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onPartialEvent(PartialEvent event){
+    public void onPartialEvent(PartialEvent event) {
         mText.setText(event.getPartial());
     }
 
@@ -109,9 +110,10 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_record);
         EventBus.getDefault().register(this);
-        fileUri = getIntent().getStringExtra("fileUri");
+//        fileUri = getIntent().getStringExtra("fileUri");
         title = getIntent().getStringExtra("title");
         tags = getIntent().getStringArrayListExtra("tags");
+
         realm = Realm.getDefaultInstance();
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
 
@@ -156,8 +158,12 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             mSpeechService = SpeechService.from(binder);
-            recordId = mSpeechService.getRecordId();
             serviceBinded = true;
+            if (SpeechService.isRecording) {
+                recordId = mSpeechService.getRecordId();
+            } else {
+                recordId = mSpeechService.createRecord();
+            }
 
             realm.executeTransaction(new Realm.Transaction() {
                 @Override
@@ -173,7 +179,9 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
             String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
             if (checkPermissions(context, PERMISSIONS)) {
-                mSpeechService.initRecorder(title, tags);
+                if (!SpeechService.isRecording) {
+                    mSpeechService.initRecorder(title, tags);
+                }
             } else if (ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
                     Manifest.permission.RECORD_AUDIO) || ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
@@ -209,9 +217,9 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
             if (permissions.length == 3 && grantResults.length == 3
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED
                     && grantResults[2] == PackageManager.PERMISSION_GRANTED) {
-                NewRecordDialog dialog = new NewRecordDialog();
-                dialog.setRequestCode(requestCode);
-                dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
+
+                mSpeechService.initRecorder(title, tags);
+
             } else {
                 showPermissionMessageDialog();
             }

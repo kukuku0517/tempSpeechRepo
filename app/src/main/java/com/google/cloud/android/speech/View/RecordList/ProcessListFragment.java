@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.databinding.DataBindingUtil;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -13,6 +14,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.support.annotation.MainThread;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.EventLog;
@@ -21,12 +23,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.cloud.android.speech.Data.DTO.RecordDTO;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Util.FileUtil;
 import com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmAdapter;
+import com.google.cloud.android.speech.View.RecordList.Adapter.ProcessEvent;
 import com.google.cloud.android.speech.View.Recording.Adapter.RecordRealmAdapter;
 import com.google.cloud.android.speech.View.Recording.SpeechService;
+import com.google.cloud.android.speech.databinding.FragmentProcessListBinding;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -63,7 +68,8 @@ public class ProcessListFragment extends Fragment {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                Log.d(TAG+"file",filePath);
+                                Log.d(TAG + "file", filePath);
+                                mSpeechService.createFileRecord();
                                 mSpeechService.recognizeFileStream(title, tags, filePath);
 
                             }
@@ -76,28 +82,6 @@ public class ProcessListFragment extends Fragment {
             }).start();
 
 
-//            recordId = mSpeechService.getRecordId();
-////            mSpeechService.addListener(mSpeechServiceListener);
-//            mStatus.setVisibility(View.VISIBLE);
-//            serviceBinded = true;
-
-//            realm.executeTransaction(new Realm.Transaction() {
-//                @Override
-//                public void execute(Realm realm) {
-//                    Log.d(TAG, "in service" + String.valueOf(recordId));
-//                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
-//
-//                }
-//            });
-//
-//            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-//            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
-////        final ArrayList<String> results = savedInstanceState == null ? null :
-////                savedInstanceState.getStringArrayList(STATE_RESULTS);
-////
-//
-//            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
-//            mRecyclerView.setAdapter(mAdapter);
         }
 
         @Override
@@ -120,9 +104,13 @@ public class ProcessListFragment extends Fragment {
         return instance;
     }
 
+    FragmentProcessListBinding binding;
+    Realm realm;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        realm = Realm.getDefaultInstance();
         mPageNumber = getArguments().getInt("page");
         EventBus.getDefault().register(this);
 
@@ -154,20 +142,42 @@ public class ProcessListFragment extends Fragment {
         title = event.getTitle();
         tags = event.getTags();
         filePath = event.getFilePath();
-        Log.d(TAG+"file",filePath);
+        Log.d(TAG + "file", filePath);
+//
+//        Intent intent = new Intent(getActivity(), SpeechService.class);
+//        getActivity().startService(intent);
+//        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
+        this.mSpeechService = ((ListActivity) getActivity()).mSpeechService;
+        this.mSpeechService.createFileRecord();
+        this.mSpeechService.recognizeFileStream(title, tags, filePath);
+    }
 
-        Intent intent = new Intent(getActivity(), SpeechService.class);
-        getActivity().startService(intent);
-        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onProcessEvent(ProcessEvent event) {
+
+        EventBus.getDefault().removeStickyEvent(event);
+        realm.beginTransaction();
+        if (event.getType()==ProcessEvent.FILE) {
+            file.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getId()).findFirst());
+        }
+        if (event.getType()==ProcessEvent.RECORD) {
+            record.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getId()).findFirst());
+        }
+        realm.commitTransaction();
 
     }
+
+    private RecordDTO record = new RecordDTO();
+    private RecordDTO file = new RecordDTO();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_process_list, container, false);
-
+        binding = DataBindingUtil.inflate(inflater, R.layout.fragment_process_list, container, false);
+        View view = binding.getRoot();
+        binding.includeRecord.setRecord(record);
+        binding.includeFile.setRecord(file);
         return view;
     }
 

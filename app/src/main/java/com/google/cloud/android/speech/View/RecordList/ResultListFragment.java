@@ -49,13 +49,8 @@ public class ResultListFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mPageNumber = getArguments().getInt("page");
-        realm.init(getActivity());
 
-        RealmConfiguration config = new RealmConfiguration.Builder()
-                .deleteRealmIfMigrationNeeded()
-                .build();
-        Realm.setDefaultConfiguration(config);
-
+        realm = Realm.getDefaultInstance();
     }
 
     @Override
@@ -63,7 +58,7 @@ public class ResultListFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_result_list, container, false);
-        realm = Realm.getDefaultInstance();
+
         RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted", true).findAll();
 
         for (final RecordRealm record : result) {

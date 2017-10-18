@@ -187,18 +187,14 @@ public class VoiceRecorder {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        Log.i(TAG, String.valueOf(111111));
                         copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE));
                         deleteTempFile();
 
-                        Log.i(TAG, String.valueOf(2222222));
                         Handler handler = new Handler(Looper.getMainLooper());
 
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-
-                                Log.i(TAG, String.valueOf(33333333));
                                 mCallback.onConvertEnd();
                             }
                         });
@@ -281,6 +277,7 @@ public class VoiceRecorder {
                     }
                     short sData[] = new short[BufferElements2Rec];
                     int size=0;
+
                     if (mAudioRecord != null) {
                         size = mAudioRecord.read(mBuffer, 0, bufferSize);
                         try {
@@ -303,6 +300,7 @@ public class VoiceRecorder {
                             end();
                         }
                     } else if (mLastVoiceHeardMillis != Long.MAX_VALUE) {
+
                         mCallback.onVoice(mBuffer, size);
                         if (now - mLastVoiceHeardMillis > SPEECH_TIMEOUT_MILLIS) { //인식정지 시간초과
                             end();
