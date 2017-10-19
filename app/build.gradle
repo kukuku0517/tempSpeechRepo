@@ -20,7 +20,7 @@ apply plugin: 'realm-android'
 
 ext {
     supportLibraryVersion = '25.4.0'
-    grpcVersion = '1.4.0'
+    grpcVersion = '1.6.0'
 }
 
 android {
@@ -76,8 +76,8 @@ android {
 }
 
 protobuf {
-    protoc {
-        artifact = 'com.google.protobuf:protoc:3.3.0'
+    protoc { //pre-compiled protoc that we have published on Maven Central
+        artifact = 'com.google.protobuf:protoc:3.4.0'
     }
     plugins {
         javalite {
@@ -92,7 +92,7 @@ protobuf {
             task.plugins {
                 javalite {}
                 grpc {
-                    // Options added to --grpc_out
+//                     Options added to --grpc_out
                     option 'lite'
                 }
             }
@@ -133,10 +133,6 @@ dependencies {
     androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
     protobuf 'com.google.protobuf:protobuf-java:3.3.1'
 
-//    compile ('com.google.cloud:google-cloud:0.26.0-alpha'){
-//        exclude module: 'httpclient'
-//        exclude module: 'json'
-//    }
 }
 
 task copySecretKey(type: Copy) {

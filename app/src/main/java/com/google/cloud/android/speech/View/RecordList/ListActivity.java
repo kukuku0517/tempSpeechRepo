@@ -34,6 +34,7 @@ import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.Util.FileUtil;
 import com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmAdapter;
 import com.google.cloud.android.speech.View.RecordList.Adapter.ProcessEvent;
+import com.google.cloud.android.speech.View.Recording.Adapter.ProcessIdEvent;
 import com.google.cloud.android.speech.View.Recording.RecordActivity;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.View.Recording.SpeechService;
@@ -41,6 +42,8 @@ import com.google.cloud.android.speech.databinding.ActivityListBinding;
 
 
 import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,18 +63,36 @@ public class ListActivity extends AppCompatActivity implements ListHandler, NewR
     String TAG = "SpeechAPI";
 
     public SpeechService mSpeechService;
-Realm realm;
+    public Realm realm;
+
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onProcessIdEvent(ProcessIdEvent event) {
+
+        Log.d("lifecycle","list process event");
+        if (event.isRecording()) {
+            binding.fabRecord.setEnabled(false);
+            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setRecordItem(event.getRecordId());
+        } else {
+            binding.fabRecord.setEnabled(true);
+        }
+        if (event.isFiling()) {
+            binding.fabFile.setEnabled(false);
+            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setFileItem(event.getFileId());
+        } else {
+            binding.fabFile.setEnabled(true);
+        }
+    }
+
+
+
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             mSpeechService = SpeechService.from(binder);
-            if(mSpeechService.isRecording()){
-                binding.fabRecord.setEnabled(false);
-            }
-            if(mSpeechService.isFileRecognizing()){
-                binding.fabFile.setEnabled(false);
-            }
+
 
             //TODO enable after end
 
@@ -139,6 +160,27 @@ Realm realm;
     @Override
     protected void onStop() {
         super.onStop();
+        if (mSpeechService != null) {
+            unbindService(mServiceConnection);
+            mSpeechService = null;
+        }
+
+        EventBus.getDefault().unregister(this);
+
+        Log.d("lifecycle","list stop");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d("lifecycle","list resume");
+        EventBus.getDefault().register(this);
+        FragmentManager fragmentManager =getSupportFragmentManager();
+
+        Intent intent = new Intent(this, SpeechService.class);
+        startService(intent);
+        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+
     }
 
     @Override
@@ -150,9 +192,10 @@ Realm realm;
                 .build();
         Realm.setDefaultConfiguration(config);
 
-        Intent intent = new Intent(this, SpeechService.class);
-        startService(intent);
-        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+        if (realm == null) {
+            realm = Realm.getDefaultInstance();
+        }
+        Log.d("lifecycle","list crate");
 
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_list);
@@ -419,7 +462,6 @@ Realm realm;
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case AUDIO_FILE_REQUEST:
-
                 String audioPath = getPath(getBaseContext(), data.getData());
                 Log.i(TAG, audioPath);
                 binding.vpList.setCurrentItem(1);

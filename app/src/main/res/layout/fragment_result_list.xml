@@ -2,7 +2,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.google.cloud.android.speech.View.RecordList.ResultListFragment">
+    tools:context="com.google.cloud.android.speech.View.RecordList.ResultListFragment"
+    android:id="@+id/fragment_result_list">
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rv_record"

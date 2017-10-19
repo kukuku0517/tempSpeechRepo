@@ -6,14 +6,25 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:context="com.google.cloud.android.speech.View.RecordList.ProcessListFragment"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:id="@+id/fragment_process_list">
+
 
         <include
+            android:id="@+id/include_record_empty"
+            layout="@layout/item_process_empty"
+            android:visibility="gone"/>
+
+        <include
+            android:id="@+id/include_file_empty"
+            layout="@layout/item_process_empty"
+            android:visibility="gone"/>
+        <include
             android:id="@+id/include_record"
-            layout="@layout/item_process"/>
+            layout="@layout/item_process_record"/>
         <include
             android:id="@+id/include_file"
-            layout="@layout/item_process"/>
+            layout="@layout/item_process_record"/>
 
     </LinearLayout>
 

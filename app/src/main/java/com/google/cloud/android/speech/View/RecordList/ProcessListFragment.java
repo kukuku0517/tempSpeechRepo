@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.support.annotation.MainThread;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -26,10 +27,12 @@ import android.view.ViewGroup;
 import com.google.cloud.android.speech.Data.DTO.RecordDTO;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.R;
+import com.google.cloud.android.speech.Util.DateUtil;
 import com.google.cloud.android.speech.Util.FileUtil;
 import com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmAdapter;
 import com.google.cloud.android.speech.View.RecordList.Adapter.ProcessEvent;
 import com.google.cloud.android.speech.View.Recording.Adapter.RecordRealmAdapter;
+import com.google.cloud.android.speech.View.Recording.PartialTimerEvent;
 import com.google.cloud.android.speech.View.Recording.SpeechService;
 import com.google.cloud.android.speech.databinding.FragmentProcessListBinding;
 
@@ -46,53 +49,23 @@ import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 
 
-public class ProcessListFragment extends Fragment {
+public class ProcessListFragment extends Fragment implements ProcessHandler {
 
-    String TAG = "Speech";
+    private static final String TAG = "Speech";
+    private static ProcessListFragment instance;
+
+    private RecordDTO record = new RecordDTO();
+    private RecordDTO file = new RecordDTO();
+    private int mPageNumber;
+    private SpeechService mSpeechService;
+    private String title;
+    private ArrayList<String> tags;
+    private String filePath;
 
     public ProcessListFragment() {
         // Required empty public constructor
     }
 
-    private final ServiceConnection mServiceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder binder) {
-            mSpeechService = SpeechService.from(binder);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(2000);
-                        Handler handler = new Handler(Looper.getMainLooper());
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                Log.d(TAG + "file", filePath);
-                                mSpeechService.createFileRecord();
-                                mSpeechService.recognizeFileStream(title, tags, filePath);
-
-                            }
-                        });
-
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
-
-
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-
-        }
-
-    };
-
-    private int mPageNumber;
-    private static ProcessListFragment instance;
 
     public static ProcessListFragment create(int pageNumber) {
         if (instance == null) {
@@ -110,76 +83,41 @@ public class ProcessListFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        realm = Realm.getDefaultInstance();
+        realm =( (ListActivity)getActivity()).realm;
         mPageNumber = getArguments().getInt("page");
         EventBus.getDefault().register(this);
 
-        Log.i("event", "register");
-        Log.i("event", "oncreate");
-
-
+        Log.d("lifecycle","process create");
     }
+
 
     @Override
     public void onResume() {
         super.onResume();
+
+        Log.d("lifecycle","process resume");
         if (!EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().register(this);
-            Log.i("event", "register");
+
         }
-        Log.i("event", "onresume");
     }
-
-    SpeechService mSpeechService;
-
-    private String title;
-    private ArrayList<String> tags;
-    private String filePath;
-
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    public void onMessageEvent(FileEvent event) {
-        EventBus.getDefault().removeStickyEvent(event);
-        title = event.getTitle();
-        tags = event.getTags();
-        filePath = event.getFilePath();
-        Log.d(TAG + "file", filePath);
-//
-//        Intent intent = new Intent(getActivity(), SpeechService.class);
-//        getActivity().startService(intent);
-//        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
-        this.mSpeechService = ((ListActivity) getActivity()).mSpeechService;
-        this.mSpeechService.createFileRecord();
-        this.mSpeechService.recognizeFileStream(title, tags, filePath);
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    public void onProcessEvent(ProcessEvent event) {
-
-        EventBus.getDefault().removeStickyEvent(event);
-        realm.beginTransaction();
-        if (event.getType()==ProcessEvent.FILE) {
-            file.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getId()).findFirst());
-        }
-        if (event.getType()==ProcessEvent.RECORD) {
-            record.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getId()).findFirst());
-        }
-        realm.commitTransaction();
-
-    }
-
-    private RecordDTO record = new RecordDTO();
-    private RecordDTO file = new RecordDTO();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        binding = DataBindingUtil.inflate(inflater, R.layout.fragment_process_list, container, false);
+
+
+        Log.d("lifecycle","process oncreateview");
+       binding = DataBindingUtil.inflate(
+                inflater, R.layout.fragment_process_list, container, false);
         View view = binding.getRoot();
+        //here data must be an instance of the class MarsDataProvider
         binding.includeRecord.setRecord(record);
         binding.includeFile.setRecord(file);
+        binding.includeRecord.setHandler(this);
         return view;
     }
+
 
     @Override
     public void onAttach(Context context) {
@@ -197,6 +135,87 @@ public class ProcessListFragment extends Fragment {
     public void onStop() {
         super.onStop();
         EventBus.getDefault().unregister(this);
-        Log.i("event", "unregister");
+
+        Log.d("lifecycle","process stop");
+    }
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onMessageEvent(FileEvent event) {
+        EventBus.getDefault().removeStickyEvent(event);
+        title = event.getTitle();
+        tags = event.getTags();
+        filePath = event.getFilePath();
+        Log.d(TAG + "file", filePath);
+//
+//        Intent intent = new Intent(getActivity(), SpeechService.class);
+//        getActivity().startService(intent);
+//        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
+        this.mSpeechService = ((ListActivity) getActivity()).mSpeechService;
+        this.mSpeechService.createFileRecord();
+        this.mSpeechService.recognizeFileStream(title, tags, filePath);
+    }
+
+//    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+//    public void onProcessEvent(ProcessEvent event) {
+//
+//        realm.beginTransaction();
+//        if (event.getType() == ProcessEvent.FILE) {
+//            file.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getId()).findFirst());
+//        }
+//        if (event.getType() == ProcessEvent.RECORD) {
+//            record.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getId()).findFirst());
+//        }
+//
+//        realm.commitTransaction();
+//        EventBus.getDefault().removeStickyEvent(event);
+//
+//    }
+
+    public void setRecordItem(int recordId){
+        realm.beginTransaction();
+
+        record.setRealm(realm.where(RecordRealm.class).equalTo("id", recordId).findFirst());
+
+
+        realm.commitTransaction();
+    }
+
+    public void setFileItem(int fileId){
+        realm.beginTransaction();
+
+        file.setRealm(realm.where(RecordRealm.class).equalTo("id", fileId).findFirst());
+
+
+        realm.commitTransaction();
+    }
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onPartialTimerEvent(PartialTimerEvent event) {
+//        Log.d(TAG,"eventbus timer end"+event.getSecond());
+        record.setDuration(event.getSecond()*1000);
+        if(binding==null && record==null){
+            Log.d(TAG,"eventbus timer end"+event.getSecond());
+        }else{
+            Log.d(TAG,"eventbus timer end"+event.getSecond());
+        }
+        EventBus.getDefault().removeStickyEvent(event);
+    }
+
+    @Override
+    public void onClickStopRecord(View view) {
+        if(mSpeechService==null){
+            this.mSpeechService = ((ListActivity) getActivity()).mSpeechService;
+        }
+
+        this.mSpeechService.stopRecording();
+        Log.d(TAG,"stop");
+//        binding.includeRecord
+    }
+
+    @Override
+    public void onClickStopFile(View view) {
+
     }
 }

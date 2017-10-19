@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,11 +47,26 @@ public class ResultListFragment extends Fragment {
 
 
     @Override
+    public void onStop() {
+        super.onStop();
+
+        Log.d("lifecycle","resultlist stop");
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mPageNumber = getArguments().getInt("page");
 
-        realm = Realm.getDefaultInstance();
+        Log.d("lifecycle","resultlist create");
+        realm = ((ListActivity)getActivity()).realm;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        Log.d("lifecycle","resultlist resume");
     }
 
     @Override
@@ -61,6 +77,7 @@ public class ResultListFragment extends Fragment {
 
         RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted", true).findAll();
 
+        Log.d("lifecycle","resultlist create view");
         for (final RecordRealm record : result) {
             if (record.getDuration() == 0) {
                 String filePath = FileUtil.getFilename(record.getTitle());

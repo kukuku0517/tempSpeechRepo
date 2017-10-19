@@ -1,9 +1,12 @@
 package com.google.cloud.android.speech.Data.DTO;
 
+import android.databinding.BaseObservable;
+import android.databinding.Bindable;
 import android.databinding.BindingAdapter;
 import android.databinding.BindingConversion;
 import android.widget.TextView;
 
+import com.google.cloud.android.speech.BR;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.Data.Realm.StringRealm;
 import com.google.cloud.android.speech.Util.DateUtil;
@@ -19,7 +22,7 @@ import io.realm.Realm;
  * Created by samsung on 2017-10-07.
  */
 
-public class RecordDTO extends Observable{
+public class RecordDTO extends BaseObservable{
     private String title = "";
     private int duration = 0;
     private ArrayList<String> tagList = new ArrayList<>();
@@ -33,12 +36,14 @@ public RecordDTO(){
     }
 
     public void setRealm(RecordRealm recordRealm){
-        this.title = recordRealm.getTitle();
-        this.duration = recordRealm.getDuration();
-        this.startMillis = recordRealm.getStartMillis();
+        setTitle(recordRealm.getTitle());
+        this.duration=recordRealm.getDuration();
+        setStartMillis(recordRealm.getStartMillis());
+        ArrayList<String> temp = new ArrayList<>();
         for (StringRealm s : recordRealm.getTagList()) {
-            this.tagList.add(s.getString());
+            temp.add(s.getString());
         }
+        setTagList(temp);
     }
 
     public static RecordRealm toRealm(RecordDTO recordDTO) {
@@ -53,36 +58,44 @@ public RecordDTO(){
         return recordRealm;
     }
 
+    @Bindable
     public String getTitle() {
         return title;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
+    @Bindable
     public int getDuration() {
         return duration;
     }
 
-    public void setDuration(int duration) {
-        this.duration = duration;
-    }
-
+    @Bindable
     public ArrayList<String> getTagList() {
         return tagList;
     }
 
-    public void setTagList(ArrayList<String> tagList) {
-        this.tagList = tagList;
-    }
-
+    @Bindable
     public long getStartMillis() {
         return startMillis;
     }
 
+    public void setTitle(String title) {
+        this.title = title;
+        notifyPropertyChanged(BR.title);
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+        notifyPropertyChanged(BR.duration);
+    }
+
+    public void setTagList(ArrayList<String> tagList) {
+                this.tagList = tagList;
+        notifyPropertyChanged(BR.tagList);
+    }
+
     public void setStartMillis(long startMillis) {
         this.startMillis = startMillis;
+        notifyPropertyChanged(BR.startMillis);
     }
 
     @BindingAdapter("android:text")

@@ -31,7 +31,7 @@ import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Util.RealmUtil;
 import com.google.cloud.android.speech.View.RecordList.Adapter.ProcessEvent;
 import com.google.cloud.android.speech.View.RecordList.ListActivity;
-import com.google.cloud.speech.v1.LongRunningRecognizeRequest;
+import com.google.cloud.android.speech.View.Recording.Adapter.ProcessIdEvent;
 import com.google.cloud.speech.v1.RecognitionConfig;
 import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
@@ -56,6 +56,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import io.grpc.CallOptions;
@@ -113,8 +115,8 @@ public class SpeechService extends Service {
         @Override
         public void onConvertEnd() {
             stopRecognizing(RECORD);
+            notifyProcess();
 
-            stopService();
         }
     };
 
@@ -124,13 +126,22 @@ public class SpeechService extends Service {
     public int getFileId(){
         return fileId;
     }
-    private void stopService() {
+
+    private void stopForeground() {
         if (recordId == -1 && fileId == -1) {
             stopForeground(true);
         }
     }
+    public void startForeground(){
+        Intent notificationIntent = new Intent(this, ListActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+        Notification notification = new Notification.Builder(this)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(pendingIntent).build();
+        startForeground(1, notification);
+    }
 
-    private void stopRecognizing(final int type) {
+   public void stopRecognizing(final int type) {
         Realm realm = Realm.getDefaultInstance();
         realm.beginTransaction();
 
@@ -176,6 +187,9 @@ public class SpeechService extends Service {
 //
 //            }
 //        });
+
+
+       stopForeground();
     }
 
     public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart, int id) {
@@ -227,8 +241,11 @@ public class SpeechService extends Service {
     }
 
 
+    int timerCount=0;
+    Timer timer=new Timer();
 
     public void initRecorder(final String title, final ArrayList<String> tags) {
+        startForeground();
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
@@ -242,6 +259,18 @@ public class SpeechService extends Service {
         mVoiceRecorder.setTitle(record.getTitle());
         mVoiceRecorder.start();
 
+        timer=new Timer();
+        TimerTask timertask = new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                timerCount++;
+                EventBus.getDefault().postSticky(new PartialTimerEvent(timerCount));
+                Log.d(TAG,"eventbus timer start :"+timerCount);
+            }
+        };
+        timer.schedule(timertask, 1000, 1000);    // 1초 후에
     }
 
 
@@ -295,9 +324,13 @@ public class SpeechService extends Service {
 //                    Log.i(TAG, text);
 //                }
                 onSpeechRecognized(text, isFinal, startMillis, recordId);
-                EventBus.getDefault().postSticky(new ProcessEvent(recordId,ProcessEvent.RECORD));
+                if(isFinal)
+                    Log.d(TAG, "timetime"+String.valueOf(response.getResults(0).getAlternatives(0).getWords(0).getStartTime().getSeconds()));
+
+//                EventBus.getDefault().postSticky(new ProcessEvent(recordId,ProcessEvent.RECORD));
             }
         }
+
 
         @Override
         public void onError(Throwable t) {
@@ -333,15 +366,16 @@ public class SpeechService extends Service {
 //                    Log.i(TAG, text);
 //                }
                 onSpeechRecognized(text, isFinal, startMillis, fileId);
-
-                EventBus.getDefault().postSticky(new ProcessEvent(fileId,ProcessEvent.FILE));
+                if(isFinal)
+                    Log.d(TAG, "timetime"+String.valueOf(response.getResults(0).getAlternatives(0).getWords(0).getStartTime().getSeconds()));
+//                EventBus.getDefault().postSticky(new ProcessEvent(fileId,ProcessEvent.FILE));
             }
 
-            if (isFinal && fileStreamFinished) {
-                stopRecognizing(FILE);
-
-                stopService();
-            }
+//            if (isFinal && fileStreamFinished) {
+//                stopRecognizing(FILE);
+//
+//                stopForeground();
+//            }
         }
 
         @Override
@@ -416,6 +450,16 @@ public class SpeechService extends Service {
         return fileId;
     }
 
+    private void notifyProcess(){
+        Log.d(TAG,"process on");
+        EventBus.getDefault().postSticky(new ProcessIdEvent(recordId,fileId));
+    }
+
+    @Override
+    public int onStartCommand(Intent intent,  int flags, int startId) {
+        notifyProcess();
+        return super.onStartCommand(intent, flags, startId);
+    }
 
     //Realm, accessToken, foreground service 초기화
     @Override
@@ -424,12 +468,7 @@ public class SpeechService extends Service {
         realm.init(getBaseContext());
         realm = Realm.getDefaultInstance();
         mHandler = new Handler();
-        Intent notificationIntent = new Intent(this, ListActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-        Notification notification = new Notification.Builder(this)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(pendingIntent).build();
-        startForeground(1, notification);
+
         fetchAccessToken();
     }
 
@@ -489,8 +528,7 @@ public class SpeechService extends Service {
                                 .setLanguageCode(getDefaultLanguageCode())
                                 .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
                                 .setSampleRateHertz(sampleRate)
-
-
+                                .setEnableWordTimeOffsets(true)
 
 
 
@@ -538,6 +576,8 @@ public class SpeechService extends Service {
         if (mVoiceRecorder != null) {
             isRecording = false;
             mVoiceRecorder.stop();
+            timer.cancel();
+            timerCount=0;
             mVoiceRecorder = null;
         }
     }
@@ -615,6 +655,7 @@ public class SpeechService extends Service {
     private boolean fileStreamFinished = false;
 
     public void recognizeFileStream(final String title, final ArrayList<String> tags, String fileName) {
+        startForeground();
         try {
             realm.executeTransaction(new Realm.Transaction() {
                 @Override
@@ -628,8 +669,6 @@ public class SpeechService extends Service {
 
             getValidSampleRates();
 
-            byte[] data = IoUtils.toByteArray(new FileInputStream(new File(fileName)));
-
             fileStreamFinished = false;
             mFileRequestObserver = mApi.streamingRecognize(mFileResponseObserver);
             createAudioRecord();
@@ -641,6 +680,7 @@ public class SpeechService extends Service {
                                     .setLanguageCode(getDefaultLanguageCode())
                                     .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
                                     .setSampleRateHertz(16000)
+                                    .setEnableWordTimeOffsets(true)
 
                                     .build())
                             .setInterimResults(true)
