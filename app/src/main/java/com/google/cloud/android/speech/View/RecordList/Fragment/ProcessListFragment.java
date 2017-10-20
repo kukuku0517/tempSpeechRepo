@@ -1,24 +1,13 @@
-package com.google.cloud.android.speech.View.RecordList;
+package com.google.cloud.android.speech.View.RecordList.Fragment;
 
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.databinding.DataBindingUtil;
-import android.media.AudioManager;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
-import android.support.annotation.MainThread;
-import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.util.EventLog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,29 +16,26 @@ import android.view.ViewGroup;
 import com.google.cloud.android.speech.Data.DTO.RecordDTO;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.R;
-import com.google.cloud.android.speech.Util.DateUtil;
-import com.google.cloud.android.speech.Util.FileUtil;
-import com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmAdapter;
-import com.google.cloud.android.speech.View.RecordList.Adapter.ProcessEvent;
-import com.google.cloud.android.speech.View.Recording.Adapter.RecordRealmAdapter;
-import com.google.cloud.android.speech.View.Recording.PartialTimerEvent;
-import com.google.cloud.android.speech.View.Recording.SpeechService;
+import com.google.cloud.android.speech.Event.FileEvent;
+import com.google.cloud.android.speech.View.RecordList.Handler.ProcessItemHandler;
+import com.google.cloud.android.speech.View.RecordList.ListActivity;
+import com.google.cloud.android.speech.View.RecordList.Handler.ProcessHandler;
+import com.google.cloud.android.speech.Event.ProcessIdEvent;
+import com.google.cloud.android.speech.Event.PartialTimerEvent;
+import com.google.cloud.android.speech.View.RecordResult.RecordResultActivity;
+import com.google.cloud.android.speech.View.Recording.Background.SpeechService;
 import com.google.cloud.android.speech.databinding.FragmentProcessListBinding;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 
 import io.realm.Realm;
-import io.realm.RealmConfiguration;
-import io.realm.RealmResults;
 
 
-public class ProcessListFragment extends Fragment implements ProcessHandler {
+public class ProcessListFragment extends Fragment implements ProcessHandler,ProcessItemHandler {
 
     private static final String TAG = "Speech";
     private static ProcessListFragment instance;
@@ -80,14 +66,63 @@ public class ProcessListFragment extends Fragment implements ProcessHandler {
     FragmentProcessListBinding binding;
     Realm realm;
 
+    private int recordId;
+    private int fileId;
+
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder binder) {
+            mSpeechService = SpeechService.from(binder);
+            mSpeechService.notifyProcess();
+            Log.d("lifecycle", "service con");
+
+
+            //TODO enable after end
+
+
+//            recordId = mSpeechService.getRecordId();
+////            mSpeechService.addListener(mSpeechServiceListener);
+//            mStatus.setVisibility(View.VISIBLE);
+//            serviceBinded = true;
+
+//            realm.executeTransaction(new Realm.Transaction() {
+//                @Override
+//                public void execute(Realm realm) {
+//                    Log.d(TAG, "in service" + String.valueOf(recordId));
+//                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+//
+//                }
+//            });
+//
+//            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+//            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
+////        final ArrayList<String> results = savedInstanceState == null ? null :
+////                savedInstanceState.getStringArrayList(STATE_RESULTS);
+////
+//
+//            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
+//            mRecyclerView.setAdapter(mAdapter);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+
+            Log.d("lifecycle", "service discon");
+            mSpeechService = null;
+        }
+
+    };
+
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        realm =( (ListActivity)getActivity()).realm;
+        realm = ((ListActivity) getActivity()).realm;
         mPageNumber = getArguments().getInt("page");
         EventBus.getDefault().register(this);
 
-        Log.d("lifecycle","process create");
+        Log.d("lifecycle", "process create");
     }
 
 
@@ -95,11 +130,15 @@ public class ProcessListFragment extends Fragment implements ProcessHandler {
     public void onResume() {
         super.onResume();
 
-        Log.d("lifecycle","process resume");
+        Log.d("lifecycle", "process resume");
         if (!EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().register(this);
 
         }
+
+        Intent intent = new Intent(getActivity(), SpeechService.class);
+        getActivity().startService(intent);
+        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
     }
 
     @Override
@@ -107,14 +146,15 @@ public class ProcessListFragment extends Fragment implements ProcessHandler {
                              Bundle savedInstanceState) {
 
 
-        Log.d("lifecycle","process oncreateview");
-       binding = DataBindingUtil.inflate(
+        Log.d("lifecycle", "process oncreateview");
+        binding = DataBindingUtil.inflate(
                 inflater, R.layout.fragment_process_list, container, false);
         View view = binding.getRoot();
         //here data must be an instance of the class MarsDataProvider
         binding.includeRecord.setRecord(record);
         binding.includeFile.setRecord(file);
         binding.includeRecord.setHandler(this);
+        binding.includeRecord.setItemHandler(this);
         return view;
     }
 
@@ -135,8 +175,13 @@ public class ProcessListFragment extends Fragment implements ProcessHandler {
     public void onStop() {
         super.onStop();
         EventBus.getDefault().unregister(this);
+        if (mSpeechService != null) {
+            getActivity().unbindService(mServiceConnection);
 
-        Log.d("lifecycle","process stop");
+            Log.d("lifecycle", "list unbind call in stop");
+        }
+
+        Log.d("lifecycle", "process stop");
     }
 
 
@@ -151,9 +196,9 @@ public class ProcessListFragment extends Fragment implements ProcessHandler {
 //        Intent intent = new Intent(getActivity(), SpeechService.class);
 //        getActivity().startService(intent);
 //        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
-        this.mSpeechService = ((ListActivity) getActivity()).mSpeechService;
-        this.mSpeechService.createFileRecord();
-        this.mSpeechService.recognizeFileStream(title, tags, filePath);
+
+    mSpeechService.createFileRecord();
+     mSpeechService.recognizeFileStream(title, tags, filePath);
     }
 
 //    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
@@ -172,16 +217,16 @@ public class ProcessListFragment extends Fragment implements ProcessHandler {
 //
 //    }
 
-    public void setRecordItem(int recordId){
+    public void setRecordItem(int recordId) {
+        this.recordId=recordId;
         realm.beginTransaction();
-
         record.setRealm(realm.where(RecordRealm.class).equalTo("id", recordId).findFirst());
-
-
         realm.commitTransaction();
+
     }
 
-    public void setFileItem(int fileId){
+    public void setFileItem(int fileId) {
+        this.fileId=fileId;
         realm.beginTransaction();
 
         file.setRealm(realm.where(RecordRealm.class).equalTo("id", fileId).findFirst());
@@ -194,23 +239,42 @@ public class ProcessListFragment extends Fragment implements ProcessHandler {
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onPartialTimerEvent(PartialTimerEvent event) {
 //        Log.d(TAG,"eventbus timer end"+event.getSecond());
-        record.setDuration(event.getSecond()*1000);
-        if(binding==null && record==null){
-            Log.d(TAG,"eventbus timer end"+event.getSecond());
-        }else{
-            Log.d(TAG,"eventbus timer end"+event.getSecond());
+        record.setDuration(event.getSecond() * 1000);
+        if (binding == null && record == null) {
+            Log.d(TAG, "eventbus timer end" + event.getSecond());
+        } else {
+            Log.d(TAG, "eventbus timer end" + event.getSecond());
         }
         EventBus.getDefault().removeStickyEvent(event);
     }
 
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onProcessIdEvent(ProcessIdEvent event) {
+
+        binding.includeRecord.setIsVisible(event.isRecording());
+        binding.includeRecordEmpty.setIsVisible(!event.isRecording());
+        binding.includeFile.setIsVisible(event.isFiling());
+        binding.includeFileEmpty.setIsVisible(!event.isFiling());
+
+        Log.d("lifecycle", "list process event");
+        if (event.isRecording()) {
+            setRecordItem(event.getRecordId());
+        }
+        if (event.isFiling()) {
+            setFileItem(event.getFileId());
+        }
+    }
+
+
     @Override
     public void onClickStopRecord(View view) {
-        if(mSpeechService==null){
+        if (mSpeechService == null) {
             this.mSpeechService = ((ListActivity) getActivity()).mSpeechService;
         }
 
         this.mSpeechService.stopRecording();
-        Log.d(TAG,"stop");
+        Log.d(TAG, "stop");
 //        binding.includeRecord
     }
 
@@ -218,4 +282,14 @@ public class ProcessListFragment extends Fragment implements ProcessHandler {
     public void onClickStopFile(View view) {
 
     }
+
+
+    @Override
+    public void onRecordItemClick(View view) {
+        Intent intent = new Intent(getActivity(), RecordResultActivity.class);
+        intent.putExtra("id",recordId);
+        getActivity().startActivity(intent);
+    }
+
+
 }

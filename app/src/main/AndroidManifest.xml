@@ -42,7 +42,7 @@
         <activity android:name=".View.RecordResult.RecordResultActivity" />
 
         <service
-            android:name=".View.Recording.SpeechService"
+            android:name=".View.Recording.Background.SpeechService"
          ></service>
         <!--android:enabled="true"-->
         <!--android:exported="true"-->

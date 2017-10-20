@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.View.Recording;
+package com.google.cloud.android.speech.Event;
 
 import android.databinding.BaseObservable;
 import android.databinding.Bindable;
@@ -12,7 +12,7 @@ import com.google.cloud.android.speech.BR;
 public class PartialTimerEvent{
     int second;
 
-    PartialTimerEvent(int second){
+    public PartialTimerEvent(int second){
         this.second=second;
     }
 

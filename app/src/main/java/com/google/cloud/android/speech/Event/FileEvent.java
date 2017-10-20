@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.View.RecordList;
+package com.google.cloud.android.speech.Event;
 
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -26,7 +26,7 @@ public class FileEvent {
         return filePath;
     }
 
-    FileEvent(String title, ArrayList<String>tags, String filePath){
+    public FileEvent(String title, ArrayList<String>tags, String filePath){
         this.title=title;
         this.tags=tags;
         this.filePath = filePath;

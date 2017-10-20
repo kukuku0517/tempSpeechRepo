@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.View.RecordList;
+package com.google.cloud.android.speech.View.RecordList.Handler;
 
 
 import android.view.View;
@@ -10,4 +10,5 @@ import android.view.View;
 public interface ListHandler {
     void onClickFabRecord(View view);
     void onClickFabFile(View view);
+    void onClickFabVideo(View view);
 }

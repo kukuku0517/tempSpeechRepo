@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.View.Recording;
+package com.google.cloud.android.speech.View.Recording.Background;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;

@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.View.Recording.Adapter;
+package com.google.cloud.android.speech.Event;
 
 /**
  * Created by USER on 2017-10-19.

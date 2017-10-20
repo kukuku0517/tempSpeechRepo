@@ -1,21 +1,13 @@
 package com.google.cloud.android.speech.View.RecordList;
 
-import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.databinding.DataBindingUtil;
-import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
-import android.os.Process;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.design.widget.TabLayout;
@@ -25,36 +17,30 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.View;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.widget.Toast;
 
-import com.google.cloud.android.speech.Data.Realm.RecordRealm;
-import com.google.cloud.android.speech.Util.FileUtil;
-import com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmAdapter;
-import com.google.cloud.android.speech.View.RecordList.Adapter.ProcessEvent;
-import com.google.cloud.android.speech.View.Recording.Adapter.ProcessIdEvent;
+import com.google.cloud.android.speech.Event.FileEvent;
+import com.google.cloud.android.speech.View.RecordList.Fragment.ProcessListFragment;
+import com.google.cloud.android.speech.View.RecordList.Fragment.ResultListFragment;
 import com.google.cloud.android.speech.View.Recording.RecordActivity;
 import com.google.cloud.android.speech.R;
-import com.google.cloud.android.speech.View.Recording.SpeechService;
+import com.google.cloud.android.speech.View.Recording.Background.SpeechService;
 import com.google.cloud.android.speech.databinding.ActivityListBinding;
 
 
 import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
-import io.realm.RealmResults;
 
-public class ListActivity extends AppCompatActivity implements ListHandler, NewRecordDialog.NewRecordDialogListener {
+public class ListActivity extends AppCompatActivity implements  NewRecordDialog.NewRecordDialogListener {
 
 
     ActivityListBinding binding;
@@ -65,121 +51,98 @@ public class ListActivity extends AppCompatActivity implements ListHandler, NewR
     public SpeechService mSpeechService;
     public Realm realm;
 
-
-
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    public void onProcessIdEvent(ProcessIdEvent event) {
-
-        Log.d("lifecycle","list process event");
-        if (event.isRecording()) {
-            binding.fabRecord.setEnabled(false);
-            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setRecordItem(event.getRecordId());
-        } else {
-            binding.fabRecord.setEnabled(true);
-        }
-        if (event.isFiling()) {
-            binding.fabFile.setEnabled(false);
-            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setFileItem(event.getFileId());
-        } else {
-            binding.fabFile.setEnabled(true);
-        }
-    }
-
-
-
-    private final ServiceConnection mServiceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder binder) {
-            mSpeechService = SpeechService.from(binder);
-
-
-            //TODO enable after end
-
-
-//            recordId = mSpeechService.getRecordId();
-////            mSpeechService.addListener(mSpeechServiceListener);
-//            mStatus.setVisibility(View.VISIBLE);
-//            serviceBinded = true;
-
-//            realm.executeTransaction(new Realm.Transaction() {
-//                @Override
-//                public void execute(Realm realm) {
-//                    Log.d(TAG, "in service" + String.valueOf(recordId));
-//                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
 //
-//                }
-//            });
 //
-//            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-//            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
-////        final ArrayList<String> results = savedInstanceState == null ? null :
-////                savedInstanceState.getStringArrayList(STATE_RESULTS);
+//    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+//    public void onProcessIdEvent(ProcessIdEvent event) {
+//
+//        Log.d("lifecycle","list process event");
+//        if (event.isRecording()) {
+//            binding.fabRecord.setEnabled(false);
+//            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setRecordItem(event.getRecordId());
+//        } else {
+//            binding.fabRecord.setEnabled(true);
+//        }
+//        if (event.isFiling()) {
+//            binding.fabFile.setEnabled(false);
+//            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setFileItem(event.getFileId());
+//        } else {
+//            binding.fabFile.setEnabled(true);
+//        }
+//    }
+
+
+//    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+//
+//        @Override
+//        public void onServiceConnected(ComponentName componentName, IBinder binder) {
+//            mSpeechService = SpeechService.from(binder);
+//            mSpeechService.notifyProcess();
+//            Log.d("lifecycle","service con");
+//
+//
+//            //TODO enable after end
+//
+//
+////            recordId = mSpeechService.getRecordId();
+//////            mSpeechService.addListener(mSpeechServiceListener);
+////            mStatus.setVisibility(View.VISIBLE);
+////            serviceBinded = true;
+//
+////            realm.executeTransaction(new Realm.Transaction() {
+////                @Override
+////                public void execute(Realm realm) {
+////                    Log.d(TAG, "in service" + String.valueOf(recordId));
+////                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
 ////
+////                }
+////            });
+////
+////            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+////            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
+//////        final ArrayList<String> results = savedInstanceState == null ? null :
+//////                savedInstanceState.getStringArrayList(STATE_RESULTS);
+//////
+////
+////            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
+////            mRecyclerView.setAdapter(mAdapter);
+//        }
 //
-//            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
-//            mRecyclerView.setAdapter(mAdapter);
-        }
+//        @Override
+//        public void onServiceDisconnected(ComponentName componentName) {
+//
+//            Log.d("lifecycle","service discon");
+//            mSpeechService = null;
+//        }
+//
+//    };
 
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-
-        }
-
-    };
-
-    private class PagerAdapter extends FragmentStatePagerAdapter {
-
-        public PagerAdapter(FragmentManager fm) {
-            super(fm);
-        }
-
-        @Override
-        public Fragment getItem(int position) {
-            // 해당하는 page의 Fragment를 생성합니다.
-
-            switch (position) {
-                case 0:
-                    return ResultListFragment.create(position);
-                case 1:
-                    return ProcessListFragment.create(position);
-
-            }
-            return null;
-        }
-
-        @Override
-        public int getCount() {
-            return 2;  // 총 5개의 page를 보여줍니다.
-        }
-
-    }
 
     PagerAdapter mPagerAdapter;
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (mSpeechService != null) {
-            unbindService(mServiceConnection);
-            mSpeechService = null;
-        }
+//        if (mSpeechService != null) {
+//            unbindService(mServiceConnection);
+//
+//            Log.d("lifecycle","list unbind call in stop");
+//        }
 
-        EventBus.getDefault().unregister(this);
-
-        Log.d("lifecycle","list stop");
+//        EventBus.getDefault().unregister(this);
+        Log.d("lifecycle", "list stop");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        Log.d("lifecycle","list resume");
-        EventBus.getDefault().register(this);
-        FragmentManager fragmentManager =getSupportFragmentManager();
-
-        Intent intent = new Intent(this, SpeechService.class);
-        startService(intent);
-        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+        Log.d("lifecycle", "list resume");
+//        EventBus.getDefault().register(this);
+        FragmentManager fragmentManager = getSupportFragmentManager();
+//
+//        Intent intent = new Intent(this, SpeechService.class);
+//        startService(intent);
+//        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
 
     }
 
@@ -191,17 +154,16 @@ public class ListActivity extends AppCompatActivity implements ListHandler, NewR
                 .deleteRealmIfMigrationNeeded()
                 .build();
         Realm.setDefaultConfiguration(config);
-
         if (realm == null) {
             realm = Realm.getDefaultInstance();
         }
-        Log.d("lifecycle","list crate");
+        Log.d("lifecycle", "list crate");
 
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_list);
-        binding.setHandler(this);
-
-
+//        binding.setHandler(this);
+        setSupportActionBar(binding.toolbar);
+        getSupportActionBar().setTitle(null);
         mPagerAdapter = new PagerAdapter(getSupportFragmentManager());
 
 
@@ -210,12 +172,12 @@ public class ListActivity extends AppCompatActivity implements ListHandler, NewR
         binding.vpList.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                binding.tlList.setScrollPosition(position, positionOffset, true);
+
             }
 
             @Override
             public void onPageSelected(int position) {
-
+                binding.tlList.getTabAt(position).select();
             }
 
             @Override
@@ -245,26 +207,17 @@ public class ListActivity extends AppCompatActivity implements ListHandler, NewR
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 1;
     private static final int REQUEST_FILE_AUDIO_PERMISSION = 2;
 
-    @Override
-    public void onClickFabRecord(View view) {
 
-        NewRecordDialog dialog = new NewRecordDialog();
-        dialog.setRequestCode(REQUEST_RECORD_AUDIO_PERMISSION);
-        dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
+    public void openDialog(int permission){
 
 
-    }
+            NewRecordDialog dialog = new NewRecordDialog();
+            dialog.setRequestCode(permission);
+            dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
 
-    @Override
-    public void onClickFabFile(View view) {
-
-        NewRecordDialog dialog = new NewRecordDialog();
-        dialog.setRequestCode(REQUEST_FILE_AUDIO_PERMISSION);
-        dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
 
 
     }
-
 
     @Override
     public void onDialogPositiveClick(String title, String tag, int requestCode) {
@@ -469,6 +422,50 @@ public class ListActivity extends AppCompatActivity implements ListHandler, NewR
 //                Intent intent = new Intent(this, RecordActivity.class);
 //                intent.putExtra("fileUri", getAudioPath);
 //                startActivity(intent);
+        }
+
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()){
+            case R.id.action_search:
+                Toast.makeText(this, R.string.ready, Toast.LENGTH_SHORT).show();
+                break;
+        }
+        return true;
+    }
+
+    private class PagerAdapter extends FragmentStatePagerAdapter {
+
+        public PagerAdapter(FragmentManager fm) {
+            super(fm);
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            // 해당하는 page의 Fragment를 생성합니다.
+
+            switch (position) {
+                case 0:
+                    return ResultListFragment.create(position);
+                case 1:
+                    return ProcessListFragment.create(position);
+
+            }
+            return null;
+        }
+
+        @Override
+        public int getCount() {
+            return 2;
         }
 
     }

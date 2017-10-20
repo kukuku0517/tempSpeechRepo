@@ -16,6 +16,8 @@ import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
 import com.google.cloud.android.speech.Util.FileUtil;
+import com.google.cloud.android.speech.View.RecordResult.Handler.MyItemClickListener;
+import com.google.cloud.android.speech.View.RecordResult.Handler.ResultHandler;
 import com.google.cloud.android.speech.View.RecordResult.Adapter.ResultRealmAdapter;
 import com.google.cloud.android.speech.databinding.ActivityResultBinding;
 

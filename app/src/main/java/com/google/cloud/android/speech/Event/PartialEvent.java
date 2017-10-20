@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.View.Recording;
+package com.google.cloud.android.speech.Event;
 
 /**
  * Created by USER on 2017-10-17.
@@ -7,7 +7,7 @@ package com.google.cloud.android.speech.View.Recording;
 public class PartialEvent {
     String partial;
 
-    PartialEvent(String partial){
+    public PartialEvent(String partial){
         this.partial=partial;
     }
     public String getPartial() {

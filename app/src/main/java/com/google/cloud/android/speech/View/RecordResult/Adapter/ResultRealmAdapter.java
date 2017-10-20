@@ -1,21 +1,16 @@
 package com.google.cloud.android.speech.View.RecordResult.Adapter;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.support.annotation.Nullable;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
-import com.google.cloud.android.speech.Data.Realm.WordRealm;
 import com.google.cloud.android.speech.Util.DateUtil;
-import com.google.cloud.android.speech.View.RecordResult.MyItemClickListener;
+import com.google.cloud.android.speech.View.RecordResult.Handler.MyItemClickListener;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.Realm;

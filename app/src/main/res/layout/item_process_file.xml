@@ -23,7 +23,7 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/recordTitle"
+                android:id="@+id/tv_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@{record.title}"
@@ -41,21 +41,21 @@
                 android:textStyle="bold"
                 android:padding="4dp" />
             <TextView
-                android:id="@+id/recordDate"
+                android:id="@+id/tv_date"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/recordTitle"
+                android:layout_below="@id/tv_title"
                 android:text="@{record.startMillis}"
                 android:padding="4dp"
                 android:layout_marginRight="4dp"
                 tools:text="2017/10/13" />
 
             <TextView
-                android:id="@+id/recordDuration"
+                android:id="@+id/tv_duration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/recordTitle"
-                android:layout_toRightOf="@id/recordDate"
+                android:layout_below="@id/tv_title"
+                android:layout_toRightOf="@id/tv_date"
                 android:padding="4dp"
                 android:layout_marginRight="4dp"
                 tools:text="00:31" />
@@ -64,13 +64,13 @@
 
 
             <TextView
-                android:id="@+id/recordTag"
+                android:id="@+id/tv_tag"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/recordTitle"
+                android:layout_below="@id/tv_title"
                 android:padding="4dp"
                 android:textColor="#fff"
-                android:layout_toRightOf="@id/recordDuration"
+                android:layout_toRightOf="@id/tv_duration"
                 android:text="@{record.tagList[0]}"
                 tools:text="Marketing / Lecture"
                 android:background="@drawable/layout_round"/>

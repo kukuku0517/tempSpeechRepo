@@ -4,6 +4,7 @@ import android.content.Context;
 import android.databinding.DataBindingUtil;
 import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -43,6 +44,7 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder{
 
             EditText editText = new EditText(context);
             editText.setHint(w.getWord());
+            Log.d("words",w.getStartMillis()+" : "+w.getWord());
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             params.setMargins(5, 5, 5, 5);
             editText.setLayoutParams(params);

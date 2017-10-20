@@ -1,31 +1,38 @@
-<layout>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+
+    tools:context="com.google.cloud.android.speech.View.RecordList.Fragment.ProcessListFragment">
+
 
     <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/fragment_process_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context="com.google.cloud.android.speech.View.RecordList.ProcessListFragment"
         android:orientation="vertical"
-        android:id="@+id/fragment_process_list">
+>
 
+
+        <include
+            android:id="@+id/include_record"
+            layout="@layout/item_process_record"
+          />
+
+        <include
+            android:id="@+id/include_file"
+            layout="@layout/item_process_record" />
 
         <include
             android:id="@+id/include_record_empty"
             layout="@layout/item_process_empty"
-            android:visibility="gone"/>
+            android:visibility="gone"
+            app:message="@{@string/no_record}" />
 
         <include
             android:id="@+id/include_file_empty"
             layout="@layout/item_process_empty"
-            android:visibility="gone"/>
-        <include
-            android:id="@+id/include_record"
-            layout="@layout/item_process_record"/>
-        <include
-            android:id="@+id/include_file"
-            layout="@layout/item_process_record"/>
-
+            android:visibility="gone"
+            app:message="@{@string/no_file}" />
     </LinearLayout>
 
 </layout>

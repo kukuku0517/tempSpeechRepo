@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.View.RecordResult;
+package com.google.cloud.android.speech.View.RecordResult.Handler;
 
 import android.view.View;
 

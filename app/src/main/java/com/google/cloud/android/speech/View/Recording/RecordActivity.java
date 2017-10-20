@@ -23,37 +23,30 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import com.google.cloud.android.speech.Event.PartialEvent;
 import com.google.cloud.android.speech.R;
-import com.google.cloud.android.speech.Util.RealmUtil;
-import com.google.cloud.android.speech.View.RecordList.FileEvent;
-import com.google.cloud.android.speech.View.RecordList.NewRecordDialog;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.View.Recording.Adapter.RecordRealmAdapter;
+import com.google.cloud.android.speech.View.Recording.Background.SpeechService;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
-import java.util.StringTokenizer;
 
 import io.realm.Realm;
 
@@ -272,7 +265,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 //    private final SpeechService.Listener mSpeechServiceListener =
 //            new SpeechService.Listener() {
 //                @Override
-//                public void onSpeechRecognized(final String text, final boolean isFinal, final long sentenceStart) {
+//                public void onFileRecognized(final String text, final boolean isFinal, final long sentenceStart) {
 //                    if (isFinal) {
 //                        Log.i(TAG, "dismiss");
 //                        if (mVoiceRecorder != null) {
