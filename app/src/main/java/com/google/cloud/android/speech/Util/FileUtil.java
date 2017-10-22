@@ -1,6 +1,8 @@
 package com.google.cloud.android.speech.Util;
 
+import android.content.Context;
 import android.os.Environment;
+import android.widget.Toast;
 
 import java.io.File;
 
@@ -41,5 +43,16 @@ public class FileUtil {
             tempFile.delete();
 
         return (file.getAbsolutePath() + "/" + AUDIO_RECORDER_TEMP_FILE);
+    }
+
+    public static void deleteFile(Context context, String path){
+        File fdelete = new File(path);
+        if (fdelete.exists()) {
+            if (fdelete.delete()) {
+                Toast.makeText(context,path+" deleted",Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(context,"deletion failed",Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }

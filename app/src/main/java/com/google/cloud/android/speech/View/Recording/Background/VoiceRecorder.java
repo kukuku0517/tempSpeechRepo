@@ -120,6 +120,7 @@ public class VoiceRecorder {
         }
         // Try to create a new recording session.
         mAudioRecord = createAudioRecord();
+
         if (mAudioRecord == null) {
             throw new RuntimeException("Cannot instantiate VoiceRecorder");
         }
@@ -279,6 +280,7 @@ public class VoiceRecorder {
                     int size=0;
 
                     if (mAudioRecord != null) {
+
                         size = mAudioRecord.read(mBuffer, 0, bufferSize);
                         try {
                             os.write(mBuffer);

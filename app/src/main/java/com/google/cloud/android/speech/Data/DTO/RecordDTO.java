@@ -22,23 +22,34 @@ import io.realm.Realm;
  * Created by samsung on 2017-10-07.
  */
 
-public class RecordDTO extends BaseObservable{
+public class RecordDTO extends BaseObservable {
     private String title = "";
     private int duration = 0;
     private ArrayList<String> tagList = new ArrayList<>();
     private long startMillis = -1;
+    private String filePath;
 
-public RecordDTO(){
+    public RecordDTO() {
 
-}
-    public RecordDTO(RecordRealm recordRealm) {
-       setRealm(recordRealm);
     }
 
-    public void setRealm(RecordRealm recordRealm){
+    public RecordDTO(RecordRealm recordRealm) {
+        setRealm(recordRealm);
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public void setRealm(RecordRealm recordRealm) {
         setTitle(recordRealm.getTitle());
-        this.duration=recordRealm.getDuration();
+        this.duration = recordRealm.getDuration();
         setStartMillis(recordRealm.getStartMillis());
+        setFilePath(recordRealm.getFilePath());
         ArrayList<String> temp = new ArrayList<>();
         for (StringRealm s : recordRealm.getTagList()) {
             temp.add(s.getString());
@@ -54,6 +65,7 @@ public RecordDTO(){
         recordRealm.setDuration(recordDTO.getDuration());
         recordRealm.setTagList(recordDTO.getTagList());
         recordRealm.setStartMillis(recordDTO.getStartMillis());
+        recordRealm.setFilePath(recordDTO.getFilePath());
         realm.commitTransaction();
         return recordRealm;
     }
@@ -89,7 +101,7 @@ public RecordDTO(){
     }
 
     public void setTagList(ArrayList<String> tagList) {
-                this.tagList = tagList;
+        this.tagList = tagList;
         notifyPropertyChanged(BR.tagList);
     }
 

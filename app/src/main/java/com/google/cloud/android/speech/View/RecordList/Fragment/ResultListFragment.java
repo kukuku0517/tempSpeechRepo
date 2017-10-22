@@ -43,8 +43,9 @@ public class ResultListFragment extends Fragment implements ListHandler {
     RecyclerView recyclerView;
     ListRealmAdapter adapter;
     Realm realm;
-FragmentResultListBinding binding;
+    FragmentResultListBinding binding;
     private SpeechService mSpeechService;
+
     public ResultListFragment() {
         // Required empty public constructor
     }
@@ -57,7 +58,7 @@ FragmentResultListBinding binding;
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             mSpeechService = SpeechService.from(binder);
             mSpeechService.notifyProcess();
-            Log.d("lifecycle","service con");
+            Log.d("lifecycle", "service con");
 
 
             //TODO enable after end
@@ -90,7 +91,7 @@ FragmentResultListBinding binding;
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
 
-            Log.d("lifecycle","service discon");
+            Log.d("lifecycle", "service discon");
             mSpeechService = null;
         }
 
@@ -112,10 +113,10 @@ FragmentResultListBinding binding;
         if (mSpeechService != null) {
             getActivity().unbindService(mServiceConnection);
 
-            Log.d("lifecycle","list unbind call in stop");
+            Log.d("lifecycle", "list unbind call in stop");
         }
 
-        Log.d("lifecycle","resultlist stop");
+        Log.d("lifecycle", "resultlist stop");
     }
 
     @Override
@@ -123,15 +124,15 @@ FragmentResultListBinding binding;
         super.onCreate(savedInstanceState);
         mPageNumber = getArguments().getInt("page");
 
-        Log.d("lifecycle","resultlist create");
-        realm = ((ListActivity)getActivity()).realm;
+        Log.d("lifecycle", "resultlist create");
+        realm = ((ListActivity) getActivity()).realm;
     }
 
     @Override
     public void onResume() {
         super.onResume();
 
-        Log.d("lifecycle","resultlist resume");
+        Log.d("lifecycle", "resultlist resume");
 
 
         Intent intent = new Intent(getActivity(), SpeechService.class);
@@ -145,15 +146,15 @@ FragmentResultListBinding binding;
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_result_list, container, false);
-        binding= DataBindingUtil.bind(view);
+        binding = DataBindingUtil.bind(view);
         binding.setHandler(this);
 
         RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted", true).findAll();
 
-        Log.d("lifecycle","resultlist create view");
+        Log.d("lifecycle", "resultlist create view");
         for (final RecordRealm record : result) {
             if (record.getDuration() == 0) {
-                String filePath = FileUtil.getFilename(record.getTitle());
+                String filePath = record.getFilePath();
                 Uri mUri = Uri.fromFile(new File(filePath));
                 //TODO uncomment this
                 try {
@@ -204,11 +205,10 @@ FragmentResultListBinding binding;
     }
 
 
-
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onProcessIdEvent(ProcessIdEvent event) {
 
-        Log.d("lifecycle","list process event");
+        Log.d("lifecycle", "list process event");
         if (event.isRecording()) {
             binding.btnRecord.setEnabled(false);
 //            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setRecordItem(event.getRecordId());
@@ -228,17 +228,17 @@ FragmentResultListBinding binding;
 
     @Override
     public void onClickFabRecord(View view) {
-        ((ListActivity)getActivity()).openDialog(REQUEST_RECORD_AUDIO_PERMISSION);
+        ((ListActivity) getActivity()).openDialog(REQUEST_RECORD_AUDIO_PERMISSION);
     }
 
     @Override
     public void onClickFabFile(View view) {
-        ((ListActivity)getActivity()).openDialog(REQUEST_FILE_AUDIO_PERMISSION);
+        ((ListActivity) getActivity()).openDialog(REQUEST_FILE_AUDIO_PERMISSION);
     }
 
     @Override
     public void onClickFabVideo(View view) {
-        Toast.makeText(getContext(),"coming soon",Toast.LENGTH_SHORT).show();
+        Toast.makeText(getContext(), "coming soon", Toast.LENGTH_SHORT).show();
     }
 
 }

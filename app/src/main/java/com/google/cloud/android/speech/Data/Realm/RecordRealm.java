@@ -1,6 +1,7 @@
 package com.google.cloud.android.speech.Data.Realm;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import io.realm.RealmList;
 import io.realm.RealmObject;
@@ -15,15 +16,18 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
     @PrimaryKey
     private int id;
     private String title = "";
+    private String filePath;
+
     private int duration = 0;
+
     private RealmList<StringRealm> tagList = new RealmList<>();
     private RealmList<SentenceRealm> sentenceList = new RealmList<>();
     private long startMillis = -1;
     private boolean converted=false;
-
     public boolean isConverted() {
         return converted;
     }
+
 
     public void setConverted(boolean converted) {
         this.converted = converted;
@@ -72,6 +76,14 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
         this.title = title;
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
     public int getDuration() {
         return duration;
     }
@@ -90,4 +102,13 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
             this.tagList.add(new StringRealm(s));
         }
     }
+
+    public void cascadeDelete(){
+        for(SentenceRealm sentence:sentenceList){
+            sentence.getWordList().deleteAllFromRealm();
+        }
+        sentenceList.deleteAllFromRealm();
+        deleteFromRealm();
+    }
+
 }

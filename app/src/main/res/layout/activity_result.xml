@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.google.cloud.android.speech.View.RecordResult.RecordResultActivity">
 
     <data>
+
+        <import type="android.view.View" />
 
         <variable
             name="handler"
@@ -10,15 +15,15 @@
         <variable
             name="time"
             type="com.google.cloud.android.speech.Data.DTO.MediaTimeDTO" />
+
+        <variable
+            name="isPlaying"
+            type="com.google.cloud.android.speech.Data.DTO.ObservableDTO&lt;Boolean>" />
     </data>
 
-    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context="com.google.cloud.android.speech.View.RecordResult.RecordResultActivity">
+        android:layout_height="match_parent">
 
         <android.support.design.widget.CoordinatorLayout
             android:id="@+id/cl_result"
@@ -34,15 +39,22 @@
                 android:background="?attr/colorPrimary"
                 android:theme="@style/ThemeOverlay.AppCompat.Dark">
 
+
                 <android.support.v7.widget.Toolbar
                     android:id="@+id/toolbar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="?attr/colorPrimary"
-                    android:paddingLeft="32dp"
-                    android:paddingRight="32dp">
+                    android:background="@android:color/white"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="8dp"
 
+                    >
 
+                    <!--<TextView-->
+                        <!--android:layout_width="match_parent"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:text="@{}"-->
+                        <!--/>-->
                 </android.support.v7.widget.Toolbar>
 
 
@@ -59,69 +71,90 @@
                 app:layout_behavior="@string/appbar_scrolling_view_behavior" />
         </android.support.design.widget.CoordinatorLayout>
 
-
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true">
+            android:layout_alignParentBottom="true"
+            android:orientation="vertical">
 
-            <ImageButton
-                android:id="@+id/btn_play"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentTop="true"
-                android:layout_centerHorizontal="true"
-                android:background="@android:color/transparent"
-                android:onClick="@{handler::onClickStart}"
-                android:padding="10dp"
-                app:srcCompat="@drawable/ic_play_arrow_black_24dp" />
+                android:layout_gravity="center_horizontal">
 
-            <ImageButton
-                android:id="@+id/btn_stop"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toRightOf="@id/btn_play"
-                android:background="@android:color/transparent"
-                android:onClick="@{handler::onClickStop}"
-                android:padding="10dp"
-                app:srcCompat="@drawable/ic_stop_black_24dp" />
 
-            <ImageButton
-                android:id="@+id/btn_restart"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toRightOf="@id/btn_stop"
-                android:background="@android:color/transparent"
-                android:onClick="@{handler::onClickRestart}"
-                android:padding="10dp"
-                app:srcCompat="@drawable/ic_stop_black_24dp" />
+                <ImageButton
+                    android:id="@+id/btn_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:padding="10dp"
+                    app:srcCompat="@drawable/ic_fast_rewind_black_24dp" />
 
-            <SeekBar
-                android:id="@+id/sb_navigate"
+                <ImageButton
+                    android:id="@+id/btn_play"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:onClick="@{handler::onClickStart}"
+                    android:padding="10dp"
+
+                    android:visibility="@{isPlaying.getValue==false?View.VISIBLE:View.GONE}"
+                    app:srcCompat="@drawable/ic_play_arrow_black_24dp" />
+
+
+                <ImageButton
+                    android:id="@+id/btn_pause"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:onClick="@{handler::onClickStop}"
+                    android:padding="10dp"
+
+                    android:visibility="@{isPlaying.getValue==true?View.VISIBLE:View.GONE}"
+                    app:srcCompat="@drawable/ic_stop_black_24dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_ff"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:padding="10dp"
+                    app:srcCompat="@drawable/ic_fast_forward_black_24dp" />
+
+
+            </LinearLayout>
+
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/btn_play" />
-
-            <TextView
-                android:id="@+id/tv_now"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/sb_navigate"
-                android:text="@{time.now}"
-                tools:text="00:15" />
-
-            <TextView
-                android:id="@+id/tv_total"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentRight="true"
-
-                android:layout_below="@id/sb_navigate"
-                android:text="@{time.total}"
-                tools:text="00:31" />
+                android:layout_height="wrap_content">
 
 
-        </RelativeLayout>
+                <SeekBar
+                    android:id="@+id/sb_navigate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:id="@+id/tv_now"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/sb_navigate"
+                    android:text="@{time.now}"
+                    tools:text="00:15" />
+
+                <TextView
+                    android:id="@+id/tv_total"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+
+                    android:layout_below="@id/sb_navigate"
+                    android:text="@{time.total}"
+                    tools:text="00:31" />
+
+            </RelativeLayout>
+        </LinearLayout>
 
 
     </RelativeLayout>

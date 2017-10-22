@@ -209,14 +209,9 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
 
 
     public void openDialog(int permission){
-
-
             NewRecordDialog dialog = new NewRecordDialog();
             dialog.setRequestCode(permission);
             dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
-
-
-
     }
 
     @Override
@@ -230,13 +225,10 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
 
         if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
 //            mSpeechService.initRecorder(title, tags);
-
             Intent intent = new Intent(this, RecordActivity.class);
             intent.putExtra("title", title);
             intent.putExtra("tags", tags);
-
-
-            startActivity(intent);
+startActivity(intent);
 
         } else if (requestCode == REQUEST_FILE_AUDIO_PERMISSION) {
 

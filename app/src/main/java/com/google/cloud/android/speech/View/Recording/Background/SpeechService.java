@@ -32,6 +32,7 @@ import com.google.cloud.android.speech.Event.PartialEvent;
 import com.google.cloud.android.speech.Event.PartialTimerEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Util.AudioUtil;
+import com.google.cloud.android.speech.Util.FileUtil;
 import com.google.cloud.android.speech.Util.RealmUtil;
 import com.google.cloud.android.speech.View.RecordList.ListActivity;
 import com.google.cloud.android.speech.Event.ProcessIdEvent;
@@ -287,16 +288,20 @@ public class SpeechService extends Service {
 
     public void initRecorder(final String title, final ArrayList<String> tags) {
         startForeground();
+
+        startOfRecording = System.currentTimeMillis();
+
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
                 record.setTitle(title);
                 record.setTagList(tags);
+                record.setFilePath(FileUtil.getFilename(title));
+                record.setStartMillis(startOfRecording);
                 recordId = record.getId();
             }
         });
         isRecording = true;
-        startOfRecording = System.currentTimeMillis();
         mVoiceRecorder = new VoiceRecorder(mVoiceCallback);
         mVoiceRecorder.setTitle(record.getTitle());
         mVoiceRecorder.start();
@@ -319,6 +324,7 @@ public class SpeechService extends Service {
             public void execute(Realm realm) {
                 record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
                 recordId = record.getId();
+
             }
         });
         return recordId;
@@ -328,8 +334,8 @@ public class SpeechService extends Service {
         realm.beginTransaction();
         fileRecord = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
         fileId = fileRecord.getId();
+        fileRecord.setStartMillis(System.currentTimeMillis());
         realm.commitTransaction();
-        Log.d(TAG, "fileId in craete :" + fileId);
         return fileId;
     }
 
@@ -372,7 +378,7 @@ public class SpeechService extends Service {
 
     long endOfFileSecond=-1;
 
-    public void recognizeFileStream(final String title, final ArrayList<String> tags, String fileName) {
+    public void recognizeFileStream(final String title, final ArrayList<String> tags, final String fileName) {
         startForeground();
         try {
             realm.executeTransaction(new Realm.Transaction() {
@@ -380,6 +386,7 @@ public class SpeechService extends Service {
                 public void execute(Realm realm) {
                     fileRecord.setTitle(title);
                     fileRecord.setTagList(tags);
+                    fileRecord.setFilePath(fileName);
                 }
             });
 
@@ -512,9 +519,7 @@ public class SpeechService extends Service {
                 Realm realm = Realm.getDefaultInstance();
                 realm.beginTransaction();
                 RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
-                if (record.getStartMillis() == -1) {
-                    record.setStartMillis(startOfRecording);
-                }
+
                 SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
                 long startOfSentence = startOfCall - startOfRecording;
                 sentence.setStartMillis((int) (startOfSentence));

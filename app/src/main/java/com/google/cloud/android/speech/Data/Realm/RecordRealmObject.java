@@ -10,7 +10,5 @@ import io.realm.annotations.PrimaryKey;
 
 public interface RecordRealmObject extends RealmModel {
     int getId();
-
     void setId(int id);
-
 }

@@ -24,6 +24,7 @@ import com.google.cloud.android.speech.Event.ProcessIdEvent;
 import com.google.cloud.android.speech.Event.PartialTimerEvent;
 import com.google.cloud.android.speech.View.RecordResult.RecordResultActivity;
 import com.google.cloud.android.speech.View.Recording.Background.SpeechService;
+import com.google.cloud.android.speech.View.Recording.RecordActivity;
 import com.google.cloud.android.speech.databinding.FragmentProcessListBinding;
 
 import org.greenrobot.eventbus.EventBus;
@@ -35,7 +36,7 @@ import java.util.ArrayList;
 import io.realm.Realm;
 
 
-public class ProcessListFragment extends Fragment implements ProcessHandler,ProcessItemHandler {
+public class ProcessListFragment extends Fragment implements ProcessHandler, ProcessItemHandler {
 
     private static final String TAG = "Speech";
     private static ProcessListFragment instance;
@@ -197,8 +198,8 @@ public class ProcessListFragment extends Fragment implements ProcessHandler,Proc
 //        getActivity().startService(intent);
 //        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
 
-    mSpeechService.createFileRecord();
-     mSpeechService.recognizeFileStream(title, tags, filePath);
+        mSpeechService.createFileRecord();
+        mSpeechService.recognizeFileStream(title, tags, filePath);
     }
 
 //    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
@@ -218,7 +219,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler,Proc
 //    }
 
     public void setRecordItem(int recordId) {
-        this.recordId=recordId;
+        this.recordId = recordId;
         realm.beginTransaction();
         record.setRealm(realm.where(RecordRealm.class).equalTo("id", recordId).findFirst());
         realm.commitTransaction();
@@ -226,7 +227,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler,Proc
     }
 
     public void setFileItem(int fileId) {
-        this.fileId=fileId;
+        this.fileId = fileId;
         realm.beginTransaction();
 
         file.setRealm(realm.where(RecordRealm.class).equalTo("id", fileId).findFirst());
@@ -286,8 +287,8 @@ public class ProcessListFragment extends Fragment implements ProcessHandler,Proc
 
     @Override
     public void onRecordItemClick(View view) {
-        Intent intent = new Intent(getActivity(), RecordResultActivity.class);
-        intent.putExtra("id",recordId);
+        Intent intent = new Intent(getActivity(), RecordActivity.class);
+        intent.putExtra("id", recordId);
         getActivity().startActivity(intent);
     }
 
