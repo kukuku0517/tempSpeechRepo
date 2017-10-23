@@ -9,6 +9,7 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="textPersonName"
+        android:hint="제목을 입력하세요"
         />
     <EditText
         android:id="@+id/et_new_record_tag"
@@ -16,5 +17,6 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="textPersonName"
+        android:hint="태그를 입력하세요"
         />
 </LinearLayout>

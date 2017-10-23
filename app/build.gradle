@@ -133,6 +133,7 @@ dependencies {
     androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
     protobuf 'com.google.protobuf:protobuf-java:3.3.1'
 
+
 }
 
 task copySecretKey(type: Copy) {

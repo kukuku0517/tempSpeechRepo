@@ -1,6 +1,7 @@
 package com.google.cloud.android.speech.View.RecordResult;
 
 import android.databinding.DataBindingUtil;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -123,6 +124,7 @@ private RecordRealm record;
         int itemId = getIntent().getIntExtra("id", 1);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_result);
         setSupportActionBar(binding.toolbar);
+        binding.toolbar.setTitleTextColor(getResources().getColor(R.color.primary));
         binding.setHandler(this);
         binding.setTime(timeDTO);
         binding.setIsPlaying(isPlaying);
@@ -161,6 +163,7 @@ private RecordRealm record;
         realm = Realm.getDefaultInstance();
         record = realm.where(RecordRealm.class).equalTo("id", itemId).findFirst();
         getSupportActionBar().setTitle(record.getTitle());
+
         filePath = record.getFilePath();
         RealmList<SentenceRealm> sentenceResults = record.getSentenceRealms();
 

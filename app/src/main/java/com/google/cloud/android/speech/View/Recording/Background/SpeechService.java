@@ -38,6 +38,8 @@ import com.google.cloud.android.speech.View.RecordList.ListActivity;
 import com.google.cloud.android.speech.Event.ProcessIdEvent;
 import com.google.cloud.speech.v1.LongRunningRecognizeRequest;
 import com.google.cloud.speech.v1.RecognitionConfig;
+import com.google.cloud.speech.v1.SpeechContext;
+import com.google.cloud.speech.v1.SpeechContextOrBuilder;
 import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
 import com.google.cloud.speech.v1.StreamingRecognitionConfig;
@@ -357,6 +359,16 @@ public class SpeechService extends Service {
 
         this.startOfCall = startMillis;
 
+
+        ArrayList<String> contextList = new ArrayList<>();
+        contextList.add("심계항진");
+        contextList.add("봉와직염");
+        contextList.add("개방창");
+        contextList.add("연하곤란");
+        contextList.add("감정둔마");
+        contextList.add("후두융기");
+        SpeechContext speechContext = SpeechContext.newBuilder().addAllPhrases(contextList).build();
+
         // Configure the API
         mRequestObserver = mApi.streamingRecognize(mResponseObserver);
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
@@ -366,6 +378,7 @@ public class SpeechService extends Service {
                                 .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
                                 .setSampleRateHertz(sampleRate)
                                 .setEnableWordTimeOffsets(true)
+                                .setSpeechContexts(0,speechContext)
                                 .build())
                         .setInterimResults(true)
                         .setSingleUtterance(false)
