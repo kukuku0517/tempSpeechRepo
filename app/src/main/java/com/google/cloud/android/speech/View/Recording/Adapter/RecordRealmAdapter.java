@@ -53,53 +53,6 @@ public class RecordRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
         SentenceRealm sentenceRealm = getItem(position);
         holder.binding.setSentence(sentenceRealm);
         Log.i(TAG, DateUtil.durationToDate((int) sentenceRealm.getStartMillis()));
-        StringBuilder s = new StringBuilder();
-
-        LinearLayout layout = holder.binding.llContainer;
-        for (final WordRealm w : sentenceRealm.getWordList()) {
-            s.append("\n" + w.getWord());
-            EditText editText = new EditText(context);
-            editText.setHint(w.getWord());
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            params.setMargins(5, 5, 5, 5);
-            editText.setLayoutParams(params);
-
-            if (w.isHighlight()) {
-                editText.setBackgroundColor(Color.RED);
-            } else {
-                editText.setBackgroundColor(Color.WHITE);
-            }
-            editText.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    realm.beginTransaction();
-                    w.setHighlight(!w.isHighlight());
-                    realm.commitTransaction();
-                    return true;
-                }
-            });
-
-            editText.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-                }
-
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-                }
-
-                @Override
-                public void afterTextChanged(Editable s) {
-                    realm.beginTransaction();
-                    w.setWord(s.toString());
-                    realm.commitTransaction();
-                }
-            });
-            layout.addView(editText);
-
-        }
 
 
     }

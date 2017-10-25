@@ -7,10 +7,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
+import com.google.cloud.android.speech.Event.SeekEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
 import com.google.cloud.android.speech.Util.DateUtil;
 import com.google.cloud.android.speech.View.RecordResult.Handler.MyItemClickListener;
+
+import org.greenrobot.eventbus.EventBus;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.Realm;
@@ -22,7 +25,7 @@ import io.realm.RealmRecyclerViewAdapter;
 
 public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, ResultRealmViewHolder> {
 
-    private MyItemClickListener listener;
+//    private MyItemClickListener listener;
     Context context;
     Realm realm;
 
@@ -43,19 +46,17 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
     @Override
     public void onBindViewHolder(ResultRealmViewHolder holder, final int position) {
         SentenceRealm sentenceRealm = getItem(position);
-        StringBuilder s = new StringBuilder();
 
-        LinearLayout layout = holder.binding.llContainer;
 
-        holder.binding.setSentenceString(s.toString());
-        holder.binding.setSentenceTime(DateUtil.durationToDate((int) sentenceRealm.getStartMillis()));
+        holder.onBindView(sentenceRealm,context,realm);
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                listener.onClick(v, position);
+//                listener.onClick(v, position);
+                long time =getItem(position).getStartMillis();
+                EventBus.getDefault().post(new SeekEvent(time));
             }
         });
-        holder.onBindView(sentenceRealm,context,realm);
     }
 
     @Override
@@ -63,7 +64,7 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
         return getItem(index).getId();
     }
 
-    public void setOnItemClickListener(MyItemClickListener listener) {
-        this.listener = listener;
-    }
+//    public void setOnItemClickListener(MyItemClickListener listener) {
+//        this.listener = listener;
+//    }
 }

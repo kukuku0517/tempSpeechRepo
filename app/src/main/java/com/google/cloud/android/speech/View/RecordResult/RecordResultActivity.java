@@ -1,7 +1,6 @@
 package com.google.cloud.android.speech.View.RecordResult;
 
 import android.databinding.DataBindingUtil;
-import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -17,15 +16,19 @@ import android.widget.SeekBar;
 
 import com.google.cloud.android.speech.Data.DTO.MediaTimeDTO;
 import com.google.cloud.android.speech.Data.DTO.ObservableDTO;
+import com.google.cloud.android.speech.Event.SeekEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.Data.Realm.RecordRealm;
 import com.google.cloud.android.speech.Data.Realm.SentenceRealm;
 import com.google.cloud.android.speech.Util.FileUtil;
-import com.google.cloud.android.speech.View.RecordResult.Handler.MyItemClickListener;
 import com.google.cloud.android.speech.View.RecordResult.Handler.ResultHandler;
 import com.google.cloud.android.speech.View.RecordResult.Adapter.ResultRealmAdapter;
 import com.google.cloud.android.speech.databinding.ActivityResultBinding;
 
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,15 +61,15 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch(item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.action_delete:
 
                 realm.executeTransaction(new Realm.Transaction() {
                     @Override
                     public void execute(Realm realm) {
-                        String filePath=record.getFilePath();
+                        String filePath = record.getFilePath();
                         record.cascadeDelete();
-                        FileUtil.deleteFile(getBaseContext(),filePath);
+                        FileUtil.deleteFile(getBaseContext(), filePath);
                     }
 
 
@@ -115,7 +118,8 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         isPlaying.setValue(true);// 쓰레드 정지
     }
 
-private RecordRealm record;
+    private RecordRealm record;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -198,14 +202,28 @@ private RecordRealm record;
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
 
-        mAdapter.setOnItemClickListener(new MyItemClickListener() {
-            @Override
-            public void onClick(View view, int position) {
-                long time = record.getSentenceRealms().get(position).getStartMillis();
-                mediaPlayer.seekTo((int) time);
+//        mAdapter.setOnItemClickListener(new MyItemClickListener() {
+//            @Override
+//            public void onClick(View view, int position) {
+//                long time = record.getSentenceRealms().get(position).getStartMillis();
+//                mediaPlayer.seekTo((int) time);
+//            }
+//        });
 
-            }
-        });
+
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onPartialEvent(SeekEvent event)
+    {
+        mediaPlayer.seekTo((int) event.getMillis());
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        EventBus.getDefault().register(this);
     }
 
     @Override
@@ -216,6 +234,7 @@ private RecordRealm record;
             mediaPlayer.release(); // 자원해제
         }
 
+        EventBus.getDefault().unregister(this);
     }
 
 }

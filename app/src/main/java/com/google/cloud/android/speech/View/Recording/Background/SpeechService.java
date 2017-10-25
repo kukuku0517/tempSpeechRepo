@@ -164,6 +164,7 @@ public class SpeechService extends Service {
                 if (result.getAlternativesCount() > 0) {
                     final SpeechRecognitionAlternative alternative = result.getAlternatives(0);
                     text = alternative.getTranscript();
+
                 }
             }
 
@@ -276,6 +277,9 @@ public class SpeechService extends Service {
     }
 
     public void startForeground() {
+
+        fetchAccessToken();
+
         Intent notificationIntent = new Intent(this, ListActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
         Notification notification = new Notification.Builder(this)
@@ -324,7 +328,7 @@ public class SpeechService extends Service {
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
-                record = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
+                record = new RealmUtil().createObject(realm, RecordRealm.class);
                 recordId = record.getId();
 
             }
@@ -334,7 +338,7 @@ public class SpeechService extends Service {
 
     public int createFileRecord() {
         realm.beginTransaction();
-        fileRecord = new RealmUtil<RecordRealm>().createObject(realm, RecordRealm.class);
+        fileRecord = new RealmUtil().createObject(realm, RecordRealm.class);
         fileId = fileRecord.getId();
         fileRecord.setStartMillis(System.currentTimeMillis());
         realm.commitTransaction();
@@ -367,8 +371,9 @@ public class SpeechService extends Service {
         contextList.add("연하곤란");
         contextList.add("감정둔마");
         contextList.add("후두융기");
-        SpeechContext speechContext = SpeechContext.newBuilder().addAllPhrases(contextList).build();
+        SpeechContextOrBuilder speechContext = SpeechContext.newBuilder().addAllPhrases(contextList).build();
 
+//        RecognitionConfig.getDefaultInstance().getSpeechContextsOrBuilderList().add(speechContext.)
         // Configure the API
         mRequestObserver = mApi.streamingRecognize(mResponseObserver);
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
@@ -378,7 +383,9 @@ public class SpeechService extends Service {
                                 .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
                                 .setSampleRateHertz(sampleRate)
                                 .setEnableWordTimeOffsets(true)
-                                .setSpeechContexts(0,speechContext)
+
+//                                .setSpeechContexts()
+
                                 .build())
                         .setInterimResults(true)
                         .setSingleUtterance(false)
@@ -426,7 +433,6 @@ public class SpeechService extends Service {
                                     .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
                                     .setSampleRateHertz(16000)
                                     .setEnableWordTimeOffsets(true)
-
                                     .build())
                             .setInterimResults(true)
                             .setSingleUtterance(false)
@@ -497,15 +503,18 @@ public class SpeechService extends Service {
                     record.setStartMillis(startOfRecording);
                 }
 
-                SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
+                SentenceRealm sentence = new RealmUtil().createObject(realm, SentenceRealm.class);
+                sentence.setSentence(text);
                 sentence.setStartMillis((int) (startOfCall - startOfRecording));
                 StringTokenizer st = new StringTokenizer(text);
                 while (st.hasMoreTokens()) {
                     String token = st.nextToken();
-                    WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
+                    WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
+                    word.setSentenceId(sentence.getId());
                     word.setWord(token);
                     sentence.getWordList().add(word);
                 }
+
                 record.getSentenceRealms().add(sentence);
 
                 realm.commitTransaction();
@@ -533,12 +542,15 @@ public class SpeechService extends Service {
                 realm.beginTransaction();
                 RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
 
-                SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
+                SentenceRealm sentence = new RealmUtil().createObject(realm, SentenceRealm.class);
+                sentence.setSentence(text);
                 long startOfSentence = startOfCall - startOfRecording;
                 sentence.setStartMillis((int) (startOfSentence));
                 for (WordInfo wordInfo : alternative.getWordsList()) {
-                    WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
+
+                    WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
                     word.setWord(wordInfo.getWord());
+                    word.setSentenceId(sentence.getId());
                     word.setStartMillis(wordInfo.getStartTime().getSeconds() * 1000 + startOfSentence);
                     sentence.getWordList().add(word);
                 }
@@ -651,7 +663,6 @@ public class SpeechService extends Service {
         realm = Realm.getDefaultInstance();
         mHandler = new Handler();
 
-        fetchAccessToken();
     }
 
 

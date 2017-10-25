@@ -21,6 +21,15 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
 
     private   RealmList<WordRealm> wordList;
     private int startMillis;
+    private String sentence;
+
+    public String getSentence() {
+        return sentence;
+    }
+
+    public void setSentence(String sentence) {
+        this.sentence = sentence;
+    }
 
     public RealmList<WordRealm> getWordList() {
         return wordList;
