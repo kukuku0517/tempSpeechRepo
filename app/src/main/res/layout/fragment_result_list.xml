@@ -1,13 +1,13 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.google.cloud.android.speech.View.RecordList.Fragment.ResultListFragment">
+    tools:context="com.google.cloud.android.speech.view.recordList.fragment.ResultListFragment">
 
     <data>
 
         <variable
             name="handler"
-            type="com.google.cloud.android.speech.View.RecordList.Handler.ListHandler" />
+            type="com.google.cloud.android.speech.view.recordList.handler.ListHandler" />
     </data>
 
     <LinearLayout

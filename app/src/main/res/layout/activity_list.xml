@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:fab="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.google.cloud.android.speech.View.RecordList.ListActivity">
+    tools:context="com.google.cloud.android.speech.view.recordList.ListActivity">
 
     <!--<data>-->
 

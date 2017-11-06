@@ -2,7 +2,7 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.google.cloud.android.speech.View.RecordResult.RecordResultActivity">
+    tools:context="com.google.cloud.android.speech.view.recordResult.RecordResultActivity">
 
     <data>
 
@@ -10,15 +10,15 @@
 
         <variable
             name="handler"
-            type="com.google.cloud.android.speech.View.RecordResult.Handler.ResultHandler" />
+            type="com.google.cloud.android.speech.view.recordResult.handler.ResultHandler" />
 
         <variable
             name="time"
-            type="com.google.cloud.android.speech.Data.DTO.MediaTimeDTO" />
+            type="com.google.cloud.android.speech.data.DTO.MediaTimeDTO" />
 
         <variable
             name="isPlaying"
-            type="com.google.cloud.android.speech.Data.DTO.ObservableDTO&lt;Boolean>" />
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>" />
     </data>
 
     <RelativeLayout

@@ -23,7 +23,7 @@
 
         <variable
             name="result"
-            type="com.google.cloud.android.speech.Data.Realm.SentenceRealm"/>
+            type="com.google.cloud.android.speech.data.realm.SentenceRealm"/>
     </data>
 
     <android.support.v7.widget.CardView

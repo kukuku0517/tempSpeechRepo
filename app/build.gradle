@@ -15,7 +15,7 @@
  */
 
 apply plugin: 'com.android.application'
-apply plugin: 'com.google.protobuf'
+//apply plugin: 'com.google.protobuf'
 apply plugin: 'realm-android'
 
 ext {
@@ -75,30 +75,30 @@ android {
     }
 }
 
-protobuf {
-    protoc { //pre-compiled protoc that we have published on Maven Central
-        artifact = 'com.google.protobuf:protoc:3.4.0'
-    }
-    plugins {
-        javalite {
-            artifact = "com.google.protobuf:protoc-gen-javalite:3.0.0"
-        }
-        grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
-        }
-    }
-    generateProtoTasks {
-        all().each { task ->
-            task.plugins {
-                javalite {}
-                grpc {
-//                     Options added to --grpc_out
-                    option 'lite'
-                }
-            }
-        }
-    }
-}
+//protobuf {
+//    protoc { //pre-compiled protoc that we have published on Maven Central
+//        artifact = 'com.google.protobuf:protoc:3.4.0'
+//    }
+//    plugins {
+//        javalite {
+//            artifact = "com.google.protobuf:protoc-gen-javalite:3.0.0"
+//        }
+//        grpc {
+//            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+//        }
+//    }
+//    generateProtoTasks {
+//        all().each { task ->
+//            task.plugins {
+//                javalite {}
+//                grpc {
+////                     Options added to --grpc_out
+//                    option 'lite'
+//                }
+//            }
+//        }
+//    }
+//}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
@@ -109,14 +109,14 @@ dependencies {
     compile "com.android.support:recyclerview-v7:$supportLibraryVersion"
 
     // gRPC
-    compile "io.grpc:grpc-okhttp:$grpcVersion"
-    compile "io.grpc:grpc-protobuf-lite:$grpcVersion"
-    compile "io.grpc:grpc-stub:$grpcVersion"
+//    compile "io.grpc:grpc-okhttp:$grpcVersion"
+//    compile "io.grpc:grpc-protobuf-lite:$grpcVersion"
+//    compile "io.grpc:grpc-stub:$grpcVersion"
 
     // OAuth2 for Google API
-    compile('com.google.auth:google-auth-library-oauth2-http:0.7.0') {
-        exclude module: 'httpclient'
-    }
+//    compile('com.google.auth:google-auth-library-oauth2-http:0.7.0') {
+//        exclude module: 'httpclient'
+//    }
 
     // Tests
 
@@ -131,8 +131,9 @@ dependencies {
     testCompile 'junit:junit:4.12'
     androidTestCompile 'com.android.support.test:runner:0.5'
     androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
-    protobuf 'com.google.protobuf:protobuf-java:3.3.1'
+//    protobuf 'com.google.protobuf:protobuf-java:3.3.1'
 
+    compile ('com.google.cloud:google-cloud-speech:0.26.0-alpha')
 
 }
 

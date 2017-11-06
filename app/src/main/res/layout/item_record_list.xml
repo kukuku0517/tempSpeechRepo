@@ -5,10 +5,10 @@
     <data>
         <variable
             name="record"
-            type="com.google.cloud.android.speech.Data.DTO.RecordDTO"/>
+            type="com.google.cloud.android.speech.data.DTO.RecordDTO"/>
         <variable
             name="item"
-            type="com.google.cloud.android.speech.View.RecordList.Adapter.ListRealmViewHolder"/>
+            type="com.google.cloud.android.speech.view.recordList.adapter.ListRealmViewHolder"/>
     </data>
         <RelativeLayout
             android:layout_width="match_parent"

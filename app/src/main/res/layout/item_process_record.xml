@@ -13,14 +13,14 @@
 
         <variable
             name="record"
-            type="com.google.cloud.android.speech.Data.DTO.RecordDTO" />
+            type="com.google.cloud.android.speech.data.DTO.RecordDTO" />
 
         <variable
             name="handler"
-            type="com.google.cloud.android.speech.View.RecordList.Handler.ProcessHandler" />
+            type="com.google.cloud.android.speech.view.recordList.handler.ProcessHandler" />
         <variable
             name="itemHandler"
-            type="com.google.cloud.android.speech.View.RecordList.Handler.ProcessItemHandler" />
+            type="com.google.cloud.android.speech.view.recordList.handler.ProcessItemHandler" />
     </data>
 
     <android.support.v7.widget.CardView
