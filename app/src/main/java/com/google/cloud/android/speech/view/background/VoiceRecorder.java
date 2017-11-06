@@ -268,7 +268,11 @@ public class VoiceRecorder {
 
                         if (mLastVoiceHeardMillis == Long.MAX_VALUE) {
                             mVoiceStartedMillis = now;
-                            mCallback.onVoiceStart(mVoiceStartedMillis);
+                            try {
+                                mCallback.onVoiceStart(mVoiceStartedMillis);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
                         mCallback.onVoice(mBuffer, size);
                         Log.i(TAG, "onVoice");

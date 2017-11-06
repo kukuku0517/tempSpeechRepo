@@ -19,7 +19,6 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.api.gax.rpc.OperationFuture;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -44,19 +43,26 @@ import com.google.cloud.speech.v1.LongRunningRecognizeRequest;
 import com.google.cloud.speech.v1.LongRunningRecognizeResponse;
 import com.google.cloud.speech.v1.RecognitionAudio;
 import com.google.cloud.speech.v1.RecognitionConfig;
-import com.google.cloud.speech.v1.SpeechClient;
+//import com.google.cloud.speech.v1.SpeechClient;
 import com.google.cloud.speech.v1.SpeechContext;
 import com.google.cloud.speech.v1.SpeechContextOrBuilder;
+//import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
 import com.google.cloud.speech.v1.SpeechRecognitionResult;
+//import com.google.cloud.speech.v1.SpeechSettings;
 import com.google.cloud.speech.v1.StreamingRecognitionConfig;
 import com.google.cloud.speech.v1.StreamingRecognitionResult;
 import com.google.cloud.speech.v1.StreamingRecognizeRequest;
 import com.google.cloud.speech.v1.StreamingRecognizeResponse;
 import com.google.cloud.speech.v1.WordInfo;
+import com.google.common.util.concurrent.SettableFuture;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.google.longrunning.Operation;
 import com.google.protobuf.ByteString;
+//import com.google.protobuf.ByteString;
+//import com.google.protobuf.ByteString;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -90,6 +96,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.internal.DnsNameResolverProvider;
+//import io.grpc.okhttp.OkHttpChannelProvider;
 import io.grpc.okhttp.OkHttpChannelProvider;
 import io.grpc.stub.StreamObserver;
 import io.realm.Realm;
@@ -129,7 +136,7 @@ public class SpeechService extends Service {
     private final SpeechBinder2 mBinder = new SpeechBinder2();
     private volatile AccessTokenTask mAccessTokenTask;
     private SpeechGrpc.SpeechStub mApi;
-    private SpeechGrpc.SpeechStub mApi2;
+    //    private SpeechGrpc.SpeechStub mApi2;
     private static Handler mHandler;
 
     private long startOfCall = -1;
@@ -139,7 +146,7 @@ public class SpeechService extends Service {
 
     private final VoiceRecorderCallBack mVoiceCallback = new VoiceRecorderCallBack() {
         @Override
-        public void onVoiceStart(long startMillis) {
+        public void onVoiceStart(long startMillis) throws IOException {
             startRecognizing(mVoiceRecorder.getSampleRate(), startMillis);
         }
 
@@ -164,6 +171,54 @@ public class SpeechService extends Service {
 
     private StreamObserver<StreamingRecognizeRequest> mRequestObserver;
     private StreamObserver<StreamingRecognizeRequest> mFileRequestObserver;
+    private StreamObserver<LongRunningRecognizeRequest> mFileRequestObserver2;
+
+//    class ResponseApiStreamingObserver<T extends StreamingRecognizeResponse> implements ApiStreamObserver<T> {
+//        private final SettableFuture<List<T>> future = SettableFuture.create();
+//        private final List<T> messages = new java.util.ArrayList<T>();
+//
+//        @Override
+//        public void onNext(T response) {
+//
+//            String text = null;
+//            boolean isFinal = false;
+//
+//            if (response.getResultsCount() > 0) {
+//                final StreamingRecognitionResult result = response.getResults(0);
+//                isFinal = result.getIsFinal();
+//                if (result.getAlternativesCount() > 0) {
+//                    final SpeechRecognitionAlternative alternative = result.getAlternatives(0);
+//                    text = alternative.getTranscript();
+//
+//                }
+//            }
+//
+//            if (text != null) {
+////                onFileRecognized(text, isFinal, startOfCall, recordId);
+//                onSpeechRecognized(isFinal, response.getResults(0).getAlternatives(0), startOfCall);
+//            }
+//
+//            messages.add(response);
+//        }
+//
+//        @Override
+//        public void onError(Throwable t) {
+//            future.setException(t);
+//        }
+//
+//        @Override
+//        public void onCompleted() {
+//            future.set(messages);
+//        }
+//
+//        // Returns the SettableFuture object to get received messages / exceptions.
+//        public SettableFuture<List<T>> future() {
+//            return future;
+//        }
+//    }
+
+
+//    ResponseApiStreamingObserver<StreamingRecognizeResponse> responseObserver;
 
     private final StreamObserver<StreamingRecognizeResponse> mResponseObserver
             = new StreamObserver<StreamingRecognizeResponse>() {
@@ -225,7 +280,60 @@ public class SpeechService extends Service {
 //                }
                 onFileRecognized(text, isFinal, startOfCall, fileId);
                 if (isFinal)
-                    Log.d(TAG, "timetime" + String.valueOf(response.getResults(0).getAlternatives(0).getWords(0).getStartTime().getSeconds()));
+                    Log.d(TAG, "timetime" + String.valueOf(response.getResults(0).getAlternatives(0).getWords(0).getStartTime()));
+//                EventBus.getDefault().postSticky(new ProcessEvent(fileId,ProcessEvent.FILE));
+            }
+
+            if (isFinal) {
+                long endTime = alternative.getWordsList().get(alternative.getWordsCount() - 1).getEndTime().getSeconds() * 1000;
+                Log.d(TAG, "fileEnd : " + endTime);
+                Log.d(TAG, "fileEnd minus : " + Math.abs(endOfFileSecond - endTime));
+
+            }
+
+
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            Log.e(TAG, "Error calling the API.", t);
+        }
+
+        @Override
+        public void onCompleted() {
+            Log.i(TAG, "API completed.");
+
+            stopRecognizing(FILE);
+            stopForeground();
+
+        }
+
+    };
+    private final StreamObserver<LongRunningRecognizeResponse> mFileResponseObserver2
+            = new StreamObserver<LongRunningRecognizeResponse>() {
+        @Override
+        public void onNext(LongRunningRecognizeResponse response) {
+            Log.i(TAG, "answer received");
+            String text = null;
+            boolean isFinal = false;
+            SpeechRecognitionAlternative alternative = null;
+            if (response.getResultsCount() > 0) {
+                final SpeechRecognitionResult result = response.getResults(0);
+                isFinal = true;
+                if (result.getAlternativesCount() > 0) {
+                    alternative = result.getAlternatives(0);
+                    text = alternative.getTranscript();
+                }
+            }
+            if (text != null) {
+                Log.i(TAG + "file", text);
+//                for (SpeechService.Listener listener : mListeners) {
+//                    listener.onFileRecognized(text, isFinal, startMillis);
+//                    Log.i(TAG, text);
+//                }
+                onFileRecognized(text, isFinal, startOfCall, fileId);
+                if (isFinal)
+                    Log.d(TAG, "timetime" + String.valueOf(response.getResults(0).getAlternatives(0).getWords(0).getStartTime()));
 //                EventBus.getDefault().postSticky(new ProcessEvent(fileId,ProcessEvent.FILE));
             }
 
@@ -366,7 +474,13 @@ public class SpeechService extends Service {
      *
      * @param sampleRate The sample rate of the audio.
      */
-    public void startRecognizing(int sampleRate, long startMillis) {
+//    SpeechClient speechClient;
+
+//    BidiStreamingCallable<StreamingRecognizeRequest, StreamingRecognizeResponse> callable;
+//
+//    ApiStreamObserver<StreamingRecognizeRequest> requestObserver;
+
+    public void startRecognizing(int sampleRate, long startMillis) throws IOException {
         if (mApi == null) {
             Log.i(TAG, "API not ready. Ignoring the request.");
             return;
@@ -375,17 +489,40 @@ public class SpeechService extends Service {
         this.startOfCall = startMillis;
 
 
-        ArrayList<String> contextList = new ArrayList<>();
-        contextList.add("심계항진");
-        contextList.add("봉와직염");
-        contextList.add("개방창");
-        contextList.add("연하곤란");
-        contextList.add("감정둔마");
-        contextList.add("후두융기");
-        SpeechContextOrBuilder speechContext = SpeechContext.newBuilder().addAllPhrases(contextList).build();
+//        ArrayList<String> contextList = new ArrayList<>();
+//        contextList.add("심계항진");
+//        contextList.add("봉와직염");
+//        contextList.add("개방창");
+//        contextList.add("연하곤란");
+//        contextList.add("감정둔마");
+//        contextList.add("후두융기");
+//        SpeechContextOrBuilder speechContext = SpeechContext.newBuilder().addAllPhrases(contextList).build();
 
 //        RecognitionConfig.getDefaultInstance().getSpeechContextsOrBuilderList().add(speechContext.)
         // Configure the API
+//        mRequestObserver = mApi.streamingRecognize(mResponseObserver);
+
+        final InputStream stream = getResources().openRawResource(R.raw.credential);
+
+        final GoogleCredentials credentials = GoogleCredentials.fromStream(stream)
+                .createScoped(SCOPE);
+//        CredentialsProvider credentialsProvider = FixedCredentialsProvider.create(credentials);
+
+//        ChannelProvider channelProvider = SpeechSettings.newBuilder().setCredentialsProvider(credentialsProvider).build();
+
+//        SpeechSettings settings = SpeechSettings.newBuilder().setCredentialsProvider(credentialsProvider).build();
+//
+//// Instantiates a client
+////        SpeechClient speech = SpeechClient.create(settings);
+//        speechClient = SpeechClient.create(settings);
+//
+//        responseObserver = new ResponseApiStreamingObserver<StreamingRecognizeResponse>();
+//
+//        callable = speechClient.streamingRecognizeCallable();
+//
+//        requestObserver = callable.bidiStreamingCall(responseObserver);
+//
+//        requestObserver = speechClient.streamingRecognizeCallable().bidiStreamingCall(responseObserver);
         mRequestObserver = mApi.streamingRecognize(mResponseObserver);
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                 .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
@@ -508,7 +645,6 @@ public class SpeechService extends Service {
             }
 
 
-
         }
 
         @Override
@@ -527,6 +663,7 @@ public class SpeechService extends Service {
 
         }
     };
+
 
     public void recognizeFileStream(final String title, final ArrayList<String> tags, final String fileName) {
         startForeground();
@@ -552,27 +689,63 @@ public class SpeechService extends Service {
 
             getValidSampleRates();
             fileStreamFinished = false;
-            mFileRequestObserver = mApi.streamingRecognize(mFileResponseObserver);
+
+            RecognitionAudio audio = RecognitionAudio.newBuilder()
+                    .setUri("https://storage.cloud.google.com/speech_diary/jh2.wav")
+                    .build();
+//            mFileRequestObserver2.onNext(LongRunningRecognizeRequest.newBuilder()
+//                    .setAudio(audio)
+//                    .build());
+
+           mApi.longRunningRecognize(LongRunningRecognizeRequest.newBuilder()
+                    .setConfig(RecognitionConfig.newBuilder()
+                            .setLanguageCode(getDefaultLanguageCode())
+                            .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+                            .setSampleRateHertz(16000)
+                            .setEnableWordTimeOffsets(true)
+                            .build()
+                    )
+                    .setAudio(audio)
+                    .build(), new StreamObserver<Operation>() {
+                @Override
+                public void onNext(Operation value) {
+                    Log.d("asdf","res");
+
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    Log.d("asdf",t.toString());
+                }
+
+                @Override
+                public void onCompleted() {
+                    Log.d("asdf","com");
+                }
+            });
 
             createAudioRecord();
             getValidSampleRates();
-            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
-                            .setConfig(RecognitionConfig.newBuilder()
-                                    .setLanguageCode(getDefaultLanguageCode())
-                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-                                    .setSampleRateHertz(16000)
-                                    .setEnableWordTimeOffsets(true)
+//            mFileRequestObserver2.onNext(StreamingRecognizeRequest.newBuilder()
+//                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
+//                            .setConfig(RecognitionConfig.newBuilder()
+//                                    .setLanguageCode(getDefaultLanguageCode())
+//                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+//                                    .setSampleRateHertz(16000)
+//                                    .setEnableWordTimeOffsets(true)
+//
+//                                    .build())
+//                            .setInterimResults(true)
+//                            .setSingleUtterance(false)
+//                            .build())
+//                    .build());
 
-                                    .build())
-                            .setInterimResults(true)
-                            .setSingleUtterance(false)
-                            .build())
-                    .build());
 
-            AudioStreamer audioStreamer = new AudioStreamer(mediaCodecCallBack);
-            audioStreamer.setUrlString(fileName);
-            audioStreamer.play();
+//            AudioStreamer audioStreamer = new AudioStreamer(mediaCodecCallBack);
+//            audioStreamer.setUrlString(fileName);
+//            audioStreamer.play();
+
+
 //            while (true) {
 //
 //                if (stream.read(mBuffer, 0, bufferSize) == -1) {
@@ -599,56 +772,22 @@ public class SpeechService extends Service {
 
     }
 
-    /**
-     * Recognizes the speech audio. This method should be called every time a chunk of byte buffer
-     * is ready.
-     *
-     * @param data The audio data.
-     * @param size The number of elements that are actually relevant in the {@code data}.
-     */
 
-    public static void asyncRecognizeGcs(String gcsUri) throws Exception, IOException {
-        // Instantiates a client with GOOGLE_APPLICATION_CREDENTIALS
-        SpeechClient speech = SpeechClient.create();
 
-        // Configure remote file request for Linear16
-        RecognitionConfig config = RecognitionConfig.newBuilder()
-                .setEncoding(RecognitionConfig.AudioEncoding.FLAC)
-                .setLanguageCode("en-US")
-                .setSampleRateHertz(16000)
-                .build();
-        RecognitionAudio audio = RecognitionAudio.newBuilder()
-                .setUri(gcsUri)
-                .build();
 
-        // Use non-blocking call for getting file transcription
-        OperationFuture<LongRunningRecognizeResponse, LongRunningRecognizeMetadata,
-                        Operation> response =
-                speech.longRunningRecognizeAsync(config, audio);
-        while (!response.isDone()) {
-            System.out.println("Waiting for response...");
-            Thread.sleep(10000);
-        }
-
-        List<SpeechRecognitionResult> results = response.get().getResultsList();
-
-        for (SpeechRecognitionResult result: results) {
-            // There can be several alternative transcripts for a given chunk of speech. Just use the
-            // first (most likely) one here.
-            SpeechRecognitionAlternative alternative = result.getAlternativesList().get(0);
-            System.out.printf("Transcription: %s\n",alternative.getTranscript());
-        }
-        speech.close();
-    }
     public void recognize(byte[] data, int size) {
         if (mRequestObserver == null) {
             return;
         }
         Log.d("bufferCount recog", String.valueOf(count++));
         // Call the streaming recognition API
+//        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+//                .setAudioContent(ByteString.copyFrom(data, 0, size))
+//                .build());
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                 .setAudioContent(ByteString.copyFrom(data, 0, size))
                 .build());
+
 
 //        Log.i(TAG, "buffer sent");
     }
@@ -829,10 +968,48 @@ public class SpeechService extends Service {
         realm = Realm.getDefaultInstance();
         mHandler = new Handler();
 
+        BucketAsync b = new BucketAsync();
+//        b.execute();
+
+
+//        Toast.makeText(getBaseContext(), System.getenv("GOOGLE_APPLICATION_CREDENTIALS").toString(), Toast.LENGTH_SHORT).show();
         fetchAccessToken();
 
     }
 
+    class BucketAsync extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+//            FirebaseStorage storage = FirebaseStorage.getInstance();
+//            StorageReference storageRef = storage.getReference();
+            GoogleCredentials credentials = null;
+            final InputStream stream = getResources().openRawResource(R.raw.credential);
+
+            try {
+                credentials = GoogleCredentials.fromStream(stream)
+                        .createScoped(SCOPE);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+//            Storage storage = StorageOptions.newBuilder().setCredentials(credentials)
+//                    .build().getService();
+//
+//
+//            // Upload a local file to a new file to be created in your bucket.
+////            InputStream uploadContent =null;
+////            BlobId blobId = BlobId.of("speechdiary", "정환희진2.wav");
+////            BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType("text/plain").build();
+////            Blob zebraBlob = storage.create(blobInfo,uploadContent);
+//
+//            // Download a file from your bucket.
+//            Blob giraffeBlob = storage.get("speechdiary", "정환희진2.wav", null);
+
+
+            return null;
+        }
+    }
 
     //accessToken 제거
     @Override
