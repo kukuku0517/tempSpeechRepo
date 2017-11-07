@@ -22,9 +22,11 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
     private RealmList<StringRealm> tagList = new RealmList<>();
     private RealmList<SentenceRealm> sentenceList = new RealmList<>();
     private long startMillis = -1;
-    private boolean converted=false;
+    private boolean converted = false;
+
     public boolean isConverted() {
         return converted;
+
     }
 
 
@@ -102,8 +104,8 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
         }
     }
 
-    public void cascadeDelete(){
-        for(SentenceRealm sentence:sentenceList){
+    public void cascadeDelete() {
+        for (SentenceRealm sentence : sentenceList) {
             sentence.getWordList().deleteAllFromRealm();
         }
         sentenceList.deleteAllFromRealm();

@@ -6,6 +6,7 @@ import android.util.Log;
 import com.google.cloud.android.speech.diarization.FeatureExtract;
 import com.google.cloud.android.speech.diarization.formular.PreProcess;
 import com.google.cloud.android.speech.diarization.FeatureVector;
+import com.google.cloud.android.speech.util.AudioUtil;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public class SpeechDiary {
             featureExtract = new FeatureExtract(prp.framedSignal, SAMPLING_RATE, SAMPLE_PER_FRAME);
             featureExtract.makeMfccFeatureVector();
             Log.d("preprocess fv", String.valueOf(featureExtract.getFeatureVector().getFeatureVector().length));
-
+            featureExtract.setSilence(arrAmp);
             return featureExtract.getFeatureVector();
         } else {
 

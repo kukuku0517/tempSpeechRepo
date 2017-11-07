@@ -33,36 +33,26 @@ import com.google.cloud.android.speech.event.PartialTimerEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.util.AudioUtil;
 import com.google.cloud.android.speech.util.FileUtil;
+import com.google.cloud.android.speech.util.LogUtil;
 import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.interfaces.MediaCodecCallBack;
 import com.google.cloud.android.speech.view.interfaces.VoiceRecorderCallBack;
 import com.google.cloud.android.speech.view.recordList.ListActivity;
 import com.google.cloud.android.speech.event.ProcessIdEvent;
-import com.google.cloud.speech.v1.LongRunningRecognizeMetadata;
 import com.google.cloud.speech.v1.LongRunningRecognizeRequest;
 import com.google.cloud.speech.v1.LongRunningRecognizeResponse;
 import com.google.cloud.speech.v1.RecognitionAudio;
 import com.google.cloud.speech.v1.RecognitionConfig;
-//import com.google.cloud.speech.v1.SpeechClient;
-import com.google.cloud.speech.v1.SpeechContext;
-import com.google.cloud.speech.v1.SpeechContextOrBuilder;
-//import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
 import com.google.cloud.speech.v1.SpeechRecognitionResult;
-//import com.google.cloud.speech.v1.SpeechSettings;
 import com.google.cloud.speech.v1.StreamingRecognitionConfig;
 import com.google.cloud.speech.v1.StreamingRecognitionResult;
 import com.google.cloud.speech.v1.StreamingRecognizeRequest;
 import com.google.cloud.speech.v1.StreamingRecognizeResponse;
 import com.google.cloud.speech.v1.WordInfo;
-import com.google.common.util.concurrent.SettableFuture;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 import com.google.longrunning.Operation;
 import com.google.protobuf.ByteString;
-//import com.google.protobuf.ByteString;
-//import com.google.protobuf.ByteString;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -100,6 +90,7 @@ import io.grpc.internal.DnsNameResolverProvider;
 import io.grpc.okhttp.OkHttpChannelProvider;
 import io.grpc.stub.StreamObserver;
 import io.realm.Realm;
+import io.realm.RealmList;
 
 public class SpeechService extends Service {
 
@@ -136,7 +127,6 @@ public class SpeechService extends Service {
     private final SpeechBinder2 mBinder = new SpeechBinder2();
     private volatile AccessTokenTask mAccessTokenTask;
     private SpeechGrpc.SpeechStub mApi;
-    //    private SpeechGrpc.SpeechStub mApi2;
     private static Handler mHandler;
 
     private long startOfCall = -1;
@@ -171,54 +161,6 @@ public class SpeechService extends Service {
 
     private StreamObserver<StreamingRecognizeRequest> mRequestObserver;
     private StreamObserver<StreamingRecognizeRequest> mFileRequestObserver;
-    private StreamObserver<LongRunningRecognizeRequest> mFileRequestObserver2;
-
-//    class ResponseApiStreamingObserver<T extends StreamingRecognizeResponse> implements ApiStreamObserver<T> {
-//        private final SettableFuture<List<T>> future = SettableFuture.create();
-//        private final List<T> messages = new java.util.ArrayList<T>();
-//
-//        @Override
-//        public void onNext(T response) {
-//
-//            String text = null;
-//            boolean isFinal = false;
-//
-//            if (response.getResultsCount() > 0) {
-//                final StreamingRecognitionResult result = response.getResults(0);
-//                isFinal = result.getIsFinal();
-//                if (result.getAlternativesCount() > 0) {
-//                    final SpeechRecognitionAlternative alternative = result.getAlternatives(0);
-//                    text = alternative.getTranscript();
-//
-//                }
-//            }
-//
-//            if (text != null) {
-////                onFileRecognized(text, isFinal, startOfCall, recordId);
-//                onSpeechRecognized(isFinal, response.getResults(0).getAlternatives(0), startOfCall);
-//            }
-//
-//            messages.add(response);
-//        }
-//
-//        @Override
-//        public void onError(Throwable t) {
-//            future.setException(t);
-//        }
-//
-//        @Override
-//        public void onCompleted() {
-//            future.set(messages);
-//        }
-//
-//        // Returns the SettableFuture object to get received messages / exceptions.
-//        public SettableFuture<List<T>> future() {
-//            return future;
-//        }
-//    }
-
-
-//    ResponseApiStreamingObserver<StreamingRecognizeResponse> responseObserver;
 
     private final StreamObserver<StreamingRecognizeResponse> mResponseObserver
             = new StreamObserver<StreamingRecognizeResponse>() {
@@ -238,7 +180,6 @@ public class SpeechService extends Service {
             }
 
             if (text != null) {
-//                onFileRecognized(text, isFinal, startOfCall, recordId);
                 onSpeechRecognized(isFinal, response.getResults(0).getAlternatives(0), startOfCall);
             }
         }
@@ -250,7 +191,9 @@ public class SpeechService extends Service {
         }
 
         @Override
-        public void onCompleted() {
+        public void onCompleted()
+
+        {
 
             Log.i(TAG, "API completedasdfafasdfasdfasdfasdf.");
         }
@@ -260,10 +203,11 @@ public class SpeechService extends Service {
             = new StreamObserver<StreamingRecognizeResponse>() {
         @Override
         public void onNext(StreamingRecognizeResponse response) {
-            Log.i(TAG, "answer received");
+
             String text = null;
             boolean isFinal = false;
             SpeechRecognitionAlternative alternative = null;
+
             if (response.getResultsCount() > 0) {
                 final StreamingRecognitionResult result = response.getResults(0);
                 isFinal = result.getIsFinal();
@@ -272,23 +216,9 @@ public class SpeechService extends Service {
                     text = alternative.getTranscript();
                 }
             }
+
             if (text != null) {
-                Log.i(TAG + "file", text);
-//                for (SpeechService.Listener listener : mListeners) {
-//                    listener.onFileRecognized(text, isFinal, startMillis);
-//                    Log.i(TAG, text);
-//                }
-                onFileRecognized(text, isFinal, startOfCall, fileId);
-                if (isFinal)
-                    Log.d(TAG, "timetime" + String.valueOf(response.getResults(0).getAlternatives(0).getWords(0).getStartTime()));
-//                EventBus.getDefault().postSticky(new ProcessEvent(fileId,ProcessEvent.FILE));
-            }
-
-            if (isFinal) {
-                long endTime = alternative.getWordsList().get(alternative.getWordsCount() - 1).getEndTime().getSeconds() * 1000;
-                Log.d(TAG, "fileEnd : " + endTime);
-                Log.d(TAG, "fileEnd minus : " + Math.abs(endOfFileSecond - endTime));
-
+                onFileRecognized2(isFinal, alternative, startOfCall);
             }
 
 
@@ -302,60 +232,6 @@ public class SpeechService extends Service {
         @Override
         public void onCompleted() {
             Log.i(TAG, "API completed.");
-
-            stopRecognizing(FILE);
-            stopForeground();
-
-        }
-
-    };
-    private final StreamObserver<LongRunningRecognizeResponse> mFileResponseObserver2
-            = new StreamObserver<LongRunningRecognizeResponse>() {
-        @Override
-        public void onNext(LongRunningRecognizeResponse response) {
-            Log.i(TAG, "answer received");
-            String text = null;
-            boolean isFinal = false;
-            SpeechRecognitionAlternative alternative = null;
-            if (response.getResultsCount() > 0) {
-                final SpeechRecognitionResult result = response.getResults(0);
-                isFinal = true;
-                if (result.getAlternativesCount() > 0) {
-                    alternative = result.getAlternatives(0);
-                    text = alternative.getTranscript();
-                }
-            }
-            if (text != null) {
-                Log.i(TAG + "file", text);
-//                for (SpeechService.Listener listener : mListeners) {
-//                    listener.onFileRecognized(text, isFinal, startMillis);
-//                    Log.i(TAG, text);
-//                }
-                onFileRecognized(text, isFinal, startOfCall, fileId);
-                if (isFinal)
-                    Log.d(TAG, "timetime" + String.valueOf(response.getResults(0).getAlternatives(0).getWords(0).getStartTime()));
-//                EventBus.getDefault().postSticky(new ProcessEvent(fileId,ProcessEvent.FILE));
-            }
-
-            if (isFinal) {
-                long endTime = alternative.getWordsList().get(alternative.getWordsCount() - 1).getEndTime().getSeconds() * 1000;
-                Log.d(TAG, "fileEnd : " + endTime);
-                Log.d(TAG, "fileEnd minus : " + Math.abs(endOfFileSecond - endTime));
-
-            }
-
-
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            Log.e(TAG, "Error calling the API.", t);
-        }
-
-        @Override
-        public void onCompleted() {
-            Log.i(TAG, "API completed.");
-
             stopRecognizing(FILE);
             stopForeground();
 
@@ -474,11 +350,6 @@ public class SpeechService extends Service {
      *
      * @param sampleRate The sample rate of the audio.
      */
-//    SpeechClient speechClient;
-
-//    BidiStreamingCallable<StreamingRecognizeRequest, StreamingRecognizeResponse> callable;
-//
-//    ApiStreamObserver<StreamingRecognizeRequest> requestObserver;
 
     public void startRecognizing(int sampleRate, long startMillis) throws IOException {
         if (mApi == null) {
@@ -488,41 +359,6 @@ public class SpeechService extends Service {
 
         this.startOfCall = startMillis;
 
-
-//        ArrayList<String> contextList = new ArrayList<>();
-//        contextList.add("심계항진");
-//        contextList.add("봉와직염");
-//        contextList.add("개방창");
-//        contextList.add("연하곤란");
-//        contextList.add("감정둔마");
-//        contextList.add("후두융기");
-//        SpeechContextOrBuilder speechContext = SpeechContext.newBuilder().addAllPhrases(contextList).build();
-
-//        RecognitionConfig.getDefaultInstance().getSpeechContextsOrBuilderList().add(speechContext.)
-        // Configure the API
-//        mRequestObserver = mApi.streamingRecognize(mResponseObserver);
-
-        final InputStream stream = getResources().openRawResource(R.raw.credential);
-
-        final GoogleCredentials credentials = GoogleCredentials.fromStream(stream)
-                .createScoped(SCOPE);
-//        CredentialsProvider credentialsProvider = FixedCredentialsProvider.create(credentials);
-
-//        ChannelProvider channelProvider = SpeechSettings.newBuilder().setCredentialsProvider(credentialsProvider).build();
-
-//        SpeechSettings settings = SpeechSettings.newBuilder().setCredentialsProvider(credentialsProvider).build();
-//
-//// Instantiates a client
-////        SpeechClient speech = SpeechClient.create(settings);
-//        speechClient = SpeechClient.create(settings);
-//
-//        responseObserver = new ResponseApiStreamingObserver<StreamingRecognizeResponse>();
-//
-//        callable = speechClient.streamingRecognizeCallable();
-//
-//        requestObserver = callable.bidiStreamingCall(responseObserver);
-//
-//        requestObserver = speechClient.streamingRecognizeCallable().bidiStreamingCall(responseObserver);
         mRequestObserver = mApi.streamingRecognize(mResponseObserver);
         mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
                 .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
@@ -532,16 +368,12 @@ public class SpeechService extends Service {
                                 .setSampleRateHertz(sampleRate)
                                 .setEnableWordTimeOffsets(true)
 
-//                                .setSpeechContexts()
-
                                 .build())
                         .setInterimResults(true)
                         .setSingleUtterance(false)
                         .build())
                 .build());
     }
-
-    LongRunningRecognizeRequest request;
 
 
     long endOfFileSecond = -1;
@@ -574,7 +406,7 @@ public class SpeechService extends Service {
     }
 
     ArrayList<double[][]> feature = new ArrayList<>();
-    ArrayList<Integer> silence = new ArrayList<>();
+    ArrayList<int[]> silence = new ArrayList<>();
 
     private MediaCodecCallBack mediaCodecCallBack = new MediaCodecCallBack() {
         @Override
@@ -584,7 +416,7 @@ public class SpeechService extends Service {
                             .setConfig(RecognitionConfig.newBuilder()
                                     .setLanguageCode(getDefaultLanguageCode())
                                     .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-                                    .setSampleRateHertz(16000)
+                                    .setSampleRateHertz(fileSampleRate)
                                     .setEnableWordTimeOffsets(true)
 
                                     .build())
@@ -596,7 +428,6 @@ public class SpeechService extends Service {
 
         @Override
         public void onBufferRead(byte[] buffer) {
-
 
 //                if (stream.read(mBuffer, 0, bufferSize) == -1) {
 //                    break;
@@ -611,50 +442,22 @@ public class SpeechService extends Service {
                     .setAudioContent(ByteString.copyFrom(buffer))
                     .build());
 
-
-            int count = 0;
-
             if (buffer.length > 0) {
-//                    if (chunk[0]!=0 && chunk[1]!=0) {
                 if (checkEmptyBytes(buffer)) {
                     float[] pcmFloat = floatMe(shortMe(buffer));
                     SpeechDiary speechDiary = new SpeechDiary();
-
                     FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
-
                     if (fv != null) {
-                        for (double[] d : fv.getFeatureVector()) {
-                        }
                         feature.add(fv.getFeatureVector());
-                        silence.add(fv.getFeatureVector().length);
-                    } else {
-                        silence.add(0);
+                        silence.add(fv.getSilence());
                     }
-
-
-//                    mAudioTrack.write(chunk, 0, chunk.length);
-//                    if (this.mState != State.Playing)
-//                    {
-//                        mAudioPlayerHandler.onAudioPlayerPlayerStart(AudioStreamPlayer.this);
-//                    }
-//                    this.mState = State.Playing;
-                } else {
-                    Log.d("chunk", "asdflakwsef");
                 }
-
             }
-
-
         }
 
         @Override
         public void onCompleted() {
 
-            try {
-                new KMeansCluster(3, 13, feature, silence).iterRun(5);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
 
 
             mFileRequestObserver.onCompleted();
@@ -664,6 +467,133 @@ public class SpeechService extends Service {
         }
     };
 
+    private void applyCluster(int[] results, final int fileId,Realm realm) {
+
+        RecordRealm fileRecord = realm.where(RecordRealm.class).equalTo("id",fileId).findFirst();
+        String path = fileRecord.getFilePath();
+
+        long millSecond = AudioUtil.getAudioLength(getApplicationContext(), path);
+
+
+        final float UNIT = 0.5f;
+        float framePerUnit = (results.length * 1000 * UNIT)/millSecond;
+        int noOfCluster = (int) Math.ceil(results.length / framePerUnit);
+        final int[] clusters = new int[noOfCluster];
+        for (int i = 0; i < noOfCluster; i++) {
+            int total = 0;
+            int count=0;
+
+            for (int j = 0; j < framePerUnit; j++) {
+                total += results[(int) (i * framePerUnit + j)];
+                if(results[(int) (i * framePerUnit + j)]!=0){
+                    count++;
+                }
+            }
+            if(count!=0){
+                total /= count;
+            }
+
+            clusters[i] = total;
+        }
+
+        LogUtil.print(clusters,"kcluster");
+
+
+
+        RecordRealm record = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
+        if (record != null) {
+            RealmList<SentenceRealm> sentences = record.getSentenceRealms();
+            int sentenceIndex = 0;
+            int prev = -1;
+
+            //loop
+            while (true) {
+                long startSentence = sentences.get(sentenceIndex).getStartMillis()/1000;
+                long endSentence = sentences.get(sentenceIndex).getEndMillis()/1000;
+                int clusterIndex = (int) (startSentence / UNIT);
+
+                //한 문장을 다 확인 할때까지
+                while (clusterIndex < (endSentence) / UNIT) {
+
+                    //한 문장 내에서 클러스터가 변할경우
+                    if (prev!=-1 && clusters[clusterIndex] != prev) {
+                        RealmList<WordRealm> words = sentences.get(sentenceIndex).getWordList();
+                        for (int i = 0; i < words.size(); i++) {
+                            if (words.get(i).getStartMillis() == clusterIndex * UNIT * 1000) {
+                                SentenceRealm origin = sentences.get(sentenceIndex);
+                                SentenceRealm add = RealmUtil.createObject(realm, SentenceRealm.class);
+                                add.setEndMillis(origin.getEndMillis());
+                                origin.setEndMillis((long) ((clusterIndex * UNIT - 1) * 1000));
+                                add.setStartMillis((long) ((clusterIndex * UNIT) * 1000));
+                                origin.setCluster(clusterIndex - 1);
+                                add.setCluster(clusterIndex);
+                                RealmList<WordRealm> originWords = new RealmList<WordRealm>();
+                                RealmList<WordRealm> addWords = new RealmList<WordRealm>();
+
+                                for (int j = 0; j < words.size(); j++) {
+                                    if (j < i) {
+                                        originWords.add(words.get(j));
+                                    } else {
+                                        addWords.add(words.get(j));
+                                    }
+                                }
+
+                                origin.setWordList(originWords);
+                                add.setWordList(addWords);
+
+                                origin.setSentence();
+                                add.setSentence();
+
+                                sentences.add(sentenceIndex,add);
+                                record = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
+                                sentences = record.getSentenceRealms();
+                                break;
+
+                            }
+                        }
+                        //문장을 추가했으므로 바로 다음 문장으로
+                        sentenceIndex++;
+                        prev = clusters[clusterIndex];
+                        clusterIndex++;
+                        break;
+                    }else{ // 클러스터가 변하지않으면 다음 클러스터 체크
+                        prev = clusters[clusterIndex];
+                        clusterIndex++;
+
+                    }
+                }
+                //한문장이 끝나면 다음 문장으로
+                sentences.get(sentenceIndex).setCluster(clusters[prev]);
+                sentenceIndex++;
+
+                if(sentenceIndex==sentences.size())break;
+
+            }
+            //                    for(int i=0;i<clusters.length;i++){
+//                        if(clusters[i]!=prev){
+//
+//
+//
+//
+//
+//
+//                            prev=clusters[i];
+//                        }else{
+//                            while(sentenceIndex<sentences.size() && sentences.get(sentenceIndex).getStartMillis()<i*UNIT){
+//                                sentences.get(sentenceIndex).setCluster(clusters[i]);
+//                                sentenceIndex++;
+//                            }
+//                            prev=clusters[i];
+//                        }
+//                    }
+
+        }
+
+
+    }
+
+
+    int fileSampleRate = 16000;
 
     public void recognizeFileStream(final String title, final ArrayList<String> tags, final String fileName) {
         startForeground();
@@ -677,102 +607,44 @@ public class SpeechService extends Service {
                 }
             });
 
-
             File file = new File(fileName);
             long fileLenth = file.length();
             Log.d(TAG, "file" + fileName + fileLenth);
             FileInputStream stream = new FileInputStream(file);
 
-            long millSecond = AudioUtil.getAudioLength(getApplicationContext(), fileName);
-
-            Log.d(TAG, "file" + millSecond);
 
             getValidSampleRates();
             fileStreamFinished = false;
 
-            RecognitionAudio audio = RecognitionAudio.newBuilder()
-                    .setUri("https://storage.cloud.google.com/speech_diary/jh2.wav")
-                    .build();
-//            mFileRequestObserver2.onNext(LongRunningRecognizeRequest.newBuilder()
-//                    .setAudio(audio)
-//                    .build());
-
-           mApi.longRunningRecognize(LongRunningRecognizeRequest.newBuilder()
-                    .setConfig(RecognitionConfig.newBuilder()
-                            .setLanguageCode(getDefaultLanguageCode())
-                            .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-                            .setSampleRateHertz(16000)
-                            .setEnableWordTimeOffsets(true)
-                            .build()
-                    )
-                    .setAudio(audio)
-                    .build(), new StreamObserver<Operation>() {
-                @Override
-                public void onNext(Operation value) {
-                    Log.d("asdf","res");
-
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    Log.d("asdf",t.toString());
-                }
-
-                @Override
-                public void onCompleted() {
-                    Log.d("asdf","com");
-                }
-            });
-
             createAudioRecord();
             getValidSampleRates();
-//            mFileRequestObserver2.onNext(StreamingRecognizeRequest.newBuilder()
-//                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
-//                            .setConfig(RecognitionConfig.newBuilder()
-//                                    .setLanguageCode(getDefaultLanguageCode())
-//                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-//                                    .setSampleRateHertz(16000)
-//                                    .setEnableWordTimeOffsets(true)
+
+
+            AudioStreamer audioStreamer = new AudioStreamer(mediaCodecCallBack);
+            fileSampleRate = audioStreamer.setUrlString(fileName);
+            mFileRequestObserver = mApi.streamingRecognize(mFileResponseObserver);
+            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
+                            .setConfig(RecognitionConfig.newBuilder()
+                                    .setLanguageCode(getDefaultLanguageCode())
+                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+                                    .setSampleRateHertz(fileSampleRate)
+                                    .setEnableWordTimeOffsets(true)
+                                    .build())
+                            .setInterimResults(true)
+                            .setSingleUtterance(false)
+                            .build())
+                    .build());
+
+            audioStreamer.play();
+
 //
-//                                    .build())
-//                            .setInterimResults(true)
-//                            .setSingleUtterance(false)
-//                            .build())
-//                    .build());
-
-
-//            AudioStreamer audioStreamer = new AudioStreamer(mediaCodecCallBack);
-//            audioStreamer.setUrlString(fileName);
-//            audioStreamer.play();
-
-
-//            while (true) {
-//
-//                if (stream.read(mBuffer, 0, bufferSize) == -1) {
-//                    break;
-//                }
-//                currentBuffer+=bufferSize;
-//                if(AudioUtil.isHearingVoice(mBuffer, bufferSize)){
-//                    endOfFileSecond=millSecond*currentBuffer/fileLenth;
-//                    Log.d(TAG,"file"+endOfFileSecond);
-//                }
-//                mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-//                        .setAudioContent(ByteString.copyFrom(mBuffer))
-//                        .build());
-//            }
-
-
-//            mFileRequestObserver.onCompleted();
-//
-//            fileStreamFinished = true;
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
-
-
 
 
     public void recognize(byte[] data, int size) {
@@ -833,6 +705,51 @@ public class SpeechService extends Service {
 
     }
 
+    private void onFileRecognized2(boolean isFinal, SpeechRecognitionAlternative alternative, long startOfCall) {
+
+        String text = alternative.getTranscript();
+
+        if (!TextUtils.isEmpty(text)) {
+            if (isFinal) {
+
+                Realm realm = Realm.getDefaultInstance();
+                realm.beginTransaction();
+                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
+
+                SentenceRealm sentence = new RealmUtil().createObject(realm, SentenceRealm.class);
+                sentence.setSentence(text);
+                long startOfSentence = startOfCall - startOfRecording;
+                sentence.setStartMillis((int) (startOfSentence));
+                List<WordInfo> words = alternative.getWordsList();
+//                for (WordInfo wordInfo : alternative.getWordsList()) {
+                for (int i = 0; i < words.size(); i++) {
+                    WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
+                    word.setWord(words.get(i).getWord());
+                    word.setSentenceId(sentence.getId());
+                    long second = words.get(i).getStartTime().getSeconds() * 1000 + startOfSentence;
+                    word.setStartMillis(second);
+                    sentence.getWordList().add(word);
+
+                    if (i == words.size() - 1) {
+                        sentence.setEndMillis(second);
+                    }
+                }
+
+                record.getSentenceRealms().add(sentence);
+                realm.commitTransaction();
+
+
+
+
+            } else {
+                EventBus.getDefault().post(new PartialEvent(text));
+            }
+
+        }
+
+    }
+
+
     private void onSpeechRecognized(boolean isFinal, SpeechRecognitionAlternative alternative, long startOfCall) {
         if (isFinal) {
             if (mVoiceRecorder != null) {
@@ -843,6 +760,7 @@ public class SpeechService extends Service {
 
         if (!TextUtils.isEmpty(text)) {
             if (isFinal) {
+
                 Realm realm = Realm.getDefaultInstance();
                 realm.beginTransaction();
                 RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
@@ -851,14 +769,21 @@ public class SpeechService extends Service {
                 sentence.setSentence(text);
                 long startOfSentence = startOfCall - startOfRecording;
                 sentence.setStartMillis((int) (startOfSentence));
-                for (WordInfo wordInfo : alternative.getWordsList()) {
-
+                List<WordInfo> words = alternative.getWordsList();
+//                for (WordInfo wordInfo : alternative.getWordsList()) {
+                for (int i = 0; i < words.size(); i++) {
                     WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
-                    word.setWord(wordInfo.getWord());
+                    word.setWord(words.get(i).getWord());
                     word.setSentenceId(sentence.getId());
-                    word.setStartMillis(wordInfo.getStartTime().getSeconds() * 1000 + startOfSentence);
+                    long second = words.get(i).getStartTime().getSeconds() * 1000 + startOfSentence;
+                    word.setStartMillis(second);
                     sentence.getWordList().add(word);
+
+                    if (i == words.size() - 1) {
+                        sentence.setEndMillis(second);
+                    }
                 }
+
                 record.getSentenceRealms().add(sentence);
                 realm.commitTransaction();
 
@@ -902,11 +827,21 @@ public class SpeechService extends Service {
         Log.d(TAG, "fileId in stop :" + fileId);
         RecordRealm record = realm.where(RecordRealm.class).equalTo("id", id).findFirst();
         record.setConverted(true);
+
         if (type == RECORD) {
             recordId = -1;
         } else {
+            try {
+                int[] results = new KMeansCluster(3, 13, feature, silence).iterRun(10);
+                applyCluster(results, fileId, realm);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             fileId = -1;
         }
+
 
         Handler handler = new Handler(Looper.getMainLooper());
         handler.post(new Runnable() {
@@ -993,9 +928,23 @@ public class SpeechService extends Service {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-//            Storage storage = StorageOptions.newBuilder().setCredentials(credentials)
-//                    .build().getService();
+
+//            Storage storage = StorageOptions.getDefaultInstance().getService();
 //
+//            // The name for the new bucket
+//            String bucketName = "speech_diary";  // "my-new-bucket";
+//
+//            // Creates the new bucket
+//            Bucket bucket = storage.create(BucketInfo.newBuilder(bucketName)
+//                    // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
+//                    .setStorageClass(StorageClass.COLDLINE)
+//                    // Possible values: http://g.co/cloud/storage/docs/bucket-locations#location-mr
+//                    .setLocation("asia")
+//                    .build());
+//
+//            System.out.printf("Bucket %s created.%n", bucket.getName());
+
+
 //
 //            // Upload a local file to a new file to be created in your bucket.
 ////            InputStream uploadContent =null;

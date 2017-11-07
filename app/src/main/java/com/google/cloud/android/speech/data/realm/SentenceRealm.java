@@ -17,10 +17,27 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
 
     @PrimaryKey
     private int id;
-
-    private   RealmList<WordRealm> wordList;
-    private int startMillis;
+    private RealmList<WordRealm> wordList;
+    private long startMillis;
+    private long endMillis;
     private String sentence;
+    private int cluster = -1;
+
+    public int getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(int cluster) {
+        this.cluster = cluster;
+    }
+
+    public long getEndMillis() {
+        return endMillis;
+    }
+
+    public void setEndMillis(long endMillis) {
+        this.endMillis = endMillis;
+    }
 
     public String getSentence() {
         return sentence;
@@ -28,6 +45,15 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
 
     public void setSentence(String sentence) {
         this.sentence = sentence;
+    }
+
+    public void setSentence() {
+        StringBuilder builder = new StringBuilder();
+        for (WordRealm wordRealm : wordList) {
+            builder.append(wordRealm.getWord()+" ");
+        }
+        this.sentence = builder.toString();
+
     }
 
     public RealmList<WordRealm> getWordList() {
@@ -38,11 +64,11 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
         this.wordList = wordList;
     }
 
-    public int getStartMillis() {
+    public long getStartMillis() {
         return startMillis;
     }
 
-    public void setStartMillis(int startMillis) {
+    public void setStartMillis(long startMillis) {
         this.startMillis = startMillis;
     }
 
@@ -58,7 +84,7 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
     }
 
     @BindingAdapter("android:text")
-    public static void setText(TextView v, int value){
+    public static void setText(TextView v, int value) {
         v.setText(DateUtil.durationToDate(value));
     }
 }

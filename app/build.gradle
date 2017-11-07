@@ -74,22 +74,10 @@ android {
         resolutionStrategy.force "com.android.support:support-annotations:$supportLibraryVersion"
     }
 
-//    packagingOptions {
-//        exclude 'META-INF/DEPENDENCIES.txt'
-//        exclude 'META-INF/DEPENDENCIES'
-//        exclude 'META-INF/dependencies.txt'
-//        exclude 'META-INF/LICENSE.txt'
-//        exclude 'META-INF/LICENSE'
-//        exclude 'META-INF/license.txt'
-//        exclude 'META-INF/LGPL2.1'
-//        exclude 'META-INF/NOTICE.txt'
-//        exclude 'META-INF/NOTICE'
-//        exclude 'META-INF/notice.txt'
-//        exclude 'META-INF/io.netty.versions.properties'
+    packagingOptions {
 //        exclude 'META-INF/INDEX.LIST'
-//
-//        exclude 'project.properties'
-//    }
+ //       exclude 'project.properties'
+    }
 }
 
 protobuf {
@@ -149,8 +137,8 @@ dependencies {
     androidTestCompile 'com.android.support.test:runner:0.5'
     androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
     protobuf 'com.google.protobuf:protobuf-java:3.3.1'
-    compile 'com.google.firebase:firebase-core:11.0.4'
-    compile 'com.google.firebase:firebase-storage:11.0.4'
+//    compile 'com.google.firebase:firebase-core:11.0.4'
+//    compile 'com.google.firebase:firebase-storage:11.0.4'
 //    compile ('com.google.cloud:google-cloud-speech:0.26.0-alpha'){
 ////        exclude group: 'org.json'
 ////        exclude group: 'org.apache.httpcomponents'
@@ -159,7 +147,14 @@ dependencies {
 ////        exclude group: 'com.google.api-client', module: 'google-api-client-appengine'
 //    }
 
-//    compile 'com.google.cloud:google-cloud-storage:1.8.0'
+//    compile ('com.google.cloud:google-cloud-storage:1.8.0'){
+//        exclude group: 'org.json'
+//        exclude group: 'org.apache.httpcomponents'
+////        exclude group: 'io.grpc', module: 'grpc-all'
+//        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+////        exclude group: 'com.google.api-client', module: 'google-api-client-appengine'
+//    }
+
 
 }
 
@@ -171,7 +166,6 @@ task copySecretKey(type: Copy) {
     rename secretKey.getName(), "credential.json"
 }
 preBuild.dependsOn(copySecretKey)
-
 
 //def buildNumber = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 //if (buildNumber == null) {

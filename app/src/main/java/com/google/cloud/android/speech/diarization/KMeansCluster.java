@@ -2,31 +2,13 @@ package com.google.cloud.android.speech.diarization;
 
 import android.util.Log;
 
+import com.google.cloud.android.speech.util.LogUtil;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-
-/**
- * Kmeans聚类算法的实现类，将newsgroups文档集聚成10类、20类、30类
- * 算法结束条件:当每个点最近的聚类中心点就是它所属的聚类中心点时，算法结束
- *
- * @author yangliu
- * @qq 772330184
- * @mail yang.liu@pku.edu.cn
- */
-
-/**
- * The "KMeansClustering" class applies the k-means clustering learning algorithm on the data read in the
- * "Data" class. This involves initiating a number of centroids, setting their positions and assigning
- * them to the nearest clumps of training (classified) data. Then, the clumped test (unclassified) data are
- * assigned to the nearest centroid and so assigning them with the training data of that clump. This then
- * allows for a classification to be derived for every test datum.
- *
- * @author Karim Tabet, modified from "Toy K-Means" code by Chris Thornton
- * @version 1.0 24/11/2010
- */
 
 public class KMeansCluster {
     private int k;
@@ -36,10 +18,10 @@ public class KMeansCluster {
     private double classifiedData[][];
     private double centroids[][]; //initial value of centroids
     private double newCentroids[][];
-    ArrayList<Integer> silence;
-    int[] frameSize;
-    //    int[][] clusterIndex;
-    int[][] clusterIndex2;
+    ArrayList<int[]> silence;
+    int size;
+    int[] clusterNumber;
+    int[] silenceNumber;
 
     /**
      * @param k       - number of clusters
@@ -47,46 +29,34 @@ public class KMeansCluster {
      * @param data    - list of featureVectors
      * @param silence - index of silence buffers
      */
-    public KMeansCluster(int k, int v, ArrayList<double[][]> data, ArrayList<Integer> silence) //k = the number of centroids
+    public KMeansCluster(int k, int v, ArrayList<double[][]> data, ArrayList<int[]> silence) //k = the number of centroids
     {
         this.k = k;
         this.v = v;
         this.n = new int[k];
         this.data = data;
         this.silence = silence;
+        this.size = 0;
+
         centroids = new double[k][v];
         newCentroids = new double[k][v];
-        int size = 0;
-        int max = -1;
-
-        for (int i = 0; i < silence.size(); i++) {
-            int s = silence.get(i);
-            size += s;
-            if (max < s) {
-                max = s;
-            }
+        for (int i = 0; i < data.size(); i++) {
+            size += data.get(i).length;
         }
 
         classifiedData = new double[size][39];
-        frameSize = new int[silence.size()];
-        int c = 0;
+        clusterNumber = new int[size];
+        silenceNumber = new int[size];
 
+        int c = 0;
         for (double[][] dd : data) {
             System.arraycopy(dd, 0, classifiedData, c, dd.length);
             c += dd.length;
         }
-
-
-        /**
-         * silence인 구간을 표시해주기 위함.
-         * 각 클러스터의 array크기를 가장큰 buffer의 크기로 맞춰주고
-         * silence인 부분은 -1로 채워진다.
-         */
-         clusterIndex2 = new int[silence.size()][max];
-        for (int[] i : clusterIndex2) {
-            for (int j = 0; j < i.length; j++) {
-                i[j] = -1;
-            }
+        c = 0;
+        for (int[] i : silence) {
+            System.arraycopy(i, 0, silenceNumber, c, i.length);
+            c += i.length;
         }
 
 
@@ -217,7 +187,7 @@ public class KMeansCluster {
      */
     private HashMap<double[][], Double> map = new HashMap<>();
 
-    public int[][] iterRun(int time) throws IOException {
+    public int[] iterRun(int time) throws IOException {
 
         /**
          * centroids와 전체 클러스터의 error값을 map에 저장
@@ -317,29 +287,49 @@ public class KMeansCluster {
      * Prints out classification values for test (unclassified) data in both the terminal window and
      * a new file "output.txt" in the root folder. Throws an input output exception.
      */
-    public int[][] getClassification(double[][] unclassifiedData, double[][] centroid) throws IOException {
+    public int[] getClassification(double[][] unclassifiedData, double[][] centroid) throws IOException {
 
-        int count = 0;
         StringBuffer buffer = new StringBuffer();
-        for (int i = 0; i < clusterIndex2.length; i++) {
-            if (silence.get(i) == 0) {
 
-            } else {
-                for (int j = 0; j < silence.get(i); j++) {
-                    int closest = getClosestCentroid(unclassifiedData[count]);
-                    clusterIndex2[i][j] = 5 + closest * 5;
-                    count++;
-                }
-            }
-        }
-
-        for (int a[] : clusterIndex2) {
-            for (int i = 0; i < a.length; i += 1) {
-                buffer.append("\t" + String.valueOf(a[i]));
-            }
+        for (int i = 0; i < clusterNumber.length; i++) {
+            int closest = getClosestCentroid(unclassifiedData[i]);
+            clusterNumber[i] = closest;
+            buffer.append("\t" + String.valueOf(closest));
         }
         Log.d("kcluster", buffer.toString());
+        getSilenceCluster();
+        LogUtil.print(clusterNumber,"kcluster");
 
-        return clusterIndex2;
+        return clusterNumber;
     }
+
+    private void getSilenceCluster(){
+        int[]count = new int[k];
+        for(int i=0;i<clusterNumber.length;i++){
+            if(silenceNumber[i]==1){
+                count[clusterNumber[i]]++;
+            }
+        }
+
+        int max=-1;
+        int maxIndex=-1;
+        for(int i=0;i<k;i++){
+            if(count[i]>max){
+                max=count[i];
+                maxIndex=i;
+            }
+        }
+        for(int i=0;i<clusterNumber.length;i++){
+            if(clusterNumber[i]==0){
+                clusterNumber[i]=maxIndex;
+            }else if(clusterNumber[i]==maxIndex){
+                clusterNumber[i]=0;
+            }
+        }
+
+
+
+    }
+
+
 }

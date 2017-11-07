@@ -49,9 +49,7 @@ public class AudioStreamer {
 
     private String mMediaPath;
 
-    public void setUrlString(String mUrlString) {
-        this.mMediaPath = mUrlString;
-    }
+
 
     public AudioStreamer(MediaCodecCallBack mListener) {
         this.mListener = mListener;
@@ -73,97 +71,25 @@ public class AudioStreamer {
             }
         }).start();
     }
-
-//    private DelegateHandler mAudioPlayerHandler = new DelegateHandler();
-
-//    class DelegateHandler extends Handler {
-//        @Override
-//        public void handleMessage(Message msg) {
-//        }
-//
-//        public void onAudioPlayerPlayerStart(AudioStreamPlayer player) {
-//            if (mListener != null) {
-//                mListener.onAudioPlayerStart(player);
-//            }
-//        }
-//
-//        public void onAudioPlayerStop(AudioStreamPlayer player) {
-//            if (mListener != null) {
-//                mListener.onAudioPlayerStop(player);
-//            }
-//        }
-//
-//        public void onAudioPlayerError(AudioStreamPlayer player) {
-//            if (mListener != null) {
-//                mListener.onAudioPlayerError(player);
-//            }
-//        }
-//
-//        public void onAudioPlayerBuffering(AudioStreamPlayer player) {
-//            if (mListener != null) {
-//                mListener.onAudioPlayerBuffering(player);
-//            }
-//        }
-//
-//        public void onAudioPlayerDuration(int totalSec) {
-//            if (mListener != null) {
-//                mListener.onAudioPlayerDuration(totalSec);
-//            }
-//        }
-//
-//        public void onAudioPlayerCurrentTime(int sec) {
-//            if (mListener != null) {
-//                mListener.onAudioPlayerCurrentTime(sec);
-//            }
-//        }
-//
-//        public void onAudioPlayerPause() {
-//            if (mListener != null) {
-//                mListener.onAudioPlayerPause(AudioStreamPlayer.this);
-//            }
-//        }
-//    }
-
-//
-//    public static float[] floatMe(short[] pcms) {
-//        float[] floaters = new float[pcms.length];
-//        for (int i = 0; i < pcms.length; i++) {
-//            floaters[i] = pcms[i];
-//        }
-//        return floaters;
-//    }
-//
-//    public static short[] shortMe(byte[] bytes) {
-//        short[] out = new short[bytes.length / 2]; // will drop last byte if odd number
-//        ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
-//        for (int i = 0; i < out.length; i++) {
-//            out[i] = bb.getShort();
-//        }
-//        return out;
-//    }
-//
-//    private boolean checkEmptyBytes(byte[] bytes) {
-//        for (byte by : bytes) {
-//            if (by != 0) {
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
-
     final int API_LIMIT = 30;
-
-    private void decodeData() throws IOException {
-        ByteBuffer[] codecInputBuffers;
-        ByteBuffer[] codecOutputBuffers;
+    public int setUrlString(String mUrlString) {
+        this.mMediaPath = mUrlString;
 
         mExtractor = new MediaExtractor();
         try {
             mExtractor.setDataSource(this.mMediaPath);
         } catch (Exception e) {
-//            mAudioPlayerHandler.onAudioPlayerError(AudioStreamPlayer.this);
-            return;
+            return -1;
         }
+
+        MediaFormat format = mExtractor.getTrackFormat(0);
+        return format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+
+    }
+    private void decodeData() throws IOException {
+        ByteBuffer[] codecInputBuffers;
+        ByteBuffer[] codecOutputBuffers;
+
 
         MediaFormat format = mExtractor.getTrackFormat(0);
         String mime = format.getString(MediaFormat.KEY_MIME);
@@ -176,11 +102,7 @@ public class AudioStreamer {
         int min = totalSec / 60;
         int sec = totalSec % 60;
 
-//        mAudioPlayerHandler.onAudioPlayerDuration(totalSec);
-//
-//        Log.d(TAG, "Time = " + min + " : " + sec);
-//        Log.d(TAG, "Duration = " + duration);
-
+        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE,22100);
         mMediaCodec = MediaCodec.createDecoderByType(mime);
         mMediaCodec.configure(format, null, null, 0);
         mMediaCodec.start();

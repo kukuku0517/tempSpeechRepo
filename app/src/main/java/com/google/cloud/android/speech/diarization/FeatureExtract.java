@@ -2,6 +2,7 @@ package com.google.cloud.android.speech.diarization;
 import android.util.Log;
 
 import com.google.cloud.android.speech.diarization.formular.MFCC;
+import com.google.cloud.android.speech.util.AudioUtil;
 
 
 /**
@@ -29,6 +30,7 @@ public class FeatureExtract {
 	private double[] energyVal;
 	private double[] deltaEnergy;
 	private double[] deltaDeltaEnergy;
+	private int sampleRate;
 	private FeatureVector fv;
 	private MFCC mfcc;
 //	private Delta delta;
@@ -47,6 +49,7 @@ public class FeatureExtract {
 		this.framedSignal = framedSignal;
 		this.noOfFrames = framedSignal.length;
 		this.samplePerFrame = samplePerFrame;
+		this.sampleRate=samplingRate;
 		mfcc = new MFCC(samplePerFrame, samplingRate, numCepstra);
 //		en = new Energy(samplePerFrame);
 		fv = new FeatureVector();
@@ -60,6 +63,10 @@ public class FeatureExtract {
 		featureVector = new double[noOfFrames][numCepstra];
 
 //		delta = new Delta();
+	}
+
+	public void setSilence(float[] original){
+		fv.setSilence(AudioUtil.getSilenceFrames(original,sampleRate));
 	}
 
 	public FeatureVector getFeatureVector() {

@@ -36,16 +36,20 @@ public class AudioUtil {
     }
 
 
+    private static float windowSize = 0.040f;
+    private static float windowStep = 0.015f;
 
     public static int[] getSilenceFrames(float[] originalSignal, int sampleRate) {
-        int samplePerFrame = sampleRate / 1000;
+        int samplePerFrame = (int) (sampleRate * windowSize);
+        int samplePerStep = (int) (sampleRate * windowStep);
+
         int firstSamples = samplePerFrame * 200;
         firstSamples = originalSignal.length > firstSamples ? firstSamples : originalSignal.length;
 
         float[] voiced = new float[originalSignal.length];
         float sum = 0;
-        double sd ;
-        double m ;
+        double sd;
+        double m;
 
         // 1. calculation of mean
         for (int i = 0; i < firstSamples; i++) {
@@ -54,16 +58,12 @@ public class AudioUtil {
 
         m = sum / firstSamples;// mean
         sum = 0;// reuse var for S.D.
-
-        // 2. calculation of Standard Deviation
         for (int i = 0; i < firstSamples; i++) {
             sum += Math.pow((originalSignal[i] - m), 2);
         }
         sd = Math.sqrt(sum / firstSamples);
 
         for (int i = 0; i < originalSignal.length; i++) {
-            // System.out.println("x-u/SD  ="+(Math.abs(originalSignal[i] -u ) /
-            // sd));
             if ((Math.abs(originalSignal[i] - m) / sd) > 2) {
                 voiced[i] = 1;
             } else {
@@ -71,46 +71,52 @@ public class AudioUtil {
             }
         }
 
-        // 4. calculation of voiced and unvoiced signals
-        // mark each frame to be voiced or unvoiced frame
-        int frameCount = 0;
-        int usefulFramesCount = 1;
+        int noOfFrames;
+        if (originalSignal.length < samplePerFrame) {
+            noOfFrames = 1;
+        } else {
+            noOfFrames = 1 + (int) (Math.ceil((originalSignal.length - samplePerFrame) / samplePerStep));
+        }
+
+
         int count_voiced = 0;
         int count_unvoiced = 0;
-        int voicedFrame[] = new int[originalSignal.length / samplePerFrame];
-        int loopCount = originalSignal.length - (originalSignal.length % samplePerFrame);// skip
-        // the
-        // last
-        for (int i = 0; i < loopCount; i += samplePerFrame) {
+        int voicedFrame[] = new int[noOfFrames];
+
+
+        for (int i = 0; i < noOfFrames - 1; i++) {
             count_voiced = 0;
             count_unvoiced = 0;
-            for (int j = i; j < i + samplePerFrame; j++) {
-                if (voiced[j] == 1) {
+            int startIndex = i * samplePerStep;
+            for (int j = 0; j < samplePerFrame; j++) {
+                if (voiced[startIndex + j] == 1) {
                     count_voiced++;
                 } else {
                     count_unvoiced++;
                 }
             }
             if (count_voiced > count_unvoiced) {
-                usefulFramesCount++;
-                voicedFrame[frameCount++] = 1;
+                voicedFrame[i] = 1;
             } else {
-                voicedFrame[frameCount++] = 0;
+                voicedFrame[i] = 0;
             }
         }
 
-//        // 5. silence removal
-//        float[] silenceRemovedSignal = new float[usefulFramesCount * samplePerFrame];
-//        int k = 0;
-//        for (int i = 0; i < frameCount; i++) {
-//            if (voicedFrame[i] == 1) {
-//                for (int j = i * samplePerFrame; j < i * samplePerFrame + samplePerFrame; j++) {
-//                    silenceRemovedSignal[k++] = originalSignal[j];
-//                }
-//            }
-//        }
-//        // end
-//        return silenceRemovedSignal;
+        for (int j = 0; j < samplePerFrame; j++) {
+            count_voiced = 0;
+            count_unvoiced = 0;
+            if (voiced[j + (noOfFrames - 1) * samplePerStep] == 1) {
+                count_voiced++;
+            } else {
+                count_unvoiced++;
+            }
+        }
+        if (count_voiced > count_unvoiced) {
+            voicedFrame[noOfFrames - 1] = 1;
+        } else {
+            voicedFrame[noOfFrames - 1] = 0;
+        }
+
 
         return voicedFrame;
     }

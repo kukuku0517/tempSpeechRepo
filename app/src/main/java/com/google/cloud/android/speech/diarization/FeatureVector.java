@@ -11,6 +11,17 @@ public class FeatureVector implements Serializable {
 	 */
 	private double[][] mfccFeature;
 	private double[][] featureVector; // all
+
+	private int[] silence;
+
+	public int[] getSilence() {
+		return silence;
+	}
+
+	public void setSilence(int[] silence) {
+		this.silence = silence;
+	}
+
 	private int noOfFrames;
 	private int noOfFeatures;
 
