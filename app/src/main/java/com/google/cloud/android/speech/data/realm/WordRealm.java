@@ -15,6 +15,18 @@ public class WordRealm  extends RealmObject implements RecordRealmObject {
     private String word;
     private boolean highlight=false;
     private long startMillis;
+
+    public long getEndMillis() {
+        return endMillis;
+    }
+
+    public void setEndMillis(long endMillis) {
+        this.endMillis = endMillis;
+    }
+
+    private long endMillis;
+
+
     private int sentenceId;
 
     public int getSentenceId() {

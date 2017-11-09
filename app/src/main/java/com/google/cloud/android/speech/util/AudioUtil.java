@@ -1,8 +1,18 @@
 package com.google.cloud.android.speech.util;
 
 import android.content.Context;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+
+import java.io.File;
+import java.io.IOException;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import retrofit2.http.Multipart;
 
 /**
  * Created by USER on 2017-10-20.
@@ -11,6 +21,28 @@ import android.net.Uri;
 public class AudioUtil {
 
     private static final int AMPLITUDE_THRESHOLD = 1500;
+
+    public static MultipartBody.Part wrap(File file){
+
+        RequestBody surveyBody = RequestBody.create(MediaType.parse("audio/*"), file);
+        MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), surveyBody);
+
+       return part;
+
+    }
+
+    public static int getSampleRate(File file){
+        MediaExtractor extractor = new MediaExtractor();
+        try {
+            extractor.setDataSource(file.getAbsolutePath());
+            return extractor.getTrackFormat(0).getInteger(MediaFormat.KEY_SAMPLE_RATE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return 44100;
+    }
+
+
 
     public static long getAudioLength(Context context, String fileName) {
         Uri uri = Uri.parse(fileName);

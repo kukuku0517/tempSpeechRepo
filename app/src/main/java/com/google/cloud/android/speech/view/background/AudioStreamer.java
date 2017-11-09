@@ -72,18 +72,17 @@ public class AudioStreamer {
         }).start();
     }
     final int API_LIMIT = 30;
-    public int setUrlString(String mUrlString) {
+    public void setUrlString(String mUrlString) {
         this.mMediaPath = mUrlString;
+
 
         mExtractor = new MediaExtractor();
         try {
-            mExtractor.setDataSource(this.mMediaPath);
-        } catch (Exception e) {
-            return -1;
+            mExtractor.setDataSource(mUrlString);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        MediaFormat format = mExtractor.getTrackFormat(0);
-        return format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
 
     }
     private void decodeData() throws IOException {

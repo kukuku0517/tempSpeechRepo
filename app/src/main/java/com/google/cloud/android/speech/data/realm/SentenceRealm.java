@@ -21,7 +21,8 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
     private long startMillis;
     private long endMillis;
     private String sentence;
-    private int cluster = -1;
+    private int cluster = 0;
+    int i;
 
     public int getCluster() {
         return cluster;

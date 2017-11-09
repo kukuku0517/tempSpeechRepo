@@ -1,6 +1,8 @@
 package com.google.cloud.android.speech.diarization;
 import android.util.Log;
 
+import com.google.cloud.android.speech.diarization.formular.Delta;
+import com.google.cloud.android.speech.diarization.formular.Energy;
 import com.google.cloud.android.speech.diarization.formular.MFCC;
 import com.google.cloud.android.speech.util.AudioUtil;
 
@@ -33,8 +35,8 @@ public class FeatureExtract {
 	private int sampleRate;
 	private FeatureVector fv;
 	private MFCC mfcc;
-//	private Delta delta;
-//	private Energy en;
+	private Delta delta;
+	private Energy en;
 
 	// FeatureVector fv;
 	/**
@@ -51,7 +53,7 @@ public class FeatureExtract {
 		this.samplePerFrame = samplePerFrame;
 		this.sampleRate=samplingRate;
 		mfcc = new MFCC(samplePerFrame, samplingRate, numCepstra);
-//		en = new Energy(samplePerFrame);
+		en = new Energy(samplePerFrame);
 		fv = new FeatureVector();
 		mfccFeature = new double[noOfFrames][numCepstra];
 		deltaMfcc = new double[noOfFrames][numCepstra];
@@ -59,10 +61,12 @@ public class FeatureExtract {
 		energyVal = new double[noOfFrames];
 		deltaEnergy = new double[noOfFrames];
 		deltaDeltaEnergy = new double[noOfFrames];
+
 //		featureVector = new double[noOfFrames][3 * numCepstra + 3];
+
 		featureVector = new double[noOfFrames][numCepstra];
 
-//		delta = new Delta();
+		delta = new Delta();
 	}
 
 	public void setSilence(float[] original){
@@ -95,33 +99,33 @@ public class FeatureExtract {
 		calculateMFCC();
 //		doCepstralMeanNormalization();
 		// delta
-//		delta.setRegressionWindow(2);// 2 for delta
-//		deltaMfcc = delta.performDelta2D(mfccFeature);
-//		// delta delta
-//		delta.setRegressionWindow(1);// 1 for delta delta
-//		deltaDeltaMfcc = delta.performDelta2D(deltaMfcc);
-//		// energy
-//		energyVal = en.calcEnergy(framedSignal);
-//
-//		delta.setRegressionWindow(1);
-//		// energy delta
-//		deltaEnergy = delta.performDelta1D(energyVal);
-//		delta.setRegressionWindow(1);
-//		// energy delta delta
-//		deltaDeltaEnergy = delta.performDelta1D(deltaEnergy);
+		delta.setRegressionWindow(2);// 2 for delta
+		deltaMfcc = delta.performDelta2D(mfccFeature);
+		// delta delta
+		delta.setRegressionWindow(1);// 1 for delta delta
+		deltaDeltaMfcc = delta.performDelta2D(deltaMfcc);
+		// energy
+		energyVal = en.calcEnergy(framedSignal);
+
+		delta.setRegressionWindow(1);
+		// energy delta
+		deltaEnergy = delta.performDelta1D(energyVal);
+		delta.setRegressionWindow(1);
+		// energy delta delta
+		deltaDeltaEnergy = delta.performDelta1D(deltaEnergy);
 		for (int i = 0; i < framedSignal.length; i++) {
 			for (int j = 0; j < numCepstra; j++) {
 				featureVector[i][j] = mfccFeature[i][j];
 			}
-//			for (int j = numCepstra; j < 2 * numCepstra; j++) {
-//				featureVector[i][j] = deltaMfcc[i][j - numCepstra];
-//			}
-//			for (int j = 2 * numCepstra; j < 3 * numCepstra; j++) {
-//				featureVector[i][j] = deltaDeltaMfcc[i][j - 2 * numCepstra];
-//			}
-//			featureVector[i][numCepstra] = energyVal[i];
-//			featureVector[i][numCepstra + 1] = deltaEnergy[i];
-//			featureVector[i][numCepstra + 2] = deltaDeltaEnergy[i];
+			for (int j = numCepstra; j < 2 * numCepstra; j++) {
+				featureVector[i][j] = deltaMfcc[i][j - numCepstra];
+			}
+			for (int j = 2 * numCepstra; j < 3 * numCepstra; j++) {
+				featureVector[i][j] = deltaDeltaMfcc[i][j - 2 * numCepstra];
+			}
+			featureVector[i][numCepstra] = energyVal[i];
+			featureVector[i][numCepstra + 1] = deltaEnergy[i];
+			featureVector[i][numCepstra + 2] = deltaDeltaEnergy[i];
 		}
 		fv.setMfccFeature(mfccFeature);
 		fv.setFeatureVector(featureVector);

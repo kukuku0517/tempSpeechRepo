@@ -126,7 +126,7 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
 //        if (mSpeechService != null) {
 //            unbindService(mServiceConnection);
 //
-//            Log.d("lifecycle","list unbind call in stop");
+//            Log.d("lifecycle","list unbind longrunningRequestRetrofit in stop");
 //        }
 
 //        EventBus.getDefault().unregister(this);
@@ -430,6 +430,7 @@ startActivity(intent);
         switch(item.getItemId()){
             case R.id.action_search:
                 Toast.makeText(this, R.string.ready, Toast.LENGTH_SHORT).show();
+                mSpeechService.stopForeground(true);
                 break;
         }
         return true;

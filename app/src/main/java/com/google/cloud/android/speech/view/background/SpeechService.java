@@ -22,6 +22,7 @@ import android.widget.Toast;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.android.speech.data.realm.ClusterRealm;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.data.realm.WordRealm;
@@ -31,33 +32,33 @@ import com.google.cloud.android.speech.diarization.main.SpeechDiary;
 import com.google.cloud.android.speech.event.PartialEvent;
 import com.google.cloud.android.speech.event.PartialTimerEvent;
 import com.google.cloud.android.speech.R;
+import com.google.cloud.android.speech.retrofit.GoogleClientRetrofit;
+import com.google.cloud.android.speech.retrofit.LongRunning.Alternatives;
+import com.google.cloud.android.speech.retrofit.LongRunning.LongrunningResponse;
+import com.google.cloud.android.speech.retrofit.LongRunning.Results;
+import com.google.cloud.android.speech.retrofit.LongRunning.Words;
 import com.google.cloud.android.speech.util.AudioUtil;
 import com.google.cloud.android.speech.util.FileUtil;
 import com.google.cloud.android.speech.util.LogUtil;
 import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.interfaces.MediaCodecCallBack;
+import com.google.cloud.android.speech.view.interfaces.StreamObserverRetrofit;
 import com.google.cloud.android.speech.view.interfaces.VoiceRecorderCallBack;
 import com.google.cloud.android.speech.view.recordList.ListActivity;
 import com.google.cloud.android.speech.event.ProcessIdEvent;
-import com.google.cloud.speech.v1.LongRunningRecognizeRequest;
-import com.google.cloud.speech.v1.LongRunningRecognizeResponse;
-import com.google.cloud.speech.v1.RecognitionAudio;
 import com.google.cloud.speech.v1.RecognitionConfig;
 import com.google.cloud.speech.v1.SpeechGrpc;
 import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
-import com.google.cloud.speech.v1.SpeechRecognitionResult;
 import com.google.cloud.speech.v1.StreamingRecognitionConfig;
 import com.google.cloud.speech.v1.StreamingRecognitionResult;
 import com.google.cloud.speech.v1.StreamingRecognizeRequest;
 import com.google.cloud.speech.v1.StreamingRecognizeResponse;
 import com.google.cloud.speech.v1.WordInfo;
-import com.google.longrunning.Operation;
 import com.google.protobuf.ByteString;
 
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -70,9 +71,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import io.grpc.CallOptions;
@@ -153,8 +154,19 @@ public class SpeechService extends Service {
 
         @Override
         public void onConvertEnd() {
-            stopRecognizing(RECORD);
-            notifyProcess();
+            Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
+
+            Runnable myRunnable = new Runnable() {
+                @Override
+                public void run() {
+
+                    stopRecognizing(RECORD);
+                    notifyProcess();
+
+                } // This is your code
+            };
+            mainHandler.post(myRunnable);
+
 
         }
     };
@@ -199,60 +211,9 @@ public class SpeechService extends Service {
         }
 
     };
-    private final StreamObserver<StreamingRecognizeResponse> mFileResponseObserver
-            = new StreamObserver<StreamingRecognizeResponse>() {
-        @Override
-        public void onNext(StreamingRecognizeResponse response) {
-
-            String text = null;
-            boolean isFinal = false;
-            SpeechRecognitionAlternative alternative = null;
-
-            if (response.getResultsCount() > 0) {
-                final StreamingRecognitionResult result = response.getResults(0);
-                isFinal = result.getIsFinal();
-                if (result.getAlternativesCount() > 0) {
-                    alternative = result.getAlternatives(0);
-                    text = alternative.getTranscript();
-                }
-            }
-
-            if (text != null) {
-                onFileRecognized2(isFinal, alternative, startOfCall);
-            }
-
-
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            Log.e(TAG, "Error calling the API.", t);
-        }
-
-        @Override
-        public void onCompleted() {
-            Log.i(TAG, "API completed.");
-            stopRecognizing(FILE);
-            stopForeground();
-
-        }
-
-    };
 
     public boolean isRecording() {
         return isRecording;
-    }
-
-    public boolean isFileRecognizing() {
-        return fileId == -1 ? false : true;
-    }
-
-    public int getFileId() {
-        return fileId;
-    }
-
-    public void setRecordId(int recordId) {
-        this.recordId = recordId;
     }
 
     public int getRecordId() {
@@ -408,22 +369,179 @@ public class SpeechService extends Service {
     ArrayList<double[][]> feature = new ArrayList<>();
     ArrayList<int[]> silence = new ArrayList<>();
 
+    private boolean clusterInRange(long startWord, long endWord, long clusterTime) {
+        if (startWord >= clusterTime) return true;
+        if (endWord > clusterTime) return true;
+        return false;
+    }
+
+    private boolean clusterInRange(WordRealm now, WordRealm next, long clusterTime) {
+        if(next!=null){
+            
+        }else{
+            if (now.getStartMillis() >= clusterTime) return true;
+            if (now.getEndMillis() > clusterTime) return true;
+        }
+
+
+        return false;
+    }
+
+    private void applyCluster(int k, int[] results, final int fileId) {
+
+        Realm realm = Realm.getDefaultInstance();
+
+        final RecordRealm[] fileRecord = {realm.where(RecordRealm.class).equalTo("id", fileId).findFirst()};
+        String path = fileRecord[0].getFilePath();
+
+        long millSecond = AudioUtil.getAudioLength(getApplicationContext(), path);
+        Log.d("kcluster millis", String.valueOf(millSecond));
+        Log.d("kcluster result", String.valueOf(results.length));
+
+        final float UNIT = 0.3f;
+        float framePerUnit = (results.length * 1000 * UNIT) / millSecond;
+        int noOfCluster = (int) Math.ceil(results.length / framePerUnit);
+        Log.d("kcluster fpu", String.valueOf(framePerUnit));
+
+        Log.d("kcluster noc", String.valueOf(noOfCluster));
+
+
+        final int[] clusters = new int[noOfCluster];
+        for (int i = 0; i < noOfCluster; i++) {
+
+            int[] count = new int[k];
+            int total = 0;
+
+            for (int j = 0; j < framePerUnit && (i * framePerUnit + j) < results.length; j++) {
+                int result = results[(int) (i * framePerUnit + j)];
+                count[result]++;
+                total += result;
+            }
+            if (total == 0) {
+                clusters[i] = 0;
+            } else {
+                int maxIndex = -1;
+                int max = -1;
+                for (int j = 1; j < count.length; j++) {
+                    if (count[j] > max) {
+                        max = count[j];
+                        maxIndex = j;
+                    }
+                }
+                clusters[i] = maxIndex;
+
+            }
+        }
+
+        LogUtil.print(clusters, "kcluster");
+
+
+        if (fileRecord[0] != null) {
+
+            int sentenceIndex = 0;
+            int clusterIndex = 0;
+            int err = 0;
+            while (true) {
+                //clusterIndex는 startSentence~endSentence(UNIT보정)사이
+                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
+                RealmList<SentenceRealm> sentences = record.getSentenceRealms();
+                SentenceRealm sentence = sentences.get(sentenceIndex);
+                long startSentence = sentence.getStartMillis() / 1000;
+                long endSentence = sentence.getEndMillis() / 1000;
+                clusterIndex = clusterIndex<startSentence/UNIT? (int) (startSentence / UNIT) :clusterIndex;
+//                int clusterIndex = (int) (startSentence / UNIT);
+
+                //한 문장을 다 확인 할때까지
+                while (clusterIndex < (endSentence) / UNIT) {
+                    int clusterNumber = clusters[clusterIndex];
+
+                    if (clusterNumber == 0) { //현재 cluster가 silence : pass
+                        clusterIndex++;
+                        if (sentenceIndex == 0) {
+                            err += UNIT;
+                        }
+                    } else if (sentence.getCluster() == 0) { // 현재 문장 cluster 미지정 : 현재 clusterNumber등록후 pass
+                        realm.beginTransaction();
+                        sentence.setCluster(clusterNumber);
+                        realm.commitTransaction();
+                        clusterIndex++;
+                    } else if (sentence.getCluster() == clusterNumber) { //현재 cluster와 문장 cluster가 동일 : pas
+                        clusterIndex++;
+                    } else { //기존, 현재 cluster가 다를경우 문장 분리
+
+                        RealmList<WordRealm> words = sentence.getWordList();
+                        for (int i = 1; i < words.size(); i++) {
+                            long startWord = words.get(i).getStartMillis() + err * 1000;
+                            long endWord = words.get(i).getEndMillis() + err * 1000;
+
+                            long clusterStart = (long) (clusterIndex * UNIT) * 1000;
+
+                            if (clusterInRange(words.get(i),words.get(i+1)!=null?words.get(i+1):null, clusterStart)) {
+                                realm.beginTransaction();
+                                SentenceRealm origin = sentence;
+                                SentenceRealm add = RealmUtil.createObject(realm, SentenceRealm.class);
+
+                                add.setEndMillis(origin.getEndMillis());
+                                origin.setEndMillis(startWord);
+                                add.setStartMillis(startWord);
+
+                                add.setCluster(clusterNumber);
+                                RealmList<WordRealm> originWords = new RealmList<>();
+                                RealmList<WordRealm> addWords = new RealmList<>();
+
+                                for (int j = 0; j < words.size(); j++) {
+                                    if (j < i) {
+                                        originWords.add(words.get(j));
+                                    } else {
+                                        addWords.add(words.get(j));
+                                    }
+                                }
+
+                                origin.setWordList(originWords);
+                                add.setWordList(addWords);
+
+                                origin.setSentence();
+                                add.setSentence();
+
+
+                                sentences.add(sentenceIndex + 1, add);
+                                realm.commitTransaction();
+                                break;
+
+                            }
+                        }
+                        //문장을 추가했으므로 바로 다음 문장으로
+//                        sentenceIndex++;
+                        break;
+                    }
+
+                }
+                //한문장이 끝나면 다음 문장으로
+                sentenceIndex++;
+                if (sentenceIndex == sentences.size()) break;
+
+            }
+        }
+
+
+    }
+
     private MediaCodecCallBack mediaCodecCallBack = new MediaCodecCallBack() {
         @Override
         public void onReset() {
-            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
-                            .setConfig(RecognitionConfig.newBuilder()
-                                    .setLanguageCode(getDefaultLanguageCode())
-                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-                                    .setSampleRateHertz(fileSampleRate)
-                                    .setEnableWordTimeOffsets(true)
-
-                                    .build())
-                            .setInterimResults(true)
-                            .setSingleUtterance(false)
-                            .build())
-                    .build());
+//            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+//                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
+//                            .setConfig(RecognitionConfig.newBuilder()
+//                                    .setLanguageCode(getDefaultLanguageCode())
+//                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+//                                    .setSampleRateHertz(fileSampleRate)
+//                                    .setEnableWordTimeOffsets(true)
+//
+//                                    .build())
+//                            .setInterimResults(true)
+//                            .setSingleUtterance(false)
+//                            .build())
+//                    .build());
         }
 
         @Override
@@ -438,9 +556,9 @@ public class SpeechService extends Service {
 //                    endOfFileSecond=millSecond*currentBuffer/fileLenth;
 //                    Log.d(TAG,"file"+endOfFileSecond);
 //                }
-            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                    .setAudioContent(ByteString.copyFrom(buffer))
-                    .build());
+//            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+//                    .setAudioContent(ByteString.copyFrom(buffer))
+//                    .build());
 
             if (buffer.length > 0) {
                 if (checkEmptyBytes(buffer)) {
@@ -457,147 +575,121 @@ public class SpeechService extends Service {
 
         @Override
         public void onCompleted() {
+//            Realm realm = Realm.getDefaultInstance();
+//            realm.executeTransaction(new Realm.Transaction() {
+//                @Override
+//                public void execute(Realm realm) {
+//                    try {
+//                        int[] results = new KMeansCluster(3, 13, feature, silence).iterRun(10);
+//                        applyCluster(3, results, fileId, realm);
+//
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                }
+//            });
 
+//            mFileRequestObserver.onCompleted();
+            longrunningObservable.setSpeakerDiary(false);
 
-
-            mFileRequestObserver.onCompleted();
+            Log.d("observv","speaker");
 
             fileStreamFinished = true;
 
         }
     };
 
-    private void applyCluster(int[] results, final int fileId,Realm realm) {
-
-        RecordRealm fileRecord = realm.where(RecordRealm.class).equalTo("id",fileId).findFirst();
-        String path = fileRecord.getFilePath();
-
-        long millSecond = AudioUtil.getAudioLength(getApplicationContext(), path);
-
-
-        final float UNIT = 0.5f;
-        float framePerUnit = (results.length * 1000 * UNIT)/millSecond;
-        int noOfCluster = (int) Math.ceil(results.length / framePerUnit);
-        final int[] clusters = new int[noOfCluster];
-        for (int i = 0; i < noOfCluster; i++) {
-            int total = 0;
-            int count=0;
-
-            for (int j = 0; j < framePerUnit; j++) {
-                total += results[(int) (i * framePerUnit + j)];
-                if(results[(int) (i * framePerUnit + j)]!=0){
-                    count++;
-                }
-            }
-            if(count!=0){
-                total /= count;
-            }
-
-            clusters[i] = total;
-        }
-
-        LogUtil.print(clusters,"kcluster");
-
-
-
-        RecordRealm record = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
-        if (record != null) {
-            RealmList<SentenceRealm> sentences = record.getSentenceRealms();
-            int sentenceIndex = 0;
-            int prev = -1;
-
-            //loop
-            while (true) {
-                long startSentence = sentences.get(sentenceIndex).getStartMillis()/1000;
-                long endSentence = sentences.get(sentenceIndex).getEndMillis()/1000;
-                int clusterIndex = (int) (startSentence / UNIT);
-
-                //한 문장을 다 확인 할때까지
-                while (clusterIndex < (endSentence) / UNIT) {
-
-                    //한 문장 내에서 클러스터가 변할경우
-                    if (prev!=-1 && clusters[clusterIndex] != prev) {
-                        RealmList<WordRealm> words = sentences.get(sentenceIndex).getWordList();
-                        for (int i = 0; i < words.size(); i++) {
-                            if (words.get(i).getStartMillis() == clusterIndex * UNIT * 1000) {
-                                SentenceRealm origin = sentences.get(sentenceIndex);
-                                SentenceRealm add = RealmUtil.createObject(realm, SentenceRealm.class);
-                                add.setEndMillis(origin.getEndMillis());
-                                origin.setEndMillis((long) ((clusterIndex * UNIT - 1) * 1000));
-                                add.setStartMillis((long) ((clusterIndex * UNIT) * 1000));
-                                origin.setCluster(clusterIndex - 1);
-                                add.setCluster(clusterIndex);
-                                RealmList<WordRealm> originWords = new RealmList<WordRealm>();
-                                RealmList<WordRealm> addWords = new RealmList<WordRealm>();
-
-                                for (int j = 0; j < words.size(); j++) {
-                                    if (j < i) {
-                                        originWords.add(words.get(j));
-                                    } else {
-                                        addWords.add(words.get(j));
-                                    }
-                                }
-
-                                origin.setWordList(originWords);
-                                add.setWordList(addWords);
-
-                                origin.setSentence();
-                                add.setSentence();
-
-                                sentences.add(sentenceIndex,add);
-                                record = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
-                                sentences = record.getSentenceRealms();
-                                break;
-
-                            }
-                        }
-                        //문장을 추가했으므로 바로 다음 문장으로
-                        sentenceIndex++;
-                        prev = clusters[clusterIndex];
-                        clusterIndex++;
-                        break;
-                    }else{ // 클러스터가 변하지않으면 다음 클러스터 체크
-                        prev = clusters[clusterIndex];
-                        clusterIndex++;
-
-                    }
-                }
-                //한문장이 끝나면 다음 문장으로
-                sentences.get(sentenceIndex).setCluster(clusters[prev]);
-                sentenceIndex++;
-
-                if(sentenceIndex==sentences.size())break;
-
-            }
-            //                    for(int i=0;i<clusters.length;i++){
-//                        if(clusters[i]!=prev){
-//
-//
-//
-//
-//
-//
-//                            prev=clusters[i];
-//                        }else{
-//                            while(sentenceIndex<sentences.size() && sentences.get(sentenceIndex).getStartMillis()<i*UNIT){
-//                                sentences.get(sentenceIndex).setCluster(clusters[i]);
-//                                sentenceIndex++;
-//                            }
-//                            prev=clusters[i];
-//                        }
-//                    }
-
-        }
-
-
-    }
-
 
     int fileSampleRate = 16000;
 
+    private StreamObserverRetrofit<LongrunningResponse> longrunningObserver
+            = new StreamObserverRetrofit<LongrunningResponse>() {
+        @Override
+        public void onNext(LongrunningResponse response) {
+
+
+        }
+
+        @Override
+        public void onError(Throwable t) {
+
+        }
+
+        @Override
+        public void onComplete(LongrunningResponse response) {
+            String text = null;
+
+            Words[] words = response.getResults()[0].getAlternatives()[0].getWords();
+            for(int i=0;i<words.length;i++){
+                long start = words[i].getStartTime().getSeconds()*1000+words[i].getStartTime().getNanos()/1000000;
+                long end= words[i].getEndTime().getSeconds()*1000+words[i].getEndTime().getNanos()/1000000;
+                Log.d("call",words[i].getWord().toString()+":"+i+":"+start+"~"+end);
+            }
+
+            Alternatives alternative = null;
+
+            if (response.getResults().length > 0) {
+                final Results result = response.getResults()[0];
+                if (result.getAlternatives().length > 0) {
+                    alternative = result.getAlternatives()[0];
+                    text = alternative.getTranscript();
+                }
+            }
+
+            if (text != null) {
+                onFileRecognized(true, alternative, startOfCall);
+            }
+
+
+
+
+
+        }
+    };
+
+
+    LongRunningObservable longrunningObservable = new LongRunningObservable();
+
+
     public void recognizeFileStream(final String title, final ArrayList<String> tags, final String fileName) {
+
+
         startForeground();
+
+        longrunningObservable.setSpeakerDiary(true);
+        longrunningObservable.setSpeechRecognize(true);
+        longrunningObservable.setInit(true);
+
+        longrunningObservable.addObserver(new LongRunningObserver() {
+            @Override
+            public void end() {
+                longrunningObservable.setInit(false);
+                Log.d("observv","end");
+                int[] results = new int[0];
+                try {
+                    results = new KMeansCluster(3, 13, feature, silence).iterRun(20);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                applyCluster(3, results, fileId);
+//                mFileRequestObserver.onCompleted();
+                Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
+                Runnable myRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.i(TAG, "API completed.");
+                        stopRecognizing(FILE);
+                        stopForeground();
+                    } // This is your code
+                };
+                mainHandler.post(myRunnable);
+            }
+        });
+
         try {
+            feature.clear();
+            silence.clear();
             realm.executeTransaction(new Realm.Transaction() {
                 @Override
                 public void execute(Realm realm) {
@@ -608,9 +700,7 @@ public class SpeechService extends Service {
             });
 
             File file = new File(fileName);
-            long fileLenth = file.length();
-            Log.d(TAG, "file" + fileName + fileLenth);
-            FileInputStream stream = new FileInputStream(file);
+            fileSampleRate = AudioUtil.getSampleRate(file);
 
 
             getValidSampleRates();
@@ -621,20 +711,24 @@ public class SpeechService extends Service {
 
 
             AudioStreamer audioStreamer = new AudioStreamer(mediaCodecCallBack);
-            fileSampleRate = audioStreamer.setUrlString(fileName);
-            mFileRequestObserver = mApi.streamingRecognize(mFileResponseObserver);
-            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
-                            .setConfig(RecognitionConfig.newBuilder()
-                                    .setLanguageCode(getDefaultLanguageCode())
-                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-                                    .setSampleRateHertz(fileSampleRate)
-                                    .setEnableWordTimeOffsets(true)
-                                    .build())
-                            .setInterimResults(true)
-                            .setSingleUtterance(false)
-                            .build())
-                    .build());
+            audioStreamer.setUrlString(fileName);
+
+            GoogleClientRetrofit googleClientRetrofit = new GoogleClientRetrofit();
+            googleClientRetrofit.longrunningRequestRetrofit(file.getName(), fileSampleRate, AudioUtil.wrap(file), longrunningObserver);
+
+//            mFileRequestObserver = mApi.streamingRecognize(mFileResponseObserver);
+//            mFileRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+//                    .setStreamingConfig(StreamingRecognitionConfig.newBuilder()
+//                            .setConfig(RecognitionConfig.newBuilder()
+//                                    .setLanguageCode(getDefaultLanguageCode())
+//                                    .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+//                                    .setSampleRateHertz(fileSampleRate)
+//                                    .setEnableWordTimeOffsets(true)
+//                                    .build())
+//                            .setInterimResults(true)
+//                            .setSingleUtterance(false)
+//                            .build())
+//                    .build());
 
             audioStreamer.play();
 
@@ -664,48 +758,7 @@ public class SpeechService extends Service {
 //        Log.i(TAG, "buffer sent");
     }
 
-    public void onFileRecognized(final String text, final boolean isFinal, final long startOfCall, int id) {
-        if (isFinal) {
-            Log.i(TAG, "dismiss");
-            if (mVoiceRecorder != null) {
-                mVoiceRecorder.dismiss();
-            }
-        }
-        if (!TextUtils.isEmpty(text)) {
-            if (isFinal) {
-                Realm realm = Realm.getDefaultInstance();
-                realm.beginTransaction();
-                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", id).findFirst();
-                if (record.getStartMillis() == -1) {
-                    record.setStartMillis(startOfRecording);
-                }
-
-                SentenceRealm sentence = new RealmUtil().createObject(realm, SentenceRealm.class);
-                sentence.setSentence(text);
-                sentence.setStartMillis((int) (startOfCall - startOfRecording));
-                StringTokenizer st = new StringTokenizer(text);
-                while (st.hasMoreTokens()) {
-                    String token = st.nextToken();
-                    WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
-                    word.setSentenceId(sentence.getId());
-                    word.setWord(token);
-                    sentence.getWordList().add(word);
-                }
-
-                record.getSentenceRealms().add(sentence);
-
-                realm.commitTransaction();
-            } else { //not final -> send temp text to record activity
-//                                mText.setText(text);
-
-                EventBus.getDefault().post(new PartialEvent(text));
-            }
-
-        }
-
-    }
-
-    private void onFileRecognized2(boolean isFinal, SpeechRecognitionAlternative alternative, long startOfCall) {
+    private void onFileRecognized(boolean isFinal, Alternatives alternative, long startOfCall) {
 
         String text = alternative.getTranscript();
 
@@ -720,26 +773,32 @@ public class SpeechService extends Service {
                 sentence.setSentence(text);
                 long startOfSentence = startOfCall - startOfRecording;
                 sentence.setStartMillis((int) (startOfSentence));
-                List<WordInfo> words = alternative.getWordsList();
-//                for (WordInfo wordInfo : alternative.getWordsList()) {
-                for (int i = 0; i < words.size(); i++) {
+                Words[] words = alternative.getWords();
+                for (int i = 0; i < words.length; i++) {
                     WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
-                    word.setWord(words.get(i).getWord());
+                    word.setWord(words[i].getWord());
                     word.setSentenceId(sentence.getId());
-                    long second = words.get(i).getStartTime().getSeconds() * 1000 + startOfSentence;
-                    word.setStartMillis(second);
+                    long startSecond = words[i].getStartTime().getSeconds() * 1000 + startOfSentence;
+                    startSecond += words[i].getStartTime().getNanos() / 1000000;
+                    word.setStartMillis(startSecond);
+
+                    long endSecond = words[i].getEndTime().getSeconds() * 1000 + startOfSentence;
+                    endSecond += words[i].getEndTime().getNanos() / 1000000;
+                    word.setEndMillis(endSecond);
+
                     sentence.getWordList().add(word);
 
-                    if (i == words.size() - 1) {
-                        sentence.setEndMillis(second);
+                    if (i == words.length - 1) {
+                        sentence.setEndMillis(endSecond);
                     }
+
                 }
+
 
                 record.getSentenceRealms().add(sentence);
                 realm.commitTransaction();
-
-
-
+                longrunningObservable.setSpeechRecognize(false);
+                Log.d("observv","speech");
 
             } else {
                 EventBus.getDefault().post(new PartialEvent(text));
@@ -771,6 +830,21 @@ public class SpeechService extends Service {
                 sentence.setStartMillis((int) (startOfSentence));
                 List<WordInfo> words = alternative.getWordsList();
 //                for (WordInfo wordInfo : alternative.getWordsList()) {
+//                for (int i = 0; i < words.size(); i++) {
+//                    WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
+//                    word.setWord(words.get(i).getWord());
+//                    word.setSentenceId(sentence.getId());
+//                    long second = words.get(i).getStartTime().getSeconds() * 1000 + startOfSentence;
+//                    word.setStartMillis(second);
+//                    sentence.getWordList().add(word);
+//
+//                    if (i == words.size() - 1) {
+//                        sentence.setEndMillis(second);
+//                    }
+//                }
+
+                TreeMap<Long, Integer> wordTimeRange = new TreeMap<>();
+
                 for (int i = 0; i < words.size(); i++) {
                     WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
                     word.setWord(words.get(i).getWord());
@@ -779,10 +853,28 @@ public class SpeechService extends Service {
                     word.setStartMillis(second);
                     sentence.getWordList().add(word);
 
-                    if (i == words.size() - 1) {
-                        sentence.setEndMillis(second);
+//                    if (i == words.size() - 1) {
+//                        sentence.setEndMillis(second);
+//                    }
+
+                    if (wordTimeRange.containsKey(second)) {
+                        wordTimeRange.put(second, wordTimeRange.get(second) + 1);
+                    } else {
+                        wordTimeRange.put(second, 1);
                     }
                 }
+
+
+                int count = 0;
+
+                for (Map.Entry<Long, Integer> entry : wordTimeRange.entrySet()) {
+                    for (int i = 0; i < entry.getValue(); i++) {
+                        sentence.getWordList().get(count).setStartMillis(entry.getKey() + i * 1000 / entry.getValue());
+                        count++;
+                    }
+                }
+
+                sentence.setEndMillis(sentence.getWordList().get(count - 1).getStartMillis());
 
                 record.getSentenceRealms().add(sentence);
                 realm.commitTransaction();
@@ -821,38 +913,56 @@ public class SpeechService extends Service {
 
     public void stopRecognizing(final int type) {
         Realm realm = Realm.getDefaultInstance();
-        realm.beginTransaction();
+        realm.executeTransactionAsync(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                int id = type == RECORD ? recordId : fileId;
+                Log.d(TAG, "fileId in stop :" + fileId);
+                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", id).findFirst();
+                record.setConverted(true);
+                int[] results = new int[0];
+                try {
+                    results = new KMeansCluster(3, 13, feature, silence).iterRun(10);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
-        int id = type == RECORD ? recordId : fileId;
-        Log.d(TAG, "fileId in stop :" + fileId);
-        RecordRealm record = realm.where(RecordRealm.class).equalTo("id", id).findFirst();
-        record.setConverted(true);
+                ClusterRealm cluster = realm.createObject(ClusterRealm.class,fileId);
+//                cluster.setId(fileId);
+                cluster.setClusters(results);
 
-        if (type == RECORD) {
-            recordId = -1;
-        } else {
-            try {
-                int[] results = new KMeansCluster(3, 13, feature, silence).iterRun(10);
-                applyCluster(results, fileId, realm);
+                Log.d("AudioStream", String.valueOf(feature.size()));
 
-            } catch (IOException e) {
-                e.printStackTrace();
+//                applyCluster(3, results, fileId);
+
             }
 
-            fileId = -1;
-        }
-
-
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.post(new Runnable() {
+        }, new Realm.Transaction.OnSuccess() {
             @Override
-            public void run() {
-                Toast.makeText(getBaseContext(), "convert complete", Toast.LENGTH_SHORT).show();
+            public void onSuccess() {
 
+
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getBaseContext(), "convert complete", Toast.LENGTH_SHORT).show();
+
+                    }
+                });
+
+
+                if (type == RECORD) {
+                    recordId = -1;
+                } else {
+                    fileId = -1;
+
+
+                }
             }
         });
 
-        realm.commitTransaction();
+
 //        realm.executeTransaction(new Realm.Transaction() {
 //            @Override
 //            public void execute(Realm realm) {

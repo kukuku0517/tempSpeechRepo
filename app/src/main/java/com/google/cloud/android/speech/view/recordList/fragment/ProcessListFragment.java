@@ -178,7 +178,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         if (mSpeechService != null) {
             getActivity().unbindService(mServiceConnection);
 
-            Log.d("lifecycle", "list unbind call in stop");
+            Log.d("lifecycle", "list unbind longrunningRequestRetrofit in stop");
         }
 
         Log.d("lifecycle", "process stop");

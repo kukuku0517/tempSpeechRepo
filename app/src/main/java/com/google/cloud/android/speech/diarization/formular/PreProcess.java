@@ -18,8 +18,8 @@ public class PreProcess {
     float[] hammingWindow;
     EndPointDetection epd;
     int samplingRate;
-    private float windowSize = 0.040f;
-    private float windowStep = 0.015f;
+    private float windowSize = 0.025f;
+    private float windowStep = 0.010f;
     private int samplePerStep;
 
     float preEmphasisAlpha = 0.97f;

@@ -1,6 +1,7 @@
 package com.google.cloud.android.speech.view.recordResult;
 
 import android.databinding.DataBindingUtil;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -8,6 +9,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -16,11 +18,13 @@ import android.widget.SeekBar;
 
 import com.google.cloud.android.speech.data.DTO.MediaTimeDTO;
 import com.google.cloud.android.speech.data.DTO.ObservableDTO;
+import com.google.cloud.android.speech.data.realm.ClusterRealm;
 import com.google.cloud.android.speech.event.SeekEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.util.FileUtil;
+import com.google.cloud.android.speech.view.background.Cluster;
 import com.google.cloud.android.speech.view.recordResult.handler.ResultHandler;
 import com.google.cloud.android.speech.view.recordResult.adapter.ResultRealmAdapter;
 import com.google.cloud.android.speech.databinding.ActivityResultBinding;
@@ -58,6 +62,9 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
     int pos;
 
     MediaTimeDTO timeDTO = new MediaTimeDTO();
+
+    private ClusterRealm cluster;
+    int[] clusterArray;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -127,6 +134,8 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     private RecordRealm record;
 
+    int temp = -1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -147,8 +156,24 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (seekBar.getMax() == progress) {
-
                     mediaPlayer.stop();
+                }else{
+                    int index = (int) (progress/0.01/1000);
+                    if(temp!=clusterArray[index] && clusterArray[index]!=0){
+                        Log.d("changedIndex",progress+":"+temp+">"+clusterArray[index]);
+                        temp=clusterArray[index];
+                    }
+                    switch(clusterArray[index]){
+                        case 0:
+                            binding.toolbar.setBackgroundColor(Color.WHITE);
+                            break;
+                        case 1:
+                            binding.toolbar.setBackgroundColor(Color.BLUE);
+                            break;
+                        case 2:
+                            binding.toolbar.setBackgroundColor(Color.RED);
+                            break;
+                    }
                 }
 
 
@@ -173,6 +198,8 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         });
         realm = Realm.getDefaultInstance();
         record = realm.where(RecordRealm.class).equalTo("id", itemId).findFirst();
+        cluster = realm.where(ClusterRealm.class).equalTo("id", record.getId()).findFirst();
+        clusterArray = cluster.getClustersArray();
         getSupportActionBar().setTitle(record.getTitle());
 
         filePath = record.getFilePath();

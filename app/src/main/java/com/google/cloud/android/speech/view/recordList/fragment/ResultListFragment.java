@@ -113,7 +113,7 @@ public class ResultListFragment extends Fragment implements ListHandler {
             getActivity().unbindService(mServiceConnection);
 //TODO 두 프래그먼트에서 동시에 서비스 해제
 
-            Log.d("lifecycle", "list unbind call in stop");
+            Log.d("lifecycle", "list unbind longrunningRequestRetrofit in stop");
         }
 
         Log.d("lifecycle", "resultlist stop");
