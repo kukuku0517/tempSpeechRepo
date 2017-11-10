@@ -7,7 +7,7 @@ import io.realm.annotations.PrimaryKey;
  * Created by samsung on 2017-10-07.
  */
 
-public class WordRealm  extends RealmObject implements RecordRealmObject {
+public class WordRealm  extends RealmObject implements PrimaryRealm {
 
     @PrimaryKey
     private int id;

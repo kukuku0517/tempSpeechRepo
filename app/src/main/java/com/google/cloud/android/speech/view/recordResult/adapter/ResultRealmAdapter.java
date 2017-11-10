@@ -22,9 +22,10 @@ import io.realm.RealmRecyclerViewAdapter;
 
 public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, ResultRealmViewHolder> {
 
-//    private MyItemClickListener listener;
+    //    private MyItemClickListener listener;
     Context context;
     Realm realm;
+    int focus = 0;
 
     public ResultRealmAdapter(@Nullable OrderedRealmCollection<SentenceRealm> data, boolean autoUpdate, boolean updateOnModification, Context context) {
         super(data, autoUpdate, updateOnModification);
@@ -36,21 +37,19 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
     @Override
     public ResultRealmViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_record_result, parent, false);
-        return new ResultRealmViewHolder(v);
+        return new ResultRealmViewHolder(v,context);
     }
 
 
     @Override
     public void onBindViewHolder(ResultRealmViewHolder holder, final int position) {
         SentenceRealm sentenceRealm = getItem(position);
-
-
-        holder.onBindView(sentenceRealm,context,realm);
+        holder.onBindView(sentenceRealm);
+        holder.focus(focus==position);
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                listener.onClick(v, position);
-                long time =getItem(position).getStartMillis();
+                long time = getItem(position).getStartMillis();
                 EventBus.getDefault().post(new SeekEvent(time));
             }
         });
@@ -61,7 +60,14 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
         return getItem(index).getId();
     }
 
-//    public void setOnItemClickListener(MyItemClickListener listener) {
-//        this.listener = listener;
-//    }
+    public void focus(int index) {
+        int temp = focus;
+        focus = index;
+        notifyItemChanged(temp);
+        notifyItemChanged(focus);
+    }
+
+    public int getFocus(){
+        return focus;
+    }
 }

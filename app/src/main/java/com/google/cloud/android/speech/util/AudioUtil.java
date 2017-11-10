@@ -23,10 +23,8 @@ public class AudioUtil {
     private static final int AMPLITUDE_THRESHOLD = 1500;
 
     public static MultipartBody.Part wrap(File file){
-
         RequestBody surveyBody = RequestBody.create(MediaType.parse("audio/*"), file);
         MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), surveyBody);
-
        return part;
 
     }

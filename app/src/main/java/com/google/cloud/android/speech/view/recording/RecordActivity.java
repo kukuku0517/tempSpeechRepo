@@ -55,16 +55,8 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
     private static final String FRAGMENT_MESSAGE_DIALOG = "message_dialog";
 
-//    private SpeechService mSpeechService;
-//    private VoiceRecorder mVoiceRecorder;
-//
-//
 
     private SpeechService mSpeechService;
-
-    // Resource caches
-    private int mColorHearing;
-    private int mColorNotHearing;
 
     // View references
     private TextView mStatus;
@@ -75,7 +67,6 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     private ImageButton recordBtn, stopBtn;
 
     boolean serviceBinded = false;
-    String fileUri;
     private Realm realm;
     private RecordRealm record;
 
@@ -103,19 +94,19 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_record);
         EventBus.getDefault().register(this);
-//        fileUri = getIntent().getStringExtra("fileUri");
         title = getIntent().getStringExtra("title");
         tags = getIntent().getStringArrayListExtra("tags");
 
         realm = Realm.getDefaultInstance();
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
+        getSupportActionBar().setTitle("");
 
         mStatus = (TextView) findViewById(R.id.status);
         mText = (TextView) findViewById(R.id.text);
         recordBtn = (ImageButton) findViewById(R.id.record);
         stopBtn = (ImageButton) findViewById(R.id.stop);
 
-        if (SpeechService.isRecording) {
+        if (SpeechService.IS_RECORDING) {
             initService();
         }
 
@@ -152,10 +143,10 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             mSpeechService = SpeechService.from(binder);
             serviceBinded = true;
-            if (SpeechService.isRecording) {
+            if (SpeechService.IS_RECORDING) {
                 recordId = mSpeechService.getRecordId();
             } else {
-                recordId = mSpeechService.createRecord();
+                recordId = mSpeechService.createSpeechRecord();
             }
 
             realm.executeTransaction(new Realm.Transaction() {
@@ -172,8 +163,8 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
             String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
             if (checkPermissions(context, PERMISSIONS)) {
-                if (!SpeechService.isRecording) {
-                    mSpeechService.initRecorder(title, tags);
+                if (!SpeechService.IS_RECORDING) {
+                    mSpeechService.initSpeechRecognizing(title, tags);
                 }
             } else if (ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
                     Manifest.permission.RECORD_AUDIO) || ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
@@ -211,7 +202,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED
                     && grantResults[2] == PackageManager.PERMISSION_GRANTED) {
 
-                mSpeechService.initRecorder(title, tags);
+                mSpeechService.initSpeechRecognizing(title, tags);
 
             } else {
                 showPermissionMessageDialog();
@@ -232,13 +223,10 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-//        if (mAdapter != null) {
-//            outState.putStringArrayList(STATE_RESULTS, mAdapter.getResults());
-//        }
     }
 
     private void stopVoiceRecorder() {
-        mSpeechService.stopRecording();
+        mSpeechService.stopSpeechRecognizing();
     }
 
     private void showPermissionMessageDialog() {
@@ -247,70 +235,12 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 .show(getSupportFragmentManager(), FRAGMENT_MESSAGE_DIALOG);
     }
 
-    private void showStatus(final boolean hearingVoice) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mStatus.setTextColor(hearingVoice ? mColorHearing : mColorNotHearing);
-            }
-        });
-    }
+
 
     @Override
     public void onMessageDialogDismissed() {
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},
                 1);
     }
-
-//    private final SpeechService.Listener mSpeechServiceListener =
-//            new SpeechService.Listener() {
-//                @Override
-//                public void onFileRecognized(final String text, final boolean isFinal, final long sentenceStart) {
-//                    if (isFinal) {
-//                        Log.i(TAG, "dismiss");
-//                        if (mVoiceRecorder != null) {
-//
-//                            mVoiceRecorder.dismiss();
-//                        }
-//                    }
-//                    if (mText != null && !TextUtils.isEmpty(text)) {
-//                        runOnUiThread(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                if (isFinal) {
-//                                    Log.i(TAG, "** final");
-//                                    mText.setText(null);
-//
-//                                    realm.beginTransaction();
-//                                    long recordStart = record.getStartMillis();
-//                                    if (recordStart == -1) {
-//                                        record.setStartMillis(sentenceStart);
-//                                        recordStart = sentenceStart;
-//                                    }
-//
-//                                    SentenceRealm sentence = new RealmUtil<SentenceRealm>().createObject(realm, SentenceRealm.class);
-//                                    sentence.setStartMillis(sentenceStart - recordStart);
-//                                    StringTokenizer st = new StringTokenizer(text);
-//                                    while (st.hasMoreTokens()) {
-//                                        String token = st.nextToken();
-//                                        WordRealm word = new RealmUtil<WordRealm>().createObject(realm, WordRealm.class);
-//                                        word.setWord(token);
-//                                        sentence.getWordList().add(word);
-//                                    }
-//                                    record.getSentenceRealms().add(sentence);
-//
-//
-//                                    realm.commitTransaction();
-//
-//                                    mRecyclerView.smoothScrollToPosition(0);
-//                                } else {
-//                                    mText.setText(text);
-//                                }
-//                            }
-//                        });
-//                    }
-//                }
-//            };
-
 
 }

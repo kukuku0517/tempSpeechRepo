@@ -57,7 +57,7 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
 //    public void onProcessIdEvent(ProcessIdEvent event) {
 //
 //        Log.d("lifecycle","list process event");
-//        if (event.isRecording()) {
+//        if (event.IS_RECORDING()) {
 //            binding.fabRecord.setEnabled(false);
 //            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setRecordItem(event.getRecordId());
 //        } else {
@@ -149,12 +149,14 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        realm.init(this);
-        RealmConfiguration config = new RealmConfiguration.Builder()
-                .deleteRealmIfMigrationNeeded()
-                .build();
-        Realm.setDefaultConfiguration(config);
+
+
         if (realm == null) {
+            realm.init(this);
+            RealmConfiguration config = new RealmConfiguration.Builder()
+                    .deleteRealmIfMigrationNeeded()
+                    .build();
+            Realm.setDefaultConfiguration(config);
             realm = Realm.getDefaultInstance();
         }
         Log.d("lifecycle", "list crate");
@@ -224,7 +226,7 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
 
 
         if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
-//            mSpeechService.initRecorder(title, tags);
+//            mSpeechService.initSpeechRecognizing(title, tags);
             Intent intent = new Intent(this, RecordActivity.class);
             intent.putExtra("title", title);
             intent.putExtra("tags", tags);
@@ -407,13 +409,12 @@ startActivity(intent);
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case AUDIO_FILE_REQUEST:
-                String audioPath = getPath(getBaseContext(), data.getData());
-                Log.i(TAG, audioPath);
-                binding.vpList.setCurrentItem(1);
-                EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, audioPath));
-//                Intent intent = new Intent(this, RecordActivity.class);
-//                intent.putExtra("fileUri", getAudioPath);
-//                startActivity(intent);
+                if(data!=null){
+                    String audioPath = getPath(getBaseContext(), data.getData());
+                    Log.i(TAG, audioPath);
+                    binding.vpList.setCurrentItem(1);
+                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, audioPath));
+                }
         }
 
     }

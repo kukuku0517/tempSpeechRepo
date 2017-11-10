@@ -1,9 +1,10 @@
-package com.google.cloud.android.speech.retrofit.LongRunning;
+package com.google.cloud.android.speech.longRunning.longRunningDTO;
 
 /**
  * Created by USER on 2017-11-09.
  */
-public class EndTime
+
+public class StartTime
 {
     private long nanos;
 

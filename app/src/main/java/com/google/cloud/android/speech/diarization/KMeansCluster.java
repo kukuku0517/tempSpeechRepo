@@ -6,6 +6,7 @@ import com.google.cloud.android.speech.util.LogUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -44,7 +45,7 @@ public class KMeansCluster {
             size += data.get(i).length;
         }
 
-        classifiedData = new double[size][39];
+        classifiedData = new double[size][v];
         clusterNumber = new int[size];
         silenceNumber = new int[size];
 
@@ -187,6 +188,27 @@ public class KMeansCluster {
      */
     private HashMap<double[][], Double> map = new HashMap<>();
 
+    private int[] medianFilter(int[] results) {
+        int filterSize = 30;
+        int size = results.length;
+        int filteredResult[] = new int[size];
+        int filter[];
+
+        for (int i = 0; i < size; i++) {
+            int startIndex = i - filterSize / 2;
+            int endIndex = i + filterSize / 2 + 1;
+            if (startIndex < 0) startIndex = 0;
+            if (endIndex > size) endIndex = size;
+            int realsize = endIndex-startIndex;
+            filter = Arrays.copyOfRange(results, startIndex, endIndex);
+            Arrays.sort(filter);
+            filteredResult[i] = filter[realsize*2/3];
+        }
+
+        return filteredResult;
+    }
+
+
     public int[] iterRun(int time) throws IOException {
 
         /**
@@ -289,44 +311,43 @@ public class KMeansCluster {
      */
     public int[] getClassification(double[][] unclassifiedData, double[][] centroid) throws IOException {
 
-        StringBuffer buffer = new StringBuffer();
-
         for (int i = 0; i < clusterNumber.length; i++) {
             int closest = getClosestCentroid(unclassifiedData[i]);
             clusterNumber[i] = closest;
-            buffer.append("\t" + String.valueOf(closest));
         }
-        Log.d("kcluster", buffer.toString());
+
         getSilenceCluster();
-        LogUtil.print(clusterNumber,"kcluster");
+        LogUtil.print(clusterNumber, "kcluster");
+        clusterNumber = medianFilter(clusterNumber);
+
+        LogUtil.print(clusterNumber, "kcluster");
 
         return clusterNumber;
     }
 
-    private void getSilenceCluster(){
-        int[]count = new int[k];
-        for(int i=0;i<clusterNumber.length;i++){
-            if(silenceNumber[i]==1){
+    private void getSilenceCluster() {
+        int[] count = new int[k];
+        for (int i = 0; i < clusterNumber.length; i++) {
+            if (silenceNumber[i] == 1) {
                 count[clusterNumber[i]]++;
             }
         }
 
-        int max=-1;
-        int maxIndex=-1;
-        for(int i=0;i<k;i++){
-            if(count[i]>max){
-                max=count[i];
-                maxIndex=i;
+        int max = -1;
+        int maxIndex = -1;
+        for (int i = 0; i < k; i++) {
+            if (count[i] > max) {
+                max = count[i];
+                maxIndex = i;
             }
         }
-        for(int i=0;i<clusterNumber.length;i++){
-            if(clusterNumber[i]==0){
-                clusterNumber[i]=maxIndex;
-            }else if(clusterNumber[i]==maxIndex){
-                clusterNumber[i]=0;
+        for (int i = 0; i < clusterNumber.length; i++) {
+            if (clusterNumber[i] == 0) {
+                clusterNumber[i] = maxIndex;
+            } else if (clusterNumber[i] == maxIndex) {
+                clusterNumber[i] = 0;
             }
         }
-
 
 
     }

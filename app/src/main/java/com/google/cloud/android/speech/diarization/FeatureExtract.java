@@ -61,9 +61,7 @@ public class FeatureExtract {
 		energyVal = new double[noOfFrames];
 		deltaEnergy = new double[noOfFrames];
 		deltaDeltaEnergy = new double[noOfFrames];
-
 //		featureVector = new double[noOfFrames][3 * numCepstra + 3];
-
 		featureVector = new double[noOfFrames][numCepstra];
 
 		delta = new Delta();
@@ -117,15 +115,15 @@ public class FeatureExtract {
 			for (int j = 0; j < numCepstra; j++) {
 				featureVector[i][j] = mfccFeature[i][j];
 			}
-			for (int j = numCepstra; j < 2 * numCepstra; j++) {
-				featureVector[i][j] = deltaMfcc[i][j - numCepstra];
-			}
-			for (int j = 2 * numCepstra; j < 3 * numCepstra; j++) {
-				featureVector[i][j] = deltaDeltaMfcc[i][j - 2 * numCepstra];
-			}
-			featureVector[i][numCepstra] = energyVal[i];
-			featureVector[i][numCepstra + 1] = deltaEnergy[i];
-			featureVector[i][numCepstra + 2] = deltaDeltaEnergy[i];
+//			for (int j = numCepstra; j < 2 * numCepstra; j++) {
+//				featureVector[i][j] = deltaMfcc[i][j - numCepstra];
+//			}
+//			for (int j = 2 * numCepstra; j < 3 * numCepstra; j++) {
+//				featureVector[i][j] = deltaDeltaMfcc[i][j - 2 * numCepstra];
+//			}
+//			featureVector[i][numCepstra] = energyVal[i];
+//			featureVector[i][numCepstra + 1] = deltaEnergy[i];
+//			featureVector[i][numCepstra + 2] = deltaDeltaEnergy[i];
 		}
 		fv.setMfccFeature(mfccFeature);
 		fv.setFeatureVector(featureVector);

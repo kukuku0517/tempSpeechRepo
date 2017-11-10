@@ -6,7 +6,7 @@ import io.realm.RealmModel;
  * Created by samsung on 2017-10-07.
  */
 
-public interface RecordRealmObject extends RealmModel {
+public interface PrimaryRealm extends RealmModel {
     int getId();
     void setId(int id);
 }

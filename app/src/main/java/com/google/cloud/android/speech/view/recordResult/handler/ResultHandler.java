@@ -8,8 +8,8 @@ import android.view.View;
 
 public interface ResultHandler {
     void onClickStart(View v);
-
     void onClickStop(View v) ;
-
-    void onClickRestart(View v) ;
+    void onClickBack(View v);
+    void onClickForward(View v);
+    void onClickLoop(View v);
 }

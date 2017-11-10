@@ -59,6 +59,11 @@ public class RealmSpannableTextView extends android.support.v7.widget.AppCompatT
         sentence = realm.where(SentenceRealm.class).equalTo("id", sid).findFirst();
         buildSentence(sentence);
         realm.commitTransaction();
+
+        setMovementMethod(CustomMovementMethod.getInstance());
+        setLinksClickable(true);
+        setText(builder);
+
         invalidate();
         requestLayout();
     }
@@ -78,11 +83,7 @@ public class RealmSpannableTextView extends android.support.v7.widget.AppCompatT
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (sid != 0) {
-            setMovementMethod(CustomMovementMethod.getInstance());
-            setLinksClickable(true);
-            setText(builder);
-        }
+
     }
 
     public void buildSentence(SentenceRealm sentenceRealm) {
@@ -108,15 +109,8 @@ public class RealmSpannableTextView extends android.support.v7.widget.AppCompatT
 
             builder.setSpan(span, startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             if (word.isHighlight()) {
-//                float[] outerR = new float[]{12, 12, 12, 12, 0, 0, 0, 0};
-//                RectF inset = new RectF(6, 6, 6, 6);
-//                float[] innerR = new float[]{12, 12, 0, 0, 12, 12, 0, 0};
-//                ShapeDrawable drawable = new ShapeDrawable(new RoundRectShape(outerR, inset, innerR));
-//                drawable.setColorFilter(getResources().getColor(R.color.primary), PorterDuff.Mode.MULTIPLY);
-//                builder.setSpan(drawable, startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
                 builder.setSpan(new ForegroundColorSpan(Color.WHITE), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                builder.setSpan(new BackgroundColorSpan(getResources().getColor(R.color.primary)), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                builder.setSpan(new BackgroundColorSpan(getResources().getColor(R.color.naver_green)), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
 
             startIndex += word.getWord().length() + 1;

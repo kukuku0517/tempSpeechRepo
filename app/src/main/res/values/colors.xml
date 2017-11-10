@@ -15,7 +15,9 @@
   limitations under the License.
 -->
 <resources>
-    <color name="primary">#4CAF50</color>
+    <color name="naver_green">#4CAF50</color>
+    <color name="naver_green_light">#C8E6C9</color>
+
     <color name="primary_dark">#388E3C</color>
     <color name="accent">#536DFE</color>
 

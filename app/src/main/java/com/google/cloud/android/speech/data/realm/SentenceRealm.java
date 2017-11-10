@@ -13,7 +13,7 @@ import io.realm.annotations.PrimaryKey;
  * Created by samsung on 2017-10-07.
  */
 
-public class SentenceRealm extends RealmObject implements RecordRealmObject {
+public class SentenceRealm extends RealmObject implements PrimaryRealm {
 
     @PrimaryKey
     private int id;
@@ -21,14 +21,13 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
     private long startMillis;
     private long endMillis;
     private String sentence;
-    private int cluster = 0;
-    int i;
+    ClusterRealm cluster;
 
-    public int getCluster() {
+    public   ClusterRealm getCluster() {
         return cluster;
     }
 
-    public void setCluster(int cluster) {
+    public void setCluster(  ClusterRealm cluster) {
         this.cluster = cluster;
     }
 
@@ -51,7 +50,7 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
     public void setSentence() {
         StringBuilder builder = new StringBuilder();
         for (WordRealm wordRealm : wordList) {
-            builder.append(wordRealm.getWord()+" ");
+            builder.append(wordRealm.getWord() + " ");
         }
         this.sentence = builder.toString();
 
@@ -83,9 +82,32 @@ public class SentenceRealm extends RealmObject implements RecordRealmObject {
     public void setId(int id) {
         this.id = id;
     }
+//
+//    @BindingAdapter("android:text")
+//    public static void setText(TextView v, int value) {
+//        v.setText(DateUtil.durationToDate(value));
+//    }
 
-    @BindingAdapter("android:text")
-    public static void setText(TextView v, int value) {
-        v.setText(DateUtil.durationToDate(value));
+    @BindingAdapter("sentenceTime")
+    public static void setSentence(TextView v, long value) {
+        v.setText(DateUtil.durationToDate((int) value));
     }
+
+    @BindingAdapter("duration")
+    public static void setDuration(TextView v, long value) {
+        v.setText(DateUtil.durationToDate((int) value));
+    }
+
+    @BindingAdapter("date")
+    public static void setDate(TextView v, long value) {
+        v.setText(DateUtil.millisToDate(value));
+    }
+
+    @BindingAdapter("dateTime")
+    public static void setDateTime(TextView v, long value) {
+        v.setText(DateUtil.millisToTime((int) value));
+    }
+
+
+
 }

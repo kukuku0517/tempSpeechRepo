@@ -1,9 +1,8 @@
 package com.google.cloud.android.speech.retrofit;
 
 import com.facebook.stetho.okhttp3.StethoInterceptor;
-import com.google.cloud.android.speech.retrofit.LongRunning.LongrunningResponse;
+import com.google.cloud.android.speech.longRunning.longRunningDTO.LongrunningResponse;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.MultipartBody;
@@ -22,6 +21,7 @@ import retrofit2.http.Path;
  */
 
 public interface RetrofitService {
+
     @Multipart
     @POST("users/upload/{filename}/{samplerate}")
     Call<LongrunningResponse> longrunningRequest(
@@ -38,8 +38,6 @@ public interface RetrofitService {
                     .readTimeout(30, TimeUnit.SECONDS)
                     .addNetworkInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY))
                     .addNetworkInterceptor(new StethoInterceptor()) .build())
-
-
             .baseUrl("https://speech-diary-server-express4-dboong.c9users.io/")
             .build();
 }

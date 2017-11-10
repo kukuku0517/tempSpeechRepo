@@ -1,9 +1,6 @@
 package com.google.cloud.android.speech.retrofit;
 
-import android.util.Log;
-
-import com.google.cloud.android.speech.retrofit.LongRunning.LongrunningResponse;
-import com.google.cloud.android.speech.retrofit.LongRunning.Words;
+import com.google.cloud.android.speech.longRunning.longRunningDTO.LongrunningResponse;
 import com.google.cloud.android.speech.view.interfaces.StreamObserverRetrofit;
 import com.google.gson.Gson;
 
@@ -26,7 +23,6 @@ public class GoogleClientRetrofit {
             @Override
             public void onResponse(Call<LongrunningResponse> call, Response<LongrunningResponse> response) {
                 if (response.body() != null)
-
                     callback.onComplete(response.body());
             }
 

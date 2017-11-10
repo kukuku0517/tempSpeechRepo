@@ -1,6 +1,6 @@
 package com.google.cloud.android.speech.util;
 
-import com.google.cloud.android.speech.data.realm.RecordRealmObject;
+import com.google.cloud.android.speech.data.realm.PrimaryRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.data.realm.WordRealm;
 
@@ -13,9 +13,9 @@ import io.realm.RealmResults;
 
 public class RealmUtil {
 
-    public static <T extends RecordRealmObject> T createObject(Realm realm, Class<T> clas) {
-//        realm.beginTransaction();
-        RealmResults<T> result = realm.where(clas).findAll();
+    public static <T extends PrimaryRealm> T createObject(Realm realm, Class<T> clas) {
+
+        RealmResults<T> result = realm.where(clas).findAllSorted("id");
         int lastId;
         if (result.size() == 0) {
             lastId = 0;
@@ -24,7 +24,7 @@ public class RealmUtil {
         }
 
         T record = realm.createObject(clas, lastId + 1);
-//        realm.commitTransaction();
+
         return record;
     }
 

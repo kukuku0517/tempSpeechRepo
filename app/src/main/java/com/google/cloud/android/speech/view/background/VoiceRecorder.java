@@ -121,35 +121,9 @@ public class VoiceRecorder {
             if (isRecording) {
 
                     Log.d(TAG, "recording en");
-//                    new Thread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            try {
-//                                os.close();
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                        }
-//                    }).start();
                     isRecording = false;
 
 
-
-//                Log.i(TAG, String.valueOf(111111));
-//                copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE));
-//                deleteTempFile();
-//
-//                Log.i(TAG, String.valueOf(2222222));
-//                Handler handler = new Handler(Looper.getMainLooper());
-//
-//                handler.post(new Runnable() {
-//                    @Override
-//                    public void run() {
-//
-//                        Log.i(TAG, String.valueOf(33333333));
-//                        mCallback.onConvertEnd();
-//                    }
-//                });
                 new Thread(new Runnable() {
                     @Override
                     public void run() {

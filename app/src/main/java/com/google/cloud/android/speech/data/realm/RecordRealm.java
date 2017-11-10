@@ -10,7 +10,7 @@ import io.realm.annotations.PrimaryKey;
  * Created by samsung on 2017-10-07.
  */
 
-public class RecordRealm extends RealmObject implements RecordRealmObject {
+public class RecordRealm extends RealmObject implements PrimaryRealm {
 
     @PrimaryKey
     private int id;
@@ -21,6 +21,19 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
 
     private RealmList<StringRealm> tagList = new RealmList<>();
     private RealmList<SentenceRealm> sentenceList = new RealmList<>();
+
+
+    private RealmList<ClusterRealm> clusterMembers = new RealmList<>();
+
+    public RealmList<ClusterRealm> getClusterMembers() {
+        return clusterMembers;
+    }
+
+    public void setClusterMembers(RealmList<ClusterRealm> clusterMembers) {
+        this.clusterMembers = clusterMembers;
+    }
+
+
     private long startMillis = -1;
     private boolean converted = false;
 
@@ -40,6 +53,14 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
 
     public void setStartMillis(long startMillis) {
         this.startMillis = startMillis;
+    }
+
+    public boolean hasCluster(int i) {
+        for (ClusterRealm c : clusterMembers) {
+            if (c.getClusterNo() == i) return true;
+        }
+        return false;
+
     }
 
     @Override
@@ -98,6 +119,14 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
         return tagList;
     }
 
+    public ClusterRealm getByClusterNo(int clusterNo){
+        for(int i=0;i<clusterMembers.size();i++){
+            if(clusterMembers.get(i).getClusterNo()==clusterNo){
+                return clusterMembers.get(i);
+            }
+        }
+        return null;
+    }
     public void setTagList(ArrayList<String> tagList) {
         for (String s : tagList) {
             this.tagList.add(new StringRealm(s));
@@ -109,7 +138,7 @@ public class RecordRealm extends RealmObject implements RecordRealmObject {
             sentence.getWordList().deleteAllFromRealm();
         }
         sentenceList.deleteAllFromRealm();
-        deleteFromRealm();
+        this.deleteFromRealm();
     }
 
 }

@@ -21,6 +21,6 @@ public class DateUtil {
     }
     public static String millisToDate(long value){
         Date date = new Date(value);
-        return new SimpleDateFormat("yyyy/MM/dd").format(date);
+        return new SimpleDateFormat("yy/MM/dd").format(date);
     }
 }

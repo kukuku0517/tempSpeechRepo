@@ -215,6 +215,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
 //        realm.commitTransaction();
 //        EventBus.getDefault().removeStickyEvent(event);
 //
+//
 //    }
 
     public void setRecordItem(int recordId) {
@@ -273,7 +274,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
             this.mSpeechService = ((ListActivity) getActivity()).mSpeechService;
         }
 
-        this.mSpeechService.stopRecording();
+        this.mSpeechService.stopSpeechRecognizing();
         Log.d(TAG, "stop");
 //        binding.includeRecord
     }

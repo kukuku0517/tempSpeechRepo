@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <data>
 
@@ -15,42 +15,102 @@
 
         <variable
             name="sentence"
-            type="com.google.cloud.android.speech.data.realm.SentenceRealm"/>
+            type="com.google.cloud.android.speech.data.realm.SentenceRealm" />
+
+        <variable
+            name="focus"
+            type="boolean" />
+
+        <variable
+            name="handler"
+            type="com.google.cloud.android.speech.view.recordResult.handler.ClusterItemClickListener" />
     </data>
 
-    <android.support.v7.widget.CardView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="4dp"
-        android:orientation="vertical">
+        android:padding="4dp"
+        app:focus="@{focus}">
 
-        <LinearLayout
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginRight="4dp">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_account_circle_black_24dp"
+                app:clusterColor="@{sentence.cluster.clusterNo}"
+                android:onClick="@{handler::onClickCluster}"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal|center_vertical"
+                android:textSize="18dp"
+                android:textStyle="bold"
+                app:clusterNumber="@{String.valueOf(sentence.cluster.clusterNo)}"
+                tools:text="asdf" />
+
+        </FrameLayout>
+
+
+        <android.support.v7.widget.CardView
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="10dp">
+            android:layout_height="wrap_content"
 
+            android:layout_gravity="center_vertical"
+            android:orientation="vertical">
 
-            <com.google.cloud.android.speech.view.customView.RealmSpannableTextView
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:sid="@{sentence.id}"/>
-
-            <TextView
-                android:id="@+id/tv_cluster"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@{String.valueOf(sentence.cluster)}"/>
-
-            <TextView
-                android:id="@+id/tv_time"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@{sentenceTime}"
-                tools:text="hello my name is junghwan ko"/>
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="10dp">
 
 
-        </LinearLayout>
-    </android.support.v7.widget.CardView>
+                <com.google.cloud.android.speech.view.customView.RealmSpannableTextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:sid="@{sentence.id}"
+                    tools:text="this is an example text" />
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/tv_start"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentLeft="true"
+                        app:sentenceTime="@{sentence.startMillis}"
+                        tools:text="00" />
+
+                    <TextView
+                        android:id="@+id/tv_dash"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/tv_start"
+                        android:text="~" />
+
+                    <TextView
+                        android:id="@+id/tv_end"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/tv_dash"
+                        app:sentenceTime="@{sentence.endMillis}"
+                        tools:text="00" />
+
+
+                </RelativeLayout>
+
+            </LinearLayout>
+        </android.support.v7.widget.CardView>
+    </LinearLayout>
+
 
 </layout>

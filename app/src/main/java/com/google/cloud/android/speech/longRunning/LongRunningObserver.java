@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.view.background;
+package com.google.cloud.android.speech.longRunning;
 
 import java.util.Observable;
 import java.util.Observer;
