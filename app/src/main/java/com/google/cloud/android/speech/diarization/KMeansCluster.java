@@ -2,7 +2,17 @@ package com.google.cloud.android.speech.diarization;
 
 import android.util.Log;
 
+import com.google.cloud.android.speech.data.realm.ClusterDataRealm;
+import com.google.cloud.android.speech.data.realm.ClusterRealm;
+import com.google.cloud.android.speech.data.realm.RecordRealm;
+import com.google.cloud.android.speech.data.realm.SentenceRealm;
+import com.google.cloud.android.speech.data.realm.VectorRealm;
+import com.google.cloud.android.speech.data.realm.WordRealm;
+import com.google.cloud.android.speech.data.realm.primitive.DoubleRealm;
+import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
 import com.google.cloud.android.speech.util.LogUtil;
+import com.google.cloud.android.speech.util.RealmUtil;
+import com.google.cloud.android.speech.view.recordResult.handler.SpeakerDiaryClickListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,18 +21,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import io.realm.Realm;
+import io.realm.RealmList;
+
 public class KMeansCluster {
     private int k;
     private int v;
     private int n[];
-    private ArrayList<double[][]> data = new ArrayList<>();
     private double classifiedData[][];
     private double centroids[][]; //initial value of centroids
     private double newCentroids[][];
-    ArrayList<int[]> silence;
+
     int size;
     int[] clusterNumber;
     int[] silenceNumber;
+    SpeakerDiaryClickListener mListener;
 
     /**
      * @param k       - number of clusters
@@ -35,8 +48,6 @@ public class KMeansCluster {
         this.k = k;
         this.v = v;
         this.n = new int[k];
-        this.data = data;
-        this.silence = silence;
         this.size = 0;
 
         centroids = new double[k][v];
@@ -58,6 +69,39 @@ public class KMeansCluster {
         for (int[] i : silence) {
             System.arraycopy(i, 0, silenceNumber, c, i.length);
             c += i.length;
+        }
+
+
+    }
+
+    public void setListener(SpeakerDiaryClickListener mListener){
+        this.mListener=mListener;
+    }
+    public KMeansCluster(int k, int v, RealmList<VectorRealm> data, RealmList<IntegerRealm> silence) //k = the number of centroids
+    {
+        this.k = k;
+        this.v = v;
+        this.n = new int[k];
+        this.size = data.size();
+
+        centroids = new double[k][v];
+        newCentroids = new double[k][v];
+
+        classifiedData = new double[size][v];
+        clusterNumber = new int[size];
+        silenceNumber = new int[size];
+
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < data.get(i).getFeatureVector().size(); j++) {
+                classifiedData[i][j] = data.get(i).getFeatureVector().get(j).get();
+            }
+        }
+
+        int c = 0;
+        for (IntegerRealm i : silence) {
+            silenceNumber[c] = i.get();
+            c++;
         }
 
 
@@ -199,10 +243,10 @@ public class KMeansCluster {
             int endIndex = i + filterSize / 2 + 1;
             if (startIndex < 0) startIndex = 0;
             if (endIndex > size) endIndex = size;
-            int realsize = endIndex-startIndex;
+            int realsize = endIndex - startIndex;
             filter = Arrays.copyOfRange(results, startIndex, endIndex);
             Arrays.sort(filter);
-            filteredResult[i] = filter[realsize*2/3];
+            filteredResult[i] = filter[realsize * 2 / 3];
         }
 
         return filteredResult;
@@ -349,6 +393,136 @@ public class KMeansCluster {
             }
         }
 
+
+    }
+
+    private  int getClusterForWord(WordRealm word, int[] clusters, int err) {
+        int UNIT = (int) (1000 * 0.01);
+        int noOfCluster = 3;
+//        err=0;
+        int start = (int) ((word.getStartMillis() + err) / UNIT);
+        int end = (int) ((word.getEndMillis() + err) / UNIT);
+        if (end > clusters.length) end = clusters.length;
+        int clusterCount[] = new int[noOfCluster];
+        for (int i = 0; i < noOfCluster; i++) {
+            clusterCount[i] = 0;
+        }
+        for (int i = start; i < end; i++) {
+            clusterCount[clusters[i]]++;
+        }
+        int max = -1;
+        int maxIndex = -1;
+        for (int i = 0; i < noOfCluster; i++) {
+            if (clusterCount[i] > max) {
+                max = clusterCount[i];
+                maxIndex = i;
+            }
+        }
+        return maxIndex;
+    }
+
+    public void applyClusterToRealm(int k, int[] results, final int fileId) {
+
+        Realm realm = Realm.getDefaultInstance();
+
+        realm.beginTransaction();
+        ClusterDataRealm clusterData = realm.where(ClusterDataRealm.class).equalTo("id", fileId).findFirst();
+        if (clusterData == null) {
+            clusterData = realm.createObject(ClusterDataRealm.class, fileId);
+        }
+        clusterData.setClusters(results);
+
+        realm.commitTransaction();
+
+
+        final RecordRealm[] fileRecord = {realm.where(RecordRealm.class).equalTo("id", fileId).findFirst()};
+
+        final float UNIT = 0.01f;
+        /**************************************************************/
+
+        if (fileRecord[0] != null) {
+
+            int sentenceIndex = 0;
+            int err = 0;
+            for (int i : results) {
+                if (i == 0) err += UNIT * 1000;
+                else break;
+            }
+            int clusterIndx;
+            while (true) {
+                //clusterIndex는 startSentence~endSentence(UNIT보정)사이
+                RecordRealm record = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
+                RealmList<SentenceRealm> sentences = record.getSentenceRealms();
+                SentenceRealm sentence = sentences.get(sentenceIndex);
+                /***/
+
+                for (int i = 0; i < sentence.getWordList().size(); i++) {
+                    WordRealm word = sentence.getWordList().get(i);
+                    clusterIndx = getClusterForWord(word, results, err);
+                    realm.beginTransaction();
+                    ClusterRealm cluster;
+                    if (!record.hasCluster(clusterIndx)) {
+                        cluster = RealmUtil.createObject(realm, ClusterRealm.class);
+                        cluster.setClusterNo(clusterIndx);
+                        record.getClusterMembers().add(cluster);
+                    } else {
+                        cluster = record.getByClusterNo(clusterIndx);
+                    }
+
+                    realm.commitTransaction();
+                    if (clusterIndx == 0) {//현재 cluster가 silence : pass
+                        continue;
+                    } else if (sentence.getCluster() == null || sentence.getCluster().getClusterNo() == 0) { // 현재 문장 cluster 미지정 : 현재 clusterNumber등록후 pass
+                        realm.beginTransaction();
+                        sentence.setCluster(cluster);
+                        realm.commitTransaction();
+                        continue;
+                    } else if (sentence.getCluster().getClusterNo() == clusterIndx) {//현재 cluster와 문장 cluster가 동일 : pas
+                        continue;
+                    } else { //기존, 현재 cluster가 다를경우 문장 분리
+
+                        realm.beginTransaction();
+                        SentenceRealm origin = sentence;
+                        SentenceRealm add = RealmUtil.createObject(realm, SentenceRealm.class);
+
+                        add.setEndMillis(origin.getEndMillis());
+                        origin.setEndMillis(word.getStartMillis());
+                        add.setStartMillis(word.getStartMillis());
+                        add.setCluster(cluster);
+
+                        RealmList<WordRealm> originWords = new RealmList<>();
+                        RealmList<WordRealm> addWords = new RealmList<>();
+
+                        RealmList<WordRealm> words = sentence.getWordList();
+                        for (int j = 0; j < words.size(); j++) {
+                            if (j < i) {
+                                originWords.add(words.get(j));
+                            } else {
+                                addWords.add(words.get(j));
+                            }
+                        }
+
+                        origin.setWordList(originWords);
+                        add.setWordList(addWords);
+                        origin.setSentence();
+                        add.setSentence();
+                        sentences.add(sentenceIndex + 1, add);
+                        realm.commitTransaction();
+                        break;
+                    }
+                }
+
+                /***/
+
+                //한문장이 끝나면 다음 문장으로
+                sentenceIndex++;
+                if (sentenceIndex == sentences.size()) break;
+
+            }
+        }
+        mListener.onSpeakerDiaryComplete();
+
+        /**************************************************************/
 
     }
 

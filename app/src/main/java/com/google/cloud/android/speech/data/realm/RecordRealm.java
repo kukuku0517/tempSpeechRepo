@@ -1,5 +1,8 @@
 package com.google.cloud.android.speech.data.realm;
 
+import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
+import com.google.cloud.android.speech.data.realm.primitive.StringRealm;
+
 import java.util.ArrayList;
 
 import io.realm.RealmList;
@@ -18,12 +21,30 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
     private String filePath;
 
     private int duration = 0;
+    private long startMillis = -1;
+    private boolean converted = false;
 
     private RealmList<StringRealm> tagList = new RealmList<>();
     private RealmList<SentenceRealm> sentenceList = new RealmList<>();
-
-
     private RealmList<ClusterRealm> clusterMembers = new RealmList<>();
+    private RealmList<IntegerRealm> cluster = new RealmList<>();
+
+    public RealmList<IntegerRealm> getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(RealmList<IntegerRealm> cluster) {
+        this.cluster = cluster;
+    }
+
+    public void setCluster(int[] cluster) {
+        for(int i:cluster){
+            IntegerRealm integerRealm = new IntegerRealm();
+            integerRealm.set(i);
+            this.cluster.add(integerRealm);
+        }
+    }
+
 
     public RealmList<ClusterRealm> getClusterMembers() {
         return clusterMembers;
@@ -32,10 +53,6 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
     public void setClusterMembers(RealmList<ClusterRealm> clusterMembers) {
         this.clusterMembers = clusterMembers;
     }
-
-
-    private long startMillis = -1;
-    private boolean converted = false;
 
     public boolean isConverted() {
         return converted;

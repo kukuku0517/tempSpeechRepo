@@ -1,9 +1,12 @@
 package com.google.cloud.android.speech.view.recordResult;
 
 import android.databinding.DataBindingUtil;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
@@ -12,20 +15,27 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.SeekBar;
+import android.widget.Toast;
 
 import com.google.cloud.android.speech.data.DTO.MediaTimeDTO;
 import com.google.cloud.android.speech.data.DTO.ObservableDTO;
 import com.google.cloud.android.speech.data.DTO.RecordDTO;
 import com.google.cloud.android.speech.data.realm.ClusterDataRealm;
+import com.google.cloud.android.speech.data.realm.ClusterRealm;
+import com.google.cloud.android.speech.data.realm.FeatureRealm;
+import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
+import com.google.cloud.android.speech.diarization.KMeansCluster;
 import com.google.cloud.android.speech.event.SeekEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.util.FileUtil;
+import com.google.cloud.android.speech.util.LogUtil;
 import com.google.cloud.android.speech.view.customView.CenterLinearLayoutManager;
 import com.google.cloud.android.speech.view.recordResult.handler.ResultHandler;
 import com.google.cloud.android.speech.view.recordResult.adapter.ResultRealmAdapter;
 import com.google.cloud.android.speech.databinding.ActivityResultBinding;
+import com.google.cloud.android.speech.view.recordResult.handler.SpeakerDiaryClickListener;
 
 
 import org.greenrobot.eventbus.EventBus;
@@ -34,6 +44,8 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.io.IOException;
+
+import javax.xml.transform.sax.TransformerHandler;
 
 import io.realm.Realm;
 import io.realm.RealmList;
@@ -47,13 +59,14 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
     private MediaPlayer mediaPlayer; //TODO release
     private SeekBar seekbar;
     private ObservableDTO<Boolean> isPlaying = new ObservableDTO<>();
+    private ObservableDTO<Boolean> diary = new ObservableDTO<>();
     private ObservableDTO<Boolean> loop = new ObservableDTO<>();
     private ActivityResultBinding binding;
     private int pos;
     private MediaTimeDTO timeDTO = new MediaTimeDTO();
     private ClusterDataRealm cluster;
-    private int[] clusterArray;
     private RecordRealm record;
+    private int recordId;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -95,12 +108,15 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         }
     }
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        int itemId = getIntent().getIntExtra("id", 1);
+        recordId = getIntent().getIntExtra("id", 1);
+
         isPlaying.setValue(false);
         loop.setValue(true);
+        diary.setValue(false);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_result);
         setSupportActionBar(binding.toolbar);
         binding.toolbar.setTitleTextColor(getResources().getColor(R.color.naver_green));
@@ -108,15 +124,14 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         binding.setTime(timeDTO);
         binding.setIsPlaying(isPlaying);
         binding.setLoop(loop);
-
+        binding.setDiary(diary);
 
         seekbar = binding.sbNavigate;
 
 
         realm = Realm.getDefaultInstance();
-        record = realm.where(RecordRealm.class).equalTo("id", itemId).findFirst();
-        cluster = realm.where(ClusterDataRealm.class).equalTo("id", record.getId()).findFirst();
-        clusterArray = cluster.getClustersArray();
+        record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+
 
         binding.setRecord(new RecordDTO(record));
 
@@ -151,7 +166,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         mRecyclerView.setLayoutManager(new CenterLinearLayoutManager(this));
         mRecyclerView.setItemAnimator(null);
 
-           seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (seekBar.getMax() == progress) {
@@ -164,24 +179,32 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
                         mAdapter.focus(0);
                         mRecyclerView.smoothScrollToPosition(0);
                     }
-                } else {//                    int index = (int) (progressObs/0.01/1000);
-//                    if(index<clusterArray.length){
-//                        if(temp!=clusterArray[index] && clusterArray[index]!=0){
-//                            Log.d("changedIndex",progressObs+":"+temp+">"+clusterArray[index]);
-//                            temp=clusterArray[index];
-//                        }
-//                        switch(clusterArray[index]){
-//                            case 0:
-//                                binding.toolbar.setBackgroundColor(Color.WHITE);
-//                                break;
-//                            case 1:
-//                                binding.toolbar.setBackgroundColor(Color.BLUE);
-//                                break;
-//                            case 2:
-//                                binding.toolbar.setBackgroundColor(Color.RED);
-//                                break;
-//                        }
-//                    }
+                } else {
+                    if (record.getCluster().size() != 0) {
+                        int[] clusterArray = new int[record.getCluster().size()];
+
+                        int count = 0;
+                        for (IntegerRealm i : record.getCluster()) {
+                            clusterArray[count] = i.get();
+                            count++;
+                        }
+
+                        int index = (int) (progress / 0.01 / 1000);
+                        if (index < clusterArray.length) {
+                            switch (clusterArray[index]) {
+                                case 0:
+                                    binding.toolbar.setBackgroundColor(Color.WHITE);
+                                    break;
+                                case 1:
+                                    binding.toolbar.setBackgroundColor(Color.BLUE);
+                                    break;
+                                case 2:
+                                    binding.toolbar.setBackgroundColor(Color.RED);
+                                    break;
+                            }
+                        }
+                    }
+
                     timeDTO.setNow(progress);
                     RealmList<SentenceRealm> sentences = record.getSentenceRealms();
                     for (int i = 0; i < sentences.size(); i++) {
@@ -311,4 +334,55 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     }
 
+    int[] results;
+
+    @Override
+    public void onClickDiary(View v) {
+        diary.setValue(true);
+        binding.executePendingBindings();
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Realm realm = Realm.getDefaultInstance();
+                FeatureRealm feature = realm.where(FeatureRealm.class).equalTo("id", recordId).findFirst();
+
+                int[] sil = new int[feature.getSilence().size()];
+                for (int i = 0; i < feature.getSilence().size(); i++) {
+                    sil[i] = feature.getSilence().get(i).get();
+                }
+                LogUtil.print(sil, "silence");
+
+                KMeansCluster cluster = new KMeansCluster(3, 13, feature.getFeatureVectors(), feature.getSilence());
+                cluster.setListener(new SpeakerDiaryClickListener() {
+                    @Override
+                    public void onSpeakerDiaryComplete() {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                diary.setValue(false);
+                                Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
+                                Realm realm = Realm.getDefaultInstance();
+                                realm.beginTransaction();
+                                record.setCluster(results);
+                                realm.commitTransaction();
+                            }
+                        });
+                    }
+                });
+                try {
+                    results = cluster.iterRun(20);
+                    cluster.applyClusterToRealm(3, results, recordId);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        thread.start();
+
+    }
+
+
 }
+
+

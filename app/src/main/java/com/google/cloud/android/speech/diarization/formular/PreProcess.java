@@ -11,15 +11,16 @@ import com.google.cloud.android.speech.diarization.EndPointDetection;
 public class PreProcess {
 
     float[] originalSignal;// initial extracted PCM,
-    float[] afterEndPtDetection;// after endPointDetection
+
     public int noOfFrames;// calculated total no of frames
     int samplePerFrame;// how many samples in one frame
     public float[][] framedSignal = null;
     float[] hammingWindow;
     EndPointDetection epd;
     int samplingRate;
-    private float windowSize = 0.025f;
-    private float windowStep = 0.010f;
+    private static final float windowSize = 0.025f;
+    private static  final float windowStep = 0.010f;
+
     private int samplePerStep;
 
     float preEmphasisAlpha = 0.97f;
@@ -38,7 +39,6 @@ public class PreProcess {
         this.samplePerStep = (int) (samplingRate * windowStep);
         this.samplingRate = samplingRate;
         originalSignal = preEmphasis(originalSignal);
-        afterEndPtDetection = originalSignal;
         doFraming();
         //        normalizePCM();
         //        epd = new EndPointDetection(this.originalSignal, this.samplingRate);
@@ -77,10 +77,10 @@ public class PreProcess {
 
 
     private void doFraming() {
-        if (afterEndPtDetection.length < samplePerFrame) {
+        if (originalSignal.length < samplePerFrame) {
             noOfFrames = 1;
         } else {
-            noOfFrames = 1 + (int) (Math.ceil((afterEndPtDetection.length - samplePerFrame) / samplePerStep));
+            noOfFrames = 1 + (int) (Math.ceil((originalSignal.length - samplePerFrame) / samplePerStep));
         }
 
 
@@ -90,13 +90,13 @@ public class PreProcess {
         for (int i = 0; i < noOfFrames - 1; i++) {
             int startIndex = i * samplePerStep;
             for (int j = 0; j < samplePerFrame; j++) {
-                framedSignal[i][j] = afterEndPtDetection[startIndex + j];
+                framedSignal[i][j] = originalSignal[startIndex + j];
             }
         }
 
         for (int j = 0; j < samplePerFrame; j++) {
-            if (j < afterEndPtDetection.length) {
-                framedSignal[noOfFrames - 1][j] = afterEndPtDetection[(noOfFrames - 1) * samplePerStep + j];
+            if (j < originalSignal.length) {
+                framedSignal[noOfFrames - 1][j] = originalSignal[(noOfFrames - 1) * samplePerStep + j];
             } else {
                 framedSignal[noOfFrames - 1][j] = 0;
             }

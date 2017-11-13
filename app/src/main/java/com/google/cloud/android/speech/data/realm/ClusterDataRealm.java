@@ -1,5 +1,7 @@
 package com.google.cloud.android.speech.data.realm;
 
+import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
+
 import io.realm.RealmList;
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;

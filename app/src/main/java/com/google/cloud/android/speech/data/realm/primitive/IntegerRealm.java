@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.data.realm;
+package com.google.cloud.android.speech.data.realm.primitive;
 
 import io.realm.RealmObject;
 

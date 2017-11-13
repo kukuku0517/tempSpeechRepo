@@ -21,8 +21,10 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.android.speech.data.realm.ClusterDataRealm;
 import com.google.cloud.android.speech.data.realm.ClusterRealm;
+import com.google.cloud.android.speech.data.realm.FeatureRealm;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
+import com.google.cloud.android.speech.data.realm.VectorRealm;
 import com.google.cloud.android.speech.data.realm.WordRealm;
 import com.google.cloud.android.speech.diarization.FeatureVector;
 import com.google.cloud.android.speech.diarization.KMeansCluster;
@@ -30,8 +32,8 @@ import com.google.cloud.android.speech.diarization.main.SpeechDiary;
 import com.google.cloud.android.speech.event.PartialEvent;
 import com.google.cloud.android.speech.event.PartialTimerEvent;
 import com.google.cloud.android.speech.R;
-import com.google.cloud.android.speech.longRunning.LongRunningObservable;
-import com.google.cloud.android.speech.longRunning.LongRunningObserver;
+import com.google.cloud.android.speech.longRunning.recognizeObservable;
+import com.google.cloud.android.speech.longRunning.RecognizeObserver;
 import com.google.cloud.android.speech.retrofit.GoogleClientRetrofit;
 import com.google.cloud.android.speech.longRunning.longRunningDTO.Alternatives;
 import com.google.cloud.android.speech.longRunning.longRunningDTO.LongrunningResponse;
@@ -135,7 +137,7 @@ public class SpeechService extends Service {
 
         @Override
         public void onVoice(byte[] data, int size) {
-            recognize(data, size);
+            recognizeSpeechStream(data, size);
 
         }
 
@@ -191,14 +193,47 @@ public class SpeechService extends Service {
         }
 
         @Override
-        public void onCompleted()
+        public void onCompleted() {
 
-        {
-
-            Log.i(TAG, "API completedasdfafasdfasdfasdfasdf.");
         }
 
     };
+
+
+//    HashMap<Integer, ArrayList<double[][]>> featureMap = new HashMap<>();
+//    HashMap<Integer, ArrayList<int[]>> silenceMap= new HashMap<>();
+
+    private void collectFeatureVectors(double[][] fv, int[] slnce, int id) {
+//        feature.add(fv);
+//        silence.add(slnce);
+//        if(featureMap.containsKey(id)){
+//            featureMap.get(id).add(fv);
+//            silenceMap.get(id).add(slnce);
+//        }else{
+//            ArrayList<double[][]> fvList = new ArrayList<>();
+//            ArrayList<int[]> slnceList= new ArrayList<>();
+//            fvList.add(fv);
+//            slnceList.add(slnce);
+//            featureMap.put(id,fvList);
+//            silenceMap.put(id,slnceList);
+//        }
+        Realm realm = Realm.getDefaultInstance();
+        realm.beginTransaction();
+        FeatureRealm featureRealm = realm.where(FeatureRealm.class).equalTo("id", id).findFirst();
+        if (featureRealm == null) {
+            featureRealm = realm.createObject(FeatureRealm.class, id);
+        }
+        for (double[] feature : fv) {
+            VectorRealm vector = realm.createObject(VectorRealm.class);
+            vector.setFeatureVector(feature);
+            featureRealm.getFeatureVectors().add(vector);
+        }
+
+        featureRealm.setSilence(slnce);
+
+        realm.commitTransaction();
+    }
+
     private MediaCodecCallBack mediaCodecCallBack = new MediaCodecCallBack() {
         @Override
         public void onReset() {
@@ -219,16 +254,13 @@ public class SpeechService extends Service {
 
         @Override
         public void onBufferRead(byte[] buffer) {
-
-
             if (buffer.length > 0) {
                 if (checkEmptyBytes(buffer)) {
                     float[] pcmFloat = floatMe(shortMe(buffer));
-                    SpeechDiary speechDiary = new SpeechDiary();
+                    SpeechDiary speechDiary = new SpeechDiary(fileId);
                     FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
                     if (fv != null) {
-                        feature.add(fv.getFeatureVector());
-                        silence.add(fv.getSilence());
+                        collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), fileId);
                     }
                 }
             }
@@ -236,13 +268,8 @@ public class SpeechService extends Service {
 
         @Override
         public void onCompleted() {
-
-
-            longrunningObservable.setSpeakerDiary(false);
-
+            fileObservable.setSpeakerDiary(false);
             Log.d("observv", "speaker");
-
-
         }
     };
 
@@ -269,14 +296,64 @@ public class SpeechService extends Service {
                 onFileResult(true, alternative, startOfCall);
             }
 
-            longrunningObservable.setSpeechRecognize(false);
+            fileObservable.setRecognize(false);
         }
     };
 
-    private LongRunningObservable longrunningObservable = new LongRunningObservable();
-    private ArrayList<double[][]> feature = new ArrayList<>();
+    private recognizeObservable fileObservable = new recognizeObservable();
+    private recognizeObservable speechObseravable = new recognizeObservable();
 
-    private ArrayList<int[]> silence = new ArrayList<>();
+    private RecognizeObserver fileObserver = new RecognizeObserver() {
+
+        @Override
+        public void end() {
+            fileObservable.setInit(false);
+            int[] results;
+//            try {
+//                Realm realm = Realm.getDefaultInstance();
+//                FeatureRealm feature = realm.where(FeatureRealm.class).equalTo("id", fileId).findFirst();
+//                results = new KMeansCluster(3, 13, feature.getFeatureVectors(), feature.getSilence()).iterRun(20);
+//                applyClusterToRealm(3, results, fileId);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//                featureMap.remove(fileId);
+//                silenceMap.remove(fileId);
+            Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
+            Runnable myRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    Log.i(TAG, "API completed.");
+                    stopRecognizing(FILE);
+                } // This is your code
+            };
+            mainHandler.post(myRunnable);
+
+        }
+    };
+    private RecognizeObserver speechObserver = new RecognizeObserver() {
+
+        @Override
+        public void end() {
+            speechObseravable.setInit(false);
+            int[] results;
+            try {
+                Realm realm = Realm.getDefaultInstance();
+                FeatureRealm feature = realm.where(FeatureRealm.class).equalTo("id", recordId).findFirst();
+                results = new KMeansCluster(3, 13, feature.getFeatureVectors(), feature.getSilence()).iterRun(20);
+                applyClusterToRealm(3, results, recordId);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+//                featureMap.remove(fileId);
+//                silenceMap.remove(fileId);
+
+
+        }
+    };
+//    private ArrayList<double[][]> feature = new ArrayList<>();
+//
+//    private ArrayList<int[]> silence = new ArrayList<>();
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -472,37 +549,13 @@ public class SpeechService extends Service {
 
         startForeground();
 
-        longrunningObservable.setSpeakerDiary(true);
-        longrunningObservable.setSpeechRecognize(true);
-        longrunningObservable.setInit(true);
+        fileObservable.setSpeakerDiary(true);
+        fileObservable.setRecognize(true);
+        fileObservable.setInit(true);
 
-        longrunningObservable.addObserver(new LongRunningObserver() {
-            @Override
-            public void end() {
-                longrunningObservable.setInit(false);
-                int[] results = new int[0];
-                try {
-                    results = new KMeansCluster(3, 13, feature, silence).iterRun(20);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                applyClusterToRealm(3, results, fileId);
-
-                Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
-                Runnable myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.i(TAG, "API completed.");
-                        stopRecognizing(FILE);
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
-            }
-        });
+        fileObservable.addObserver(fileObserver);
 
         try {
-            feature.clear();
-            silence.clear();
             realm.executeTransaction(new Realm.Transaction() {
                 @Override
                 public void execute(Realm realm) {
@@ -533,7 +586,7 @@ public class SpeechService extends Service {
 
     }
 
-    public void recognize(byte[] data, int size) {
+    public void recognizeSpeechStream(byte[] data, int size) {
         if (mRequestObserver == null) {
             return;
         }
@@ -546,6 +599,14 @@ public class SpeechService extends Service {
                 .setAudioContent(ByteString.copyFrom(data, 0, size))
                 .build());
 
+        if (checkEmptyBytes(data)) {
+            float[] pcmFloat = floatMe(shortMe(data));
+            SpeechDiary speechDiary = new SpeechDiary(recordId);
+            FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
+            if (fv != null) {
+                collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), recordId);
+            }
+        }
 
 //        Log.i(TAG, "buffer sent");
     }
@@ -622,20 +683,6 @@ public class SpeechService extends Service {
                 long startOfSentence = startOfCall - startOfRecording;
                 sentence.setStartMillis((int) (startOfSentence));
                 List<WordInfo> words = alternative.getWordsList();
-//                for (WordInfo wordInfo : alternative.getWordsList()) {
-//                for (int i = 0; i < words.size(); i++) {
-//                    WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
-//                    word.setWord(words.get(i).getWord());
-//                    word.setSentenceId(sentence.getId());
-//                    long second = words.get(i).getStartTime().getSeconds() * 1000 + startOfSentence;
-//                    word.setStartMillis(second);
-//                    sentence.getWordList().add(word);
-//
-//                    if (i == words.size() - 1) {
-//                        sentence.setEndMillis(second);
-//                    }
-//                }
-
                 TreeMap<Long, Integer> wordTimeRange = new TreeMap<>();
 
                 for (int i = 0; i < words.size(); i++) {
@@ -645,10 +692,6 @@ public class SpeechService extends Service {
                     long second = words.get(i).getStartTime().getSeconds() * 1000 + startOfSentence;
                     word.setStartMillis(second);
                     sentence.getWordList().add(word);
-
-//                    if (i == words.size() - 1) {
-//                        sentence.setEndMillis(second);
-//                    }
 
                     if (wordTimeRange.containsKey(second)) {
                         wordTimeRange.put(second, wordTimeRange.get(second) + 1);

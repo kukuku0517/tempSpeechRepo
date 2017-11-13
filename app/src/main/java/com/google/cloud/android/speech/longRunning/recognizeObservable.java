@@ -6,9 +6,9 @@ import java.util.Observable;
  * Created by USER on 2017-11-09.
  */
 
-public class LongRunningObservable extends Observable {
+public class recognizeObservable extends Observable {
     boolean speakerDiary=false;
-    boolean speechRecognize=false;
+    boolean recognize =false;
     boolean init=false;
 
     public boolean isInit() {
@@ -30,12 +30,12 @@ public class LongRunningObservable extends Observable {
         measurementsChanged();
     }
 
-    public boolean isSpeechRecognize() {
-        return speechRecognize;
+    public boolean isRecognize() {
+        return recognize;
     }
 
-    public void setSpeechRecognize(boolean speechRecognize) {
-        this.speechRecognize = speechRecognize;
+    public void setRecognize(boolean recognize) {
+        this.recognize = recognize;
         measurementsChanged();
     }
 

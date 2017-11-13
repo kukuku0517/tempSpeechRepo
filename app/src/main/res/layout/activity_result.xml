@@ -26,7 +26,11 @@
 
         <variable
             name="loop"
-            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>" />
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>"/>
+
+        <variable
+            name="diary"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>"/>
     </data>
 
     <RelativeLayout
@@ -68,14 +72,21 @@
             </android.support.design.widget.AppBarLayout>
 
             <android.support.v7.widget.RecyclerView
-
                 android:id="@+id/rv_record_result"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:nestedScrollingEnabled="false"
                 android:paddingBottom="@dimen/spacing_small"
                 android:paddingTop="@dimen/spacing_small"
+                android:visibility="@{diary.getValue==false?View.VISIBLE:View.GONE}"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+            <ProgressBar
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:visibility="@{diary.getValue==true?View.VISIBLE:View.GONE}"
+                tools:visibility="visible"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
         </android.support.design.widget.CoordinatorLayout>
 
         <LinearLayout
@@ -92,14 +103,14 @@
                 android:text="@{record.title}"
                 android:textColor="@android:color/background_dark"
                 android:textSize="20dp"
-                tools:text="teasf" />
+                tools:text="Title" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:text="@{record.tagList[0]}"
-                tools:text="teasf" />
+                tools:text="tags" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -193,7 +204,12 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                >
 
                 <ImageButton
                     android:id="@+id/btn_loop"
@@ -205,6 +221,18 @@
                     android:paddingLeft="10dp"
                     android:tint="@{loop.getValue==true?@color/naver_green:@color/gray}"
                     app:srcCompat="@drawable/ic_loop_black_24dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_diary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:background="@android:color/transparent"
+                    android:clickable="@{diary.getValue==true?false:true}"
+                    android:onClick="@{handler::onClickDiary}"
+                    android:paddingLeft="10dp"
+                    android:tint="@color/naver_green"
+                    app:srcCompat="@drawable/ic_people_black_24dp" />
             </LinearLayout>
         </LinearLayout>
 

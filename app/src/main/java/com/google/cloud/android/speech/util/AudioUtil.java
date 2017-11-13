@@ -66,14 +66,15 @@ public class AudioUtil {
     }
 
 
-    private static float windowSize = 0.040f;
-    private static float windowStep = 0.015f;
+
+    private static final float windowSize = 0.025f;
+    private static  final float windowStep = 0.010f;
 
     public static int[] getSilenceFrames(float[] originalSignal, int sampleRate) {
         int samplePerFrame = (int) (sampleRate * windowSize);
         int samplePerStep = (int) (sampleRate * windowStep);
 
-        int firstSamples = samplePerFrame * 200;
+        int firstSamples = (int) (samplePerFrame*0.2);
         firstSamples = originalSignal.length > firstSamples ? firstSamples : originalSignal.length;
 
         float[] voiced = new float[originalSignal.length];
@@ -106,6 +107,7 @@ public class AudioUtil {
             noOfFrames = 1;
         } else {
             noOfFrames = 1 + (int) (Math.ceil((originalSignal.length - samplePerFrame) / samplePerStep));
+
         }
 
 
@@ -147,6 +149,7 @@ public class AudioUtil {
             voicedFrame[noOfFrames - 1] = 0;
         }
 
+        LogUtil.print(voicedFrame,"silence");
 
         return voicedFrame;
     }

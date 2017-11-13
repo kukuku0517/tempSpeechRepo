@@ -7,7 +7,7 @@ import android.widget.TextView;
 
 import com.google.cloud.android.speech.BR;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
-import com.google.cloud.android.speech.data.realm.StringRealm;
+import com.google.cloud.android.speech.data.realm.primitive.StringRealm;
 import com.google.cloud.android.speech.util.DateUtil;
 
 import java.util.ArrayList;
