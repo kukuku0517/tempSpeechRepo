@@ -154,7 +154,7 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
         if (realm == null) {
             realm.init(this);
             RealmConfiguration config = new RealmConfiguration.Builder()
-                    .deleteRealmIfMigrationNeeded()
+//                    .deleteRealmIfMigrationNeeded()
                     .build();
             Realm.setDefaultConfiguration(config);
             realm = Realm.getDefaultInstance();

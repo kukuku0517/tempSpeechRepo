@@ -1,14 +1,11 @@
 package com.google.cloud.android.speech.diarization;
 
-import android.util.Log;
-
 import com.google.cloud.android.speech.data.realm.ClusterDataRealm;
 import com.google.cloud.android.speech.data.realm.ClusterRealm;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.data.realm.VectorRealm;
 import com.google.cloud.android.speech.data.realm.WordRealm;
-import com.google.cloud.android.speech.data.realm.primitive.DoubleRealm;
 import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
 import com.google.cloud.android.speech.util.LogUtil;
 import com.google.cloud.android.speech.util.RealmUtil;
@@ -25,8 +22,8 @@ import io.realm.Realm;
 import io.realm.RealmList;
 
 public class KMeansCluster {
-    private int k;
-    private int v;
+    private int noOfCluster;
+    private int featureDimension=21;
     private int n[];
     private double classifiedData[][];
     private double centroids[][]; //initial value of centroids
@@ -38,20 +35,20 @@ public class KMeansCluster {
     SpeakerDiaryClickListener mListener;
 
     /**
-     * @param k       - number of clusters
+     * @param noOfCluster       - number of clusters
      * @param v       - vector dimension
      * @param data    - list of featureVectors
      * @param silence - index of silence buffers
      */
-    public KMeansCluster(int k, int v, ArrayList<double[][]> data, ArrayList<int[]> silence) //k = the number of centroids
+    public KMeansCluster(int noOfCluster, int v, ArrayList<double[][]> data, ArrayList<int[]> silence) //noOfCluster = the number of centroids
     {
-        this.k = k;
-        this.v = v;
-        this.n = new int[k];
+        this.noOfCluster = noOfCluster;
+        this.featureDimension = v;
+        this.n = new int[noOfCluster];
         this.size = 0;
 
-        centroids = new double[k][v];
-        newCentroids = new double[k][v];
+        centroids = new double[noOfCluster][v];
+        newCentroids = new double[noOfCluster][v];
         for (int i = 0; i < data.size(); i++) {
             size += data.get(i).length;
         }
@@ -77,17 +74,17 @@ public class KMeansCluster {
     public void setListener(SpeakerDiaryClickListener mListener){
         this.mListener=mListener;
     }
-    public KMeansCluster(int k, int v, RealmList<VectorRealm> data, RealmList<IntegerRealm> silence) //k = the number of centroids
+    public KMeansCluster(int noOfCluster, int featureDimension, RealmList<VectorRealm> data, RealmList<IntegerRealm> silence) //noOfCluster = the number of centroids
     {
-        this.k = k;
-        this.v = v;
-        this.n = new int[k];
+        this.featureDimension=featureDimension;
+        this.noOfCluster = noOfCluster;
+        this.n = new int[noOfCluster];
         this.size = data.size();
 
-        centroids = new double[k][v];
-        newCentroids = new double[k][v];
+        centroids = new double[noOfCluster][featureDimension];
+        newCentroids = new double[noOfCluster][featureDimension];
 
-        classifiedData = new double[size][v];
+        classifiedData = new double[size][featureDimension];
         clusterNumber = new int[size];
         silenceNumber = new int[size];
 
@@ -106,6 +103,29 @@ public class KMeansCluster {
 
 
     }
+    public KMeansCluster(int noOfCluster, int featureDimension, double[][] data, RealmList<IntegerRealm> silence) //noOfCluster = the number of centroids
+    {
+        this.featureDimension=featureDimension;
+        this.noOfCluster = noOfCluster;
+        this.n = new int[noOfCluster];
+        this.size = data.length;
+
+        centroids = new double[noOfCluster][featureDimension];
+        newCentroids = new double[noOfCluster][featureDimension];
+
+        classifiedData = data;
+        clusterNumber = new int[size];
+        silenceNumber = new int[silence.size()];
+
+        int c = 0;
+        for (IntegerRealm i : silence) {
+            silenceNumber[c] = i.get();
+            c++;
+        }
+
+
+    }
+
 
     /**
      * K-Means++의 방식으로 초기 centroids값을 선정
@@ -116,7 +136,7 @@ public class KMeansCluster {
         cents.add(classifiedData[random.nextInt(classifiedData.length)]); //첫 centroids는 랜덤
         double[] d = new double[classifiedData.length];
 
-        while (cents.size() < k) { // 이후 가장 거리가 먼 점을 centroid로 선정
+        while (cents.size() < noOfCluster) { // 이후 가장 거리가 먼 점을 centroid로 선정
             for (int i = 0; i < classifiedData.length; i++) {
                 double dist = Math.pow(getFurthestCentroidDistance(classifiedData[i], cents), 2);
                 d[i] = dist;
@@ -125,8 +145,8 @@ public class KMeansCluster {
             cents.add(classifiedData[i]);
         }
 
-        for (int i = 0; i < k; i++) { //선정된 centroid 저장
-            for (int j = 0; j < v; j++) {
+        for (int i = 0; i < noOfCluster; i++) { //선정된 centroid 저장
+            for (int j = 0; j < featureDimension; j++) {
                 centroids[i][j] = cents.get(i)[j];
             }
         }
@@ -178,7 +198,7 @@ public class KMeansCluster {
         for (int i = 0; i < centroids.length; i++) { //for each centroid
             d = getDistance(datum, centroids[i]); // between cluster centroid and object
             if (d < min) { //current distance is less than the minimum distance
-                closestIndex = i; //k is now the location of the closest centroid
+                closestIndex = i; //noOfCluster is now the location of the closest centroid
                 min = d;
             }
         }
@@ -246,7 +266,7 @@ public class KMeansCluster {
             int realsize = endIndex - startIndex;
             filter = Arrays.copyOfRange(results, startIndex, endIndex);
             Arrays.sort(filter);
-            filteredResult[i] = filter[realsize * 2 / 3];
+            filteredResult[i] = filter[realsize/2];
         }
 
         return filteredResult;
@@ -291,33 +311,33 @@ public class KMeansCluster {
         //수렴 할때 까지 반복(최대 : threshHold)
         while (check == false) {
             boolean result = true;
-            for (int i = 0; i < k; i++) {
-                for (int j = 0; j < v; j++) {
+            for (int i = 0; i < noOfCluster; i++) {
+                for (int j = 0; j < featureDimension; j++) {
                     newCentroids[i][j] = 0;
                 }
             }
-            for (int i = 0; i < k; i++) {
+            for (int i = 0; i < noOfCluster; i++) {
                 n[i] = 0;
             }
 
             //모든 데이터에 대해서 가까운 centroid와의 거리를 구하고 평균을 계산
             for (int i = 0; i < classifiedData.length; i++) {
                 int count = getClosestCentroid(classifiedData[i]);
-                for (int j = 0; j < v; j++) {
+                for (int j = 0; j < featureDimension; j++) {
                     newCentroids[count][j] += classifiedData[i][j];
                 }
                 n[count]++;
             }
-            for (int i = 0; i < k; i++) {
-                for (int j = 0; j < v; j++) {
+            for (int i = 0; i < noOfCluster; i++) {
+                for (int j = 0; j < featureDimension; j++) {
                     newCentroids[i][j] = newCentroids[i][j] / n[i];
                 }
             }
 
 
             //centroids가 수렴햇거나, threshold를 넘어섰을 경우
-            for (int i = 0; i < k; i++) {
-                for (int j = 0; j < v; j++) {
+            for (int i = 0; i < noOfCluster; i++) {
+                for (int j = 0; j < featureDimension; j++) {
                     if (result == true) {
                         if (newCentroids[i][j] == centroids[i][j] || ++c > threshHold) {
                             check = true;
@@ -330,8 +350,8 @@ public class KMeansCluster {
                 }
             }
 
-            for (int i = 0; i < k; i++) {
-                System.arraycopy(newCentroids[i], 0, centroids[i], 0, v);
+            for (int i = 0; i < noOfCluster; i++) {
+                System.arraycopy(newCentroids[i], 0, centroids[i], 0, featureDimension);
             }
         }
         return centroids;
@@ -360,8 +380,9 @@ public class KMeansCluster {
             clusterNumber[i] = closest;
         }
 
-        getSilenceCluster();
-        LogUtil.print(clusterNumber, "kcluster");
+        //TODO
+//        getSilenceCluster();
+//        LogUtil.print(clusterNumber, "kcluster");
         clusterNumber = medianFilter(clusterNumber);
 
         LogUtil.print(clusterNumber, "kcluster");
@@ -370,7 +391,7 @@ public class KMeansCluster {
     }
 
     private void getSilenceCluster() {
-        int[] count = new int[k];
+        int[] count = new int[noOfCluster];
         for (int i = 0; i < clusterNumber.length; i++) {
             if (silenceNumber[i] == 1) {
                 count[clusterNumber[i]]++;
@@ -379,7 +400,7 @@ public class KMeansCluster {
 
         int max = -1;
         int maxIndex = -1;
-        for (int i = 0; i < k; i++) {
+        for (int i = 0; i < noOfCluster; i++) {
             if (count[i] > max) {
                 max = count[i];
                 maxIndex = i;
@@ -421,7 +442,7 @@ public class KMeansCluster {
         return maxIndex;
     }
 
-    public void applyClusterToRealm(int k, int[] results, final int fileId) {
+    public void applyClusterToRealm(int k, int[] results, final int fileId, float UNIT) {
 
         Realm realm = Realm.getDefaultInstance();
 
@@ -437,7 +458,6 @@ public class KMeansCluster {
 
         final RecordRealm[] fileRecord = {realm.where(RecordRealm.class).equalTo("id", fileId).findFirst()};
 
-        final float UNIT = 0.01f;
         /**************************************************************/
 
         if (fileRecord[0] != null) {
@@ -525,6 +545,8 @@ public class KMeansCluster {
         /**************************************************************/
 
     }
+
+
 
 
 }

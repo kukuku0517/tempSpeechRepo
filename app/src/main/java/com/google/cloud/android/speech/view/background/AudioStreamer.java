@@ -207,37 +207,8 @@ public class AudioStreamer {
                 Log.d(TAG, "buffer size : " + String.valueOf(info.size));
                 buf.get(chunk);
                 buf.clear();
-                mListener.onBufferRead(chunk); //TODO
+                mListener.onBufferRead(chunk,sampleRate); //TODO
 
-//                if (chunk.length > 0) {
-////                    if (chunk[0]!=0 && chunk[1]!=0) {
-//                    if (checkEmptyBytes(chunk)) {
-//                        float[] pcmFloat = floatMe(shortMe(chunk));
-//                        SpeechDiary speechDiary = new SpeechDiary();
-//
-//                        FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
-//
-//                        if (fv != null) {
-//                            for (double[] d : fv.getFeatureVector()) {
-//                            }
-//                            feature.add(fv.getFeatureVector());
-//                            silence.add(fv.getFeatureVector().length);
-//                        } else {
-//                            silence.add(0);
-//                        }
-//
-//
-////                    mAudioTrack.write(chunk, 0, chunk.length);
-////                    if (this.mState != State.Playing)
-////                    {
-////                        mAudioPlayerHandler.onAudioPlayerPlayerStart(AudioStreamPlayer.this);
-////                    }
-////                    this.mState = State.Playing;
-//                    } else {
-//                        Log.d("chunk", "asdflakwsef");
-//                    }
-//
-//                }
                 mMediaCodec.releaseOutputBuffer(outputBufIndex, false);
 
             } else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
@@ -255,7 +226,6 @@ public class AudioStreamer {
 
         mListener.onCompleted();
 
-//        new KMeansCluster(3, 13, feature, silence).iterRun(5);
 
         Log.d(TAG, "stopping...");
 

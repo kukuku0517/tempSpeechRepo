@@ -5,8 +5,6 @@ import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
@@ -21,8 +19,8 @@ import com.google.cloud.android.speech.data.DTO.MediaTimeDTO;
 import com.google.cloud.android.speech.data.DTO.ObservableDTO;
 import com.google.cloud.android.speech.data.DTO.RecordDTO;
 import com.google.cloud.android.speech.data.realm.ClusterDataRealm;
-import com.google.cloud.android.speech.data.realm.ClusterRealm;
 import com.google.cloud.android.speech.data.realm.FeatureRealm;
+import com.google.cloud.android.speech.data.realm.VectorRealm;
 import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
 import com.google.cloud.android.speech.diarization.KMeansCluster;
 import com.google.cloud.android.speech.event.SeekEvent;
@@ -44,8 +42,7 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.io.IOException;
-
-import javax.xml.transform.sax.TransformerHandler;
+import java.util.Arrays;
 
 import io.realm.Realm;
 import io.realm.RealmList;
@@ -107,6 +104,8 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
             }
         }
     }
+
+    int prev = -1;
 
 
     @Override
@@ -189,8 +188,9 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
                             count++;
                         }
 
-                        int index = (int) (progress / 0.01 / 1000);
-                        if (index < clusterArray.length) {
+                        int index = (int) (progress / 0.2 / 1000);
+
+                        if (index < clusterArray.length && clusterArray[index] != prev) {
                             switch (clusterArray[index]) {
                                 case 0:
                                     binding.toolbar.setBackgroundColor(Color.WHITE);
@@ -202,6 +202,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
                                     binding.toolbar.setBackgroundColor(Color.RED);
                                     break;
                             }
+                            prev = clusterArray[index];
                         }
                     }
 
@@ -352,7 +353,8 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
                 }
                 LogUtil.print(sil, "silence");
 
-                KMeansCluster cluster = new KMeansCluster(3, 13, feature.getFeatureVectors(), feature.getSilence());
+//                KMeansCluster cluster = new KMeansCluster(3, feature.getFeatureVectors(), feature.getSilence());
+                KMeansCluster cluster = new KMeansCluster(3,dimension*2,getMidTermFeatureVectors(feature.getFeatureVectors()),feature.getSilence());
                 cluster.setListener(new SpeakerDiaryClickListener() {
                     @Override
                     public void onSpeakerDiaryComplete() {
@@ -371,7 +373,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
                 });
                 try {
                     results = cluster.iterRun(20);
-                    cluster.applyClusterToRealm(3, results, recordId);
+                    cluster.applyClusterToRealm(3, results, recordId, 0.2f);
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -382,6 +384,66 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     }
 
+
+    private static final float shortWindowSize = 0.025f;
+    private static final float shortWindowStep = 0.010f;
+    private static final float midWindowSize = 2.0f;
+    private static final float midWindowStep = 0.2f;
+    private static final int dimension = 21;
+
+    public double[][] getMidTermFeatureVectors(RealmList<VectorRealm> shortTermFeatureVectors) {
+        int windowRatio = (int) (midWindowSize / shortWindowStep);
+        int stepRatio = (int) (midWindowStep / shortWindowStep);
+        int len = shortTermFeatureVectors.size();
+        int count = 0;
+        int noOfFrames = (int) Math.ceil(len / stepRatio);
+        double[][] mtFeature = new double[noOfFrames][dimension * 2];
+        for(int i=0;i<noOfFrames;i++){
+            Arrays.fill(mtFeature[i],0.0d);
+        }
+        int start;
+        int end;
+        int sLen;
+
+        double stFeatures[][] = new double[len][dimension];
+        double stFeaturesSquare[][] = new double[len][dimension];
+
+        double temp;
+        for(int i=0;i<len;i++){
+            VectorRealm vectorRealm = shortTermFeatureVectors.get(i);
+            for(int j=0;j<dimension;j++){
+                temp=vectorRealm.getFeatureVector().get(j).get();
+                stFeatures[i][j]=temp;
+                stFeaturesSquare[i][j]=temp*temp;
+            }
+        }
+
+        for (int i = 0; i < noOfFrames; i++) {
+            start = count;
+            end = count + windowRatio;
+            if (end > len - 1) end = len - 1;
+            sLen = end - start;
+            for (int j = start; j < end; j++) {
+                for (int k = 0; k < dimension; k++) {
+                    mtFeature[i][k] += stFeatures[j][k]/sLen;
+                }
+            }
+
+            for (int j = start; j < end; j++) {
+                for (int k = 0; k < dimension; k++) {
+                    mtFeature[i][k + dimension] += Math.pow(stFeatures[j][k],2) / sLen;
+                }
+            }
+
+            for (int k = 0; k < dimension; k++) {
+                mtFeature[i][k + dimension] = Math.sqrt(mtFeature[i][k + dimension] - Math.pow(mtFeature[i][k], 2));
+            }
+
+            count += stepRatio;
+        }
+
+        return mtFeature;
+    }
 
 }
 

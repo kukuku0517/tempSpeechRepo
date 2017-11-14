@@ -253,11 +253,11 @@ public class SpeechService extends Service {
         }
 
         @Override
-        public void onBufferRead(byte[] buffer) {
+        public void onBufferRead(byte[] buffer,int sampleRate) {
             if (buffer.length > 0) {
                 if (checkEmptyBytes(buffer)) {
                     float[] pcmFloat = floatMe(shortMe(buffer));
-                    SpeechDiary speechDiary = new SpeechDiary(fileId);
+                    SpeechDiary speechDiary = new SpeechDiary(fileId,sampleRate);
                     FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
                     if (fv != null) {
                         collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), fileId);
@@ -340,7 +340,8 @@ public class SpeechService extends Service {
             try {
                 Realm realm = Realm.getDefaultInstance();
                 FeatureRealm feature = realm.where(FeatureRealm.class).equalTo("id", recordId).findFirst();
-                results = new KMeansCluster(3, 13, feature.getFeatureVectors(), feature.getSilence()).iterRun(20);
+                results = new KMeansCluster(3, 21,feature.getFeatureVectors(), feature.getSilence()).iterRun(20);
+
                 applyClusterToRealm(3, results, recordId);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -601,7 +602,7 @@ public class SpeechService extends Service {
 
         if (checkEmptyBytes(data)) {
             float[] pcmFloat = floatMe(shortMe(data));
-            SpeechDiary speechDiary = new SpeechDiary(recordId);
+            SpeechDiary speechDiary = new SpeechDiary(recordId,fileSampleRate);
             FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
             if (fv != null) {
                 collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), recordId);

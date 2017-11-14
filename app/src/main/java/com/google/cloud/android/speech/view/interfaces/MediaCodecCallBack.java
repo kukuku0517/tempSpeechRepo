@@ -6,6 +6,6 @@ package com.google.cloud.android.speech.view.interfaces;
 
 public interface MediaCodecCallBack {
     void onReset();
-    void onBufferRead(byte[] buffer);
+    void onBufferRead(byte[] buffer,int sampleRate);
     void onCompleted();
 }

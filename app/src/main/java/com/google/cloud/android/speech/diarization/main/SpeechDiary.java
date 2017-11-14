@@ -15,17 +15,15 @@ import java.util.List;
 
 public class SpeechDiary {
 
-    private static final int SAMPLING_RATE = 44100; // (int) fc.getRate();
-    private static final int SAMPLE_PER_FRAME = 1024; // 512,23.22ms
-    private static final int FEATURE_DIMENSION = 39;
+    private int sampleRate;
+    private static final int FEATURE_DIMENSION = 21;
     private FeatureExtract featureExtract;
     private PreProcess prp;
-    private int id;
 
     public FeatureVector extractFeatureFromFile(float[] arrAmp) {
-        prp = new PreProcess(arrAmp, SAMPLING_RATE);
-        if (prp.framedSignal[0].length >= SAMPLE_PER_FRAME && prp.framedSignal.length > 1) {
-            featureExtract = new FeatureExtract(prp.framedSignal, SAMPLING_RATE, SAMPLE_PER_FRAME);
+        prp = new PreProcess(arrAmp, sampleRate);
+        if (prp.framedSignal.length > 1) {
+            featureExtract = new FeatureExtract(prp.framedSignal, sampleRate, FEATURE_DIMENSION);
             featureExtract.makeMfccFeatureVector();
             featureExtract.setSilence(arrAmp);
             return featureExtract.getFeatureVector();
@@ -34,7 +32,7 @@ public class SpeechDiary {
         }
     }
 
-    public SpeechDiary(int id) {
-        this.id = id;
+    public SpeechDiary(int id,int sampleRate) {
+        this.sampleRate=sampleRate;
     }
 }
