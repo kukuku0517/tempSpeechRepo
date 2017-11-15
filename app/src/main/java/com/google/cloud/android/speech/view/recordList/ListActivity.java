@@ -23,6 +23,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import com.google.cloud.android.speech.data.realm.TagRealm;
+import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
 import com.google.cloud.android.speech.event.FileEvent;
 import com.google.cloud.android.speech.view.recordList.fragment.ProcessListFragment;
 import com.google.cloud.android.speech.view.recordList.fragment.ResultListFragment;
@@ -33,6 +35,8 @@ import com.google.cloud.android.speech.databinding.ActivityListBinding;
 
 
 import org.greenrobot.eventbus.EventBus;
+import org.parceler.Parcel;
+import org.parceler.Parcels;
 
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -40,7 +44,7 @@ import java.util.StringTokenizer;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 
-public class ListActivity extends AppCompatActivity implements  NewRecordDialog.NewRecordDialogListener {
+public class ListActivity extends AppCompatActivity implements NewRecordDialog.NewRecordDialogListener {
 
 
     ActivityListBinding binding;
@@ -154,7 +158,7 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
         if (realm == null) {
             realm.init(this);
             RealmConfiguration config = new RealmConfiguration.Builder()
-//                    .deleteRealmIfMigrationNeeded()
+                    .deleteRealmIfMigrationNeeded()
                     .build();
             Realm.setDefaultConfiguration(config);
             realm = Realm.getDefaultInstance();
@@ -210,27 +214,20 @@ public class ListActivity extends AppCompatActivity implements  NewRecordDialog.
     private static final int REQUEST_FILE_AUDIO_PERMISSION = 2;
 
 
-    public void openDialog(int permission){
-            NewRecordDialog dialog = new NewRecordDialog();
-            dialog.setRequestCode(permission);
-            dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
+    public void openDialog(int permission) {
+        NewRecordDialog dialog = new NewRecordDialog();
+        dialog.setRequestCode(permission);
+        dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
     }
 
     @Override
-    public void onDialogPositiveClick(String title, String tag, int requestCode) {
-        StringTokenizer st = new StringTokenizer(tag);
-        final ArrayList<String> tags = new ArrayList<>();
-        while (st.hasMoreTokens()) {
-            tags.add(st.nextToken());
-        }
-
+    public void onDialogPositiveClick(String title, ArrayList<Integer> tags, int requestCode) {
 
         if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
-//            mSpeechService.initSpeechRecognizing(title, tags);
             Intent intent = new Intent(this, RecordActivity.class);
             intent.putExtra("title", title);
-            intent.putExtra("tags", tags);
-startActivity(intent);
+            intent.putExtra("tags", Parcels.wrap(tags));
+            startActivity(intent);
 
         } else if (requestCode == REQUEST_FILE_AUDIO_PERMISSION) {
 
@@ -264,7 +261,7 @@ startActivity(intent);
     }
 
     String tempTitle;
-    ArrayList<String> tempTags;
+    ArrayList<Integer> tempTags;
 
     @Override
     public void onDialogNegativeClick() {
@@ -409,7 +406,7 @@ startActivity(intent);
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case AUDIO_FILE_REQUEST:
-                if(data!=null){
+                if (data != null) {
                     String audioPath = getPath(getBaseContext(), data.getData());
                     Log.i(TAG, audioPath);
                     binding.vpList.setCurrentItem(1);
@@ -428,7 +425,7 @@ startActivity(intent);
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch(item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.action_search:
                 Toast.makeText(this, R.string.ready, Toast.LENGTH_SHORT).show();
                 mSpeechService.stopForeground(true);

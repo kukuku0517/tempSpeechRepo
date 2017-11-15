@@ -4,7 +4,8 @@
     <!--시크바 배경-->
     <item android:id="@android:id/background">
         <shape android:shape="rectangle">
-            <solid android:color="@color/gray" />
+            <solid android:color="@color/gray_transparent" />
+
         </shape>
 
     </item>
@@ -12,6 +13,9 @@
         <clip>
             <shape android:shape="rectangle">
                 <solid android:color="@color/naver_green" />
+                <!--<gradient-->
+                    <!--android:startColor="@color/naver_green"-->
+                    <!--android:endColor="@color/naver_green_light"/>-->
             </shape>
         </clip>
     </item>

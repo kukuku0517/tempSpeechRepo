@@ -46,7 +46,7 @@ public class RecordRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
 
         SentenceRealm sentenceRealm = getItem(position);
         holder.binding.setSentence(sentenceRealm);
-        Log.i(TAG, DateUtil.durationToDate((int) sentenceRealm.getStartMillis()));
+        Log.i(TAG, DateUtil.durationToTextFormat((int) sentenceRealm.getStartMillis()));
 
 
     }

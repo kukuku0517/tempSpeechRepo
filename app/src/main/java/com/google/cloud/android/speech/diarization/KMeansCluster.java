@@ -417,8 +417,8 @@ public class KMeansCluster {
 
     }
 
-    private  int getClusterForWord(WordRealm word, int[] clusters, int err) {
-        int UNIT = (int) (1000 * 0.01);
+    private  int getClusterForWord(WordRealm word, int[] clusters, int err, float unit) {
+        int UNIT = (int) (1000 * unit);
         int noOfCluster = 3;
 //        err=0;
         int start = (int) ((word.getStartMillis() + err) / UNIT);
@@ -442,7 +442,7 @@ public class KMeansCluster {
         return maxIndex;
     }
 
-    public void applyClusterToRealm(int k, int[] results, final int fileId, float UNIT) {
+    public void applyClusterToRealm(int k, int[] results, final int fileId, float unit) {
 
         Realm realm = Realm.getDefaultInstance();
 
@@ -465,7 +465,7 @@ public class KMeansCluster {
             int sentenceIndex = 0;
             int err = 0;
             for (int i : results) {
-                if (i == 0) err += UNIT * 1000;
+                if (i == 0) err += unit * 1000;
                 else break;
             }
             int clusterIndx;
@@ -478,7 +478,7 @@ public class KMeansCluster {
 
                 for (int i = 0; i < sentence.getWordList().size(); i++) {
                     WordRealm word = sentence.getWordList().get(i);
-                    clusterIndx = getClusterForWord(word, results, err);
+                    clusterIndx = getClusterForWord(word, results, err,unit);
                     realm.beginTransaction();
                     ClusterRealm cluster;
                     if (!record.hasCluster(clusterIndx)) {

@@ -4,11 +4,14 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -93,6 +96,7 @@ public class RealmSpannableTextView extends android.support.v7.widget.AppCompatT
             RealmClickableSpan span = new RealmClickableSpan() {
                 @Override
                 public void onClick(View widget) {
+
                     realm.beginTransaction();
                     word.setHighlight(!word.isHighlight());
                     realm.commitTransaction();
@@ -109,14 +113,14 @@ public class RealmSpannableTextView extends android.support.v7.widget.AppCompatT
 
             builder.setSpan(span, startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             if (word.isHighlight()) {
-                builder.setSpan(new ForegroundColorSpan(Color.WHITE), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                builder.setSpan(new BackgroundColorSpan(getResources().getColor(R.color.naver_green)), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+//                builder.setSpan(new ForegroundColorSpan(Color.WHITE), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+//                builder.setSpan(new BackgroundColorSpan(getResources().getColor(R.color.highlight)), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                builder.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.highlight)), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                builder.setSpan(new StyleSpan(Typeface.BOLD), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+//                builder.setSpan(new RelativeSizeSpan(1.1f), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+//                builder.setSpan(new BackgroundColorSpan(getResources().getColor(R.color.highlight)), startIndex, startIndex + word.getWord().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-
             startIndex += word.getWord().length() + 1;
         }
-
     }
-
-
 }

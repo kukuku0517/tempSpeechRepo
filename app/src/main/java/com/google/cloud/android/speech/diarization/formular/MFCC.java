@@ -84,11 +84,18 @@ public class MFCC {
         return feature;
     }
 
+
+    int frameLengthPowOfTwo=1024;
+
     private double[] magnitudeSpectrum(float frame[]) {
-        magSpectrum = new double[1024 / 2 + 1];
-        fft = new FFT(1024);
+        //int len =1024;
+
+        frameLengthPowOfTwo = frame.length;
+        frameLengthPowOfTwo = Integer.highestOneBit(frameLengthPowOfTwo);
+        magSpectrum = new double[frameLengthPowOfTwo/ 2 + 1];
+        fft = new FFT(frameLengthPowOfTwo);
         fft.fft(frame);
-        for (int k = 0; k < 1024 / 2 + 1; k++) {
+        for (int k = 0; k < frameLengthPowOfTwo / 2 + 1; k++) {
 //            magSpectrum[k] = (fft.re[k] * fft.re[k] + fft.im[k] * fft.im[k]) / (1024);
             magSpectrum[k] = Math.sqrt(fft.re[k] * fft.re[k] + fft.im[k] * fft.im[k]);
 
@@ -98,7 +105,7 @@ public class MFCC {
 
 
     private int[] fftBinIndices() {
-        int samplePerFrame = 1024;
+        int samplePerFrame = frameLengthPowOfTwo;
         int cbin[] = new int[numMelFilters + 2];
         cbin[0] = (int) Math.round(lowerFilterFreq / samplingRate * samplePerFrame);// cbin0
         cbin[cbin.length - 1] = (samplePerFrame / 2);// cbin24

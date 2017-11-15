@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+        <import type="android.view.View" />
 
         <variable
             name="sentenceString"
@@ -29,87 +30,79 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="4dp"
-        app:focus="@{focus}">
+        android:background="@drawable/background_underline"
+        android:orientation="horizontal"
+        android:paddingBottom="1dp"
+        >
 
-        <FrameLayout
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            android:layout_marginRight="4dp">
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:orientation="vertical">
 
             <ImageView
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:layout_gravity="center_vertical"
+
+                android:onClick="@{handler::onClickCluster}"
                 android:src="@drawable/ic_account_circle_black_24dp"
-                app:clusterColor="@{sentence.cluster.clusterNo}"
-                android:onClick="@{handler::onClickCluster}"/>
+                android:tint="@color/light_gray" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal|center_vertical"
-                android:textSize="18dp"
+                android:textSize="12dp"
                 android:textStyle="bold"
-                app:clusterNumber="@{String.valueOf(sentence.cluster.clusterNo)}"
-                tools:text="asdf" />
+                android:visibility="@{sentence.cluster.name.length()==0?View.GONE:View.VISIBLE}"
+                app:clusterNumber="@{sentence.cluster.name}" />
 
-        </FrameLayout>
+        </LinearLayout>
 
+        <ImageView
+            android:layout_width="8dp"
+            android:layout_height="match_parent"
+            app:clusterColor="@{sentence.cluster.clusterNo}" />
 
-        <android.support.v7.widget.CardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="8dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="8dp">
 
-            android:layout_gravity="center_vertical"
-            android:orientation="vertical">
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/tv_start"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:textColor="@color/light_gray"
+                android:textSize="12sp"
+                app:durationText="@{sentence.startMillis}"
+                tools:text="1 min 10 sec" />
+
+
+            <com.google.cloud.android.speech.view.customView.RealmSpannableTextView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:padding="10dp">
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/black"
+                android:textSize="16sp"
+                app:focus="@{focus}"
+                app:sid="@{sentence.id}"
+                tools:text="this is an example " />
 
 
-                <com.google.cloud.android.speech.view.customView.RealmSpannableTextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:sid="@{sentence.id}"
-                    tools:text="this is an example text" />
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <TextView
-                        android:id="@+id/tv_start"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentLeft="true"
-                        app:sentenceTime="@{sentence.startMillis}"
-                        tools:text="00" />
-
-                    <TextView
-                        android:id="@+id/tv_dash"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_toRightOf="@id/tv_start"
-                        android:text="~" />
-
-                    <TextView
-                        android:id="@+id/tv_end"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_toRightOf="@id/tv_dash"
-                        app:sentenceTime="@{sentence.endMillis}"
-                        tools:text="00" />
-
-
-                </RelativeLayout>
-
-            </LinearLayout>
-        </android.support.v7.widget.CardView>
+        </LinearLayout>
     </LinearLayout>
 
 

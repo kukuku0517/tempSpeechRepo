@@ -4,18 +4,16 @@ import android.content.Context;
 import android.databinding.BindingAdapter;
 import android.databinding.DataBindingUtil;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
-import android.text.style.ClickableSpan;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
-import com.google.cloud.android.speech.data.realm.WordRealm;
 import com.google.cloud.android.speech.util.DateUtil;
 import com.google.cloud.android.speech.databinding.ItemRecordResultBinding;
 import com.google.cloud.android.speech.view.recordResult.handler.ClusterItemClickListener;
@@ -42,7 +40,7 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
         StringBuilder s = new StringBuilder();
 
         binding.setSentenceString(s.toString());
-        binding.setSentenceTime(DateUtil.durationToDate((int) sentenceRealm.getStartMillis()));
+        binding.setSentenceTime(DateUtil.durationToTextFormat((int) sentenceRealm.getStartMillis()));
         binding.setSentence(sentenceRealm);
         binding.setHandler(this);
         this.sentenceRealm = sentenceRealm;
@@ -54,11 +52,14 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
     }
 
     @BindingAdapter("focus")
-    public static void setFocus(LinearLayout v, boolean focus) {
-        if (focus)
-            v.setBackgroundColor(context.getResources().getColor(R.color.naver_green));
-        else
-            v.setBackgroundColor(Color.WHITE);
+    public static void setFocus(TextView v, boolean focus) {
+        if (focus) {
+            v.setTextColor(context.getResources().getColor(R.color.text_black));
+            v.setTypeface(null, Typeface.BOLD);
+        } else {
+            v.setTextColor(context.getResources().getColor(R.color.text_gray));
+            v.setTypeface(null, Typeface.NORMAL);
+        }
     }
 
     @BindingAdapter("clusterNumber")
@@ -73,10 +74,10 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
                 v.setColorFilter(Color.WHITE);
                 break;
             case 1:
-                v.setColorFilter(Color.CYAN);
+                v.setBackgroundColor(ContextCompat.getColor(context, R.color.cluster_a));
                 break;
             case 2:
-                v.setColorFilter(Color.GREEN);
+                v.setBackgroundColor(ContextCompat.getColor(context, R.color.cluster_b));
                 break;
         }
     }

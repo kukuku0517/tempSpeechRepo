@@ -7,6 +7,7 @@ import android.widget.TextView;
 
 import com.google.cloud.android.speech.BR;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
+import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.data.realm.primitive.StringRealm;
 import com.google.cloud.android.speech.util.DateUtil;
 
@@ -21,7 +22,7 @@ import io.realm.Realm;
 public class RecordDTO extends BaseObservable {
     private String title = "";
     private int duration = 0;
-    private ArrayList<String> tagList = new ArrayList<>();
+    private ArrayList<TagRealm> tagList = new ArrayList<>();
     private long startMillis = -1;
     private String filePath;
 
@@ -46,25 +47,14 @@ public class RecordDTO extends BaseObservable {
         this.duration = recordRealm.getDuration();
         setStartMillis(recordRealm.getStartMillis());
         setFilePath(recordRealm.getFilePath());
-        ArrayList<String> temp = new ArrayList<>();
-        for (StringRealm s : recordRealm.getTagList()) {
-            temp.add(s.getString());
+        ArrayList<TagRealm> temp = new ArrayList<>();
+        for (TagRealm s : recordRealm.getTagList()) {
+            temp.add(s);
         }
         setTagList(temp);
     }
 
-    public static RecordRealm toRealm(RecordDTO recordDTO) {
-        Realm realm = Realm.getDefaultInstance();
-        realm.beginTransaction();
-        RecordRealm recordRealm = realm.createObject(RecordRealm.class);
-        recordRealm.setTitle(recordDTO.getTitle());
-        recordRealm.setDuration(recordDTO.getDuration());
-        recordRealm.setTagList(recordDTO.getTagList());
-        recordRealm.setStartMillis(recordDTO.getStartMillis());
-        recordRealm.setFilePath(recordDTO.getFilePath());
-        realm.commitTransaction();
-        return recordRealm;
-    }
+
 
     @Bindable
     public String getTitle() {
@@ -77,7 +67,7 @@ public class RecordDTO extends BaseObservable {
     }
 
     @Bindable
-    public ArrayList<String> getTagList() {
+    public ArrayList<TagRealm> getTagList() {
         return tagList;
     }
 
@@ -96,7 +86,7 @@ public class RecordDTO extends BaseObservable {
         notifyPropertyChanged(BR.duration);
     }
 
-    public void setTagList(ArrayList<String> tagList) {
+    public void setTagList(ArrayList<TagRealm> tagList) {
         this.tagList = tagList;
         notifyPropertyChanged(BR.tagList);
     }
@@ -106,17 +96,6 @@ public class RecordDTO extends BaseObservable {
         notifyPropertyChanged(BR.startMillis);
     }
 
-    @BindingAdapter("android:text")
-    public static void setText(TextView view, int value) {
-        String timeString = DateUtil.durationToDate(value);
-        view.setText(timeString);
-    }
-
-    @BindingAdapter("android:text")
-    public static void setText(TextView view, long value) {
-        String timeString = DateUtil.millisToDate(value);
-        view.setText(timeString);
-    }
 
 
 }

@@ -40,7 +40,7 @@ public class MediaTimeDTO extends BaseObservable {
 
     @BindingAdapter("android:text")
     public static void setText(TextView v, int value) {
-        String timeString = DateUtil.durationToDate(value);
+        String timeString = DateUtil.durationToTextFormat(value);
         v.setText(timeString);
     }
 }

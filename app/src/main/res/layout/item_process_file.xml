@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
 
@@ -45,7 +46,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/tv_title"
-                android:text="@{record.startMillis}"
+                app:dateText="@{record.startMillis}"
                 android:padding="4dp"
                 android:layout_marginRight="4dp"
                 tools:text="2017/10/13" />
@@ -71,7 +72,7 @@
                 android:padding="4dp"
                 android:textColor="#fff"
                 android:layout_toRightOf="@id/tv_duration"
-                android:text="@{record.tagList[0]}"
+                android:text="@{record.tagList[0].getName}"
                 tools:text="Marketing / Lecture"
                 android:background="@drawable/layout_round"/>
 

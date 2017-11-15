@@ -24,6 +24,7 @@ import com.google.cloud.android.speech.data.realm.ClusterRealm;
 import com.google.cloud.android.speech.data.realm.FeatureRealm;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
+import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.data.realm.VectorRealm;
 import com.google.cloud.android.speech.data.realm.WordRealm;
 import com.google.cloud.android.speech.diarization.FeatureVector;
@@ -428,7 +429,7 @@ public class SpeechService extends Service {
         return ((SpeechBinder) binder).getService();
     }
 
-    public void initSpeechRecognizing(final String title, final ArrayList<String> tags) {
+    public void initSpeechRecognizing(final String title, final ArrayList<Integer> tags) {
         startForeground();
 
         startOfRecording = System.currentTimeMillis();
@@ -437,7 +438,11 @@ public class SpeechService extends Service {
             @Override
             public void execute(Realm realm) {
                 record.setTitle(title);
-                record.setTagList(tags);
+                for(int i:tags){
+                    TagRealm tagRealm =realm.where(TagRealm.class).equalTo("id",i).findFirst();
+                    tagRealm.setCount(tagRealm.getCount()+1);
+                    fileRecord.addTagList(tagRealm);
+                }
                 record.setFilePath(FileUtil.getFilename(title));
                 record.setStartMillis(startOfRecording);
                 recordId = record.getId();
@@ -545,7 +550,7 @@ public class SpeechService extends Service {
         return false;
     }
 
-    public void recognizeFileStream(final String title, final ArrayList<String> tags, final String fileName) {
+    public void recognizeFileStream(final String title, final ArrayList<Integer> tags, final String fileName) {
 
 
         startForeground();
@@ -561,8 +566,10 @@ public class SpeechService extends Service {
                 @Override
                 public void execute(Realm realm) {
                     fileRecord.setTitle(title);
-                    fileRecord.setTagList(tags);
                     fileRecord.setFilePath(fileName);
+                    for(int i:tags){
+                        fileRecord.addTagList(realm.where(TagRealm.class).equalTo("id",i).findFirst());
+                    }
                 }
             });
 
@@ -600,6 +607,7 @@ public class SpeechService extends Service {
                 .setAudioContent(ByteString.copyFrom(data, 0, size))
                 .build());
 
+        //TODO
         if (checkEmptyBytes(data)) {
             float[] pcmFloat = floatMe(shortMe(data));
             SpeechDiary speechDiary = new SpeechDiary(recordId,fileSampleRate);
@@ -624,9 +632,6 @@ public class SpeechService extends Service {
                 RecordRealm record = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
 
                 SentenceRealm sentence = new RealmUtil().createObject(realm, SentenceRealm.class);
-//                sentence.setSentence(text);
-//                long startOfSentence = startOfCall - startOfRecording;
-//                sentence.setStartMillis((int) (startOfSentence));
                 Words[] words = alternative.getWords();
 
                 for (int i = 0; i < words.length; i++) {
@@ -680,7 +685,7 @@ public class SpeechService extends Service {
                 RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
 
                 SentenceRealm sentence = new RealmUtil().createObject(realm, SentenceRealm.class);
-                sentence.setSentence(text);
+
                 long startOfSentence = startOfCall - startOfRecording;
                 sentence.setStartMillis((int) (startOfSentence));
                 List<WordInfo> words = alternative.getWordsList();
@@ -712,7 +717,7 @@ public class SpeechService extends Service {
                 }
 
                 sentence.setEndMillis(sentence.getWordList().get(count - 1).getStartMillis());
-
+                sentence.setSentence();
                 record.getSentenceRealms().add(sentence);
                 realm.commitTransaction();
 

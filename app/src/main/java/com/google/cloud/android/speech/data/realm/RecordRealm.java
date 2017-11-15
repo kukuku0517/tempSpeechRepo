@@ -24,10 +24,20 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
     private long startMillis = -1;
     private boolean converted = false;
 
-    private RealmList<StringRealm> tagList = new RealmList<>();
+    private RealmList<TagRealm> tagList = new RealmList<>();
     private RealmList<SentenceRealm> sentenceList = new RealmList<>();
     private RealmList<ClusterRealm> clusterMembers = new RealmList<>();
     private RealmList<IntegerRealm> cluster = new RealmList<>();
+
+    @Override
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(int id) {
+        this.id = id;
+    }
 
     public RealmList<IntegerRealm> getCluster() {
         return cluster;
@@ -37,6 +47,7 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         this.cluster = cluster;
     }
 
+
     public void setCluster(int[] cluster) {
         for(int i:cluster){
             IntegerRealm integerRealm = new IntegerRealm();
@@ -44,7 +55,6 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
             this.cluster.add(integerRealm);
         }
     }
-
 
     public RealmList<ClusterRealm> getClusterMembers() {
         return clusterMembers;
@@ -54,11 +64,11 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         this.clusterMembers = clusterMembers;
     }
 
+
     public boolean isConverted() {
         return converted;
 
     }
-
 
     public void setConverted(boolean converted) {
         this.converted = converted;
@@ -80,16 +90,6 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
 
     }
 
-    @Override
-    public int getId() {
-        return id;
-    }
-
-    @Override
-    public void setId(int id) {
-        this.id = id;
-    }
-
     public RealmList<SentenceRealm> getSentenceRealms() {
         return sentenceList;
     }
@@ -101,11 +101,6 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
     public RecordRealm() {
     }
 
-    public RecordRealm(String title, int duration, ArrayList<String> tagList) {
-        this.title = title;
-        this.duration = duration;
-        setTagList(tagList);
-    }
 
     public String getTitle() {
         return title;
@@ -131,7 +126,7 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         this.duration = duration;
     }
 
-    public RealmList<StringRealm> getTagList() {
+    public RealmList<TagRealm> getTagList() {
 
         return tagList;
     }
@@ -144,10 +139,13 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         }
         return null;
     }
-    public void setTagList(ArrayList<String> tagList) {
-        for (String s : tagList) {
-            this.tagList.add(new StringRealm(s));
+
+
+    public void addTagList(TagRealm tag){
+        for(TagRealm t:tagList){
+            if(t.getId()==tag.getId())return;
         }
+        tagList.add(tag);
     }
 
     public void cascadeDelete() {

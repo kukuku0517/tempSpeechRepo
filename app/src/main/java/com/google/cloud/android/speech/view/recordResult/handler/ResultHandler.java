@@ -13,4 +13,5 @@ public interface ResultHandler {
     void onClickForward(View v);
     void onClickLoop(View v);
     void onClickDiary(View v);
+    void onClickDelete(View v);
 }

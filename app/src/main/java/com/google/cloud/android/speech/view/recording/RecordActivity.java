@@ -45,6 +45,7 @@ import com.google.cloud.android.speech.view.background.SpeechService;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.parceler.Parcels;
 
 import java.util.ArrayList;
 
@@ -75,7 +76,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     String title;
 
 
-    ArrayList<String> tags = new ArrayList<>();
+    ArrayList<Integer> tags = new ArrayList<>();
 
 
     @Override
@@ -95,7 +96,8 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         setContentView(R.layout.activity_record);
         EventBus.getDefault().register(this);
         title = getIntent().getStringExtra("title");
-        tags = getIntent().getStringArrayListExtra("tags");
+
+        tags = Parcels.unwrap(getIntent().getParcelableExtra("tags"));
 
         realm = Realm.getDefaultInstance();
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
@@ -234,7 +236,6 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 .newInstance(getString(R.string.permission_message))
                 .show(getSupportFragmentManager(), FRAGMENT_MESSAGE_DIALOG);
     }
-
 
 
     @Override

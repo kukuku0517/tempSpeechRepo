@@ -85,29 +85,8 @@ public class SentenceRealm extends RealmObject implements PrimaryRealm {
 //
 //    @BindingAdapter("android:text")
 //    public static void setText(TextView v, int value) {
-//        v.setText(DateUtil.durationToDate(value));
+//        v.setText(DateUtil.durationToTextFormat(value));
 //    }
-
-    @BindingAdapter("sentenceTime")
-    public static void setSentence(TextView v, long value) {
-        v.setText(DateUtil.durationToDate((int) value));
-    }
-
-    @BindingAdapter("duration")
-    public static void setDuration(TextView v, long value) {
-        v.setText(DateUtil.durationToDate((int) value));
-    }
-
-    @BindingAdapter("date")
-    public static void setDate(TextView v, long value) {
-        v.setText(DateUtil.millisToDate(value));
-    }
-
-    @BindingAdapter("dateTime")
-    public static void setDateTime(TextView v, long value) {
-        v.setText(DateUtil.millisToTime((int) value));
-    }
-
 
 
 }

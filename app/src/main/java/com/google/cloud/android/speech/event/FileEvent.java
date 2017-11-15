@@ -8,14 +8,14 @@ import java.util.ArrayList;
 
 public class FileEvent {
     private String title;
-    private ArrayList<String> tags;
+    private ArrayList<Integer> tags;
     private String filePath;
 
     public String getTitle() {
         return title;
     }
 
-    public ArrayList<String> getTags() {
+    public ArrayList<Integer> getTags() {
         return tags;
     }
 
@@ -23,7 +23,7 @@ public class FileEvent {
         return filePath;
     }
 
-    public FileEvent(String title, ArrayList<String>tags, String filePath){
+    public FileEvent(String title, ArrayList<Integer>tags, String filePath){
         this.title=title;
         this.tags=tags;
         this.filePath = filePath;

@@ -45,7 +45,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     private int mPageNumber;
     private SpeechService mSpeechService;
     private String title;
-    private ArrayList<String> tags;
+    private ArrayList<Integer> tags;
     private String filePath;
 
     public ProcessListFragment() {
@@ -119,6 +119,10 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         realm = ((ListActivity) getActivity()).realm;
+        if(realm==null){
+            ((ListActivity) getActivity()).realm=Realm.getDefaultInstance();
+            realm=    ((ListActivity) getActivity()).realm;
+        }
         mPageNumber = getArguments().getInt("page");
         EventBus.getDefault().register(this);
 

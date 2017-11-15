@@ -1,22 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<layout>
 
-    <EditText
-        android:id="@+id/et_new_record_title"
+    <data>
+
+        <variable
+            name="handler"
+            type="com.google.cloud.android.speech.view.recordList.handler.DialogHandler" />
+    </data>
+
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:hint="제목을 입력하세요"
-        />
-    <EditText
-        android:id="@+id/et_new_record_tag"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:hint="태그를 입력하세요"
-        />
-</LinearLayout>
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <ImageButton
+            android:id="@+id/iv_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:layout_margin="8dp"
+            android:onClick="@{handler::onClickCancel}"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_close_black_24dp"
+            android:tint="@color/gray" />
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/iv_cancel"
+
+            android:gravity="center_horizontal"
+            android:text="TITLE" />
+
+        <EditText
+            android:id="@+id/et_new_record_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tv_title"
+            android:ems="10"
+
+            android:inputType="textPersonName" />
+
+        <TextView
+            android:id="@+id/tv_tag"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/et_new_record_title"
+            android:gravity="center_horizontal"
+            android:text="TAGS" />
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_add_tags"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tv_tag" />
+
+        <RelativeLayout
+            android:id="@+id/ll_add_tag"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/rv_add_tags"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/et_new_record_tag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_toLeftOf="@+id/btn_add_tag"
+                android:ems="10"
+                android:hint="태그 추가하기"
+                android:inputType="textPersonName" />
+
+            <ImageButton
+                android:id="@+id/btn_add_tag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:background="@android:color/transparent"
+                android:onClick="@{handler::onClickTagAdd}"
+                android:src="@drawable/ic_add_circle_black_24dp"
+                android:tint="@color/gray" />
+        </RelativeLayout>
+
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_origin_tags"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/ll_add_tag" />
+
+        <ImageButton
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:layout_below="@id/rv_origin_tags"
+            android:layout_centerHorizontal="true"
+            android:onClick="@{handler::onClickStart}"
+            android:src="@drawable/voice_icon" />
+    </RelativeLayout>
+</layout>

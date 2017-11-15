@@ -74,7 +74,7 @@
                 android:layout_height="wrap_content"
                 android:paddingBottom="@dimen/spacing_small"
                 android:paddingTop="@dimen/spacing_small"
-                android:text="@{result.startMillis}"
+
                 android:textAppearance="@style/TextAppearance.AppCompat.Large" />
 
         </LinearLayout>

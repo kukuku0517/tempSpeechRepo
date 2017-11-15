@@ -111,30 +111,24 @@ public class ResultListFragment extends Fragment implements ListHandler {
         super.onStop();
         if (mSpeechService != null) {
             getActivity().unbindService(mServiceConnection);
-//TODO 두 프래그먼트에서 동시에 서비스 해제
-
-            Log.d("lifecycle", "list unbind longrunningRequestRetrofit in stop");
         }
 
-        Log.d("lifecycle", "resultlist stop");
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mPageNumber = getArguments().getInt("page");
-
-        Log.d("lifecycle", "resultlist create");
         realm = ((ListActivity) getActivity()).realm;
+        if(realm==null){
+            ((ListActivity) getActivity()).realm=Realm.getDefaultInstance();
+            realm=    ((ListActivity) getActivity()).realm;
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
-        Log.d("lifecycle", "resultlist resume");
-
-
         Intent intent = new Intent(getActivity(), SpeechService.class);
         getActivity().startService(intent);
         getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
