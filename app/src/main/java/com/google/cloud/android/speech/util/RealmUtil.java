@@ -35,7 +35,6 @@ public class RealmUtil {
             builder.append(wordRealm.getWord() + " ");
         }
         sentence.setSentence(builder.toString());
-
     }
 
 

@@ -1,6 +1,7 @@
 package com.google.cloud.android.speech.util;
 
 import android.content.Context;
+import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
@@ -22,24 +23,33 @@ public class AudioUtil {
 
     private static final int AMPLITUDE_THRESHOLD = 1500;
 
-    public static MultipartBody.Part wrap(File file){
+    public static MultipartBody.Part wrap(File file) {
         RequestBody surveyBody = RequestBody.create(MediaType.parse("audio/*"), file);
         MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), surveyBody);
-       return part;
+        return part;
 
     }
 
-    public static int getSampleRate(File file){
-        MediaExtractor extractor = new MediaExtractor();
+    public static int getSampleRate(File file) {
+        MediaExtractor mExtractor = new MediaExtractor();
         try {
-            extractor.setDataSource(file.getAbsolutePath());
-            return extractor.getTrackFormat(0).getInteger(MediaFormat.KEY_SAMPLE_RATE);
+            mExtractor.setDataSource(file.getAbsolutePath());
+
+            int numTracks = mExtractor.getTrackCount();
+            for (int i = 0; i < numTracks; ++i) {
+                MediaFormat inputFormat = mExtractor.getTrackFormat(i);
+                String mime = inputFormat.getString(MediaFormat.KEY_MIME);
+                if (mime.startsWith("audio/")) {
+                    mExtractor.selectTrack(i);
+                    return mExtractor.getTrackFormat(i).getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                }
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
         return 44100;
     }
-
 
 
     public static long getAudioLength(Context context, String fileName) {
@@ -66,15 +76,14 @@ public class AudioUtil {
     }
 
 
-
     private static final float windowSize = 0.025f;
-    private static  final float windowStep = 0.010f;
+    private static final float windowStep = 0.010f;
 
     public static int[] getSilenceFrames(float[] originalSignal, int sampleRate) {
         int samplePerFrame = (int) (sampleRate * windowSize);
         int samplePerStep = (int) (sampleRate * windowStep);
 
-        int firstSamples = (int) (samplePerFrame*0.2);
+        int firstSamples = (int) (samplePerFrame * 0.2);
         firstSamples = originalSignal.length > firstSamples ? firstSamples : originalSignal.length;
 
         float[] voiced = new float[originalSignal.length];
@@ -149,7 +158,7 @@ public class AudioUtil {
             voicedFrame[noOfFrames - 1] = 0;
         }
 
-        LogUtil.print(voicedFrame,"silence");
+        LogUtil.print(voicedFrame, "silence");
 
         return voicedFrame;
     }

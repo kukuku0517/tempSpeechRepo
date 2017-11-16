@@ -119,9 +119,9 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         realm = ((ListActivity) getActivity()).realm;
-        if(realm==null){
-            ((ListActivity) getActivity()).realm=Realm.getDefaultInstance();
-            realm=    ((ListActivity) getActivity()).realm;
+        if (realm == null) {
+            ((ListActivity) getActivity()).realm = Realm.getDefaultInstance();
+            realm = ((ListActivity) getActivity()).realm;
         }
         mPageNumber = getArguments().getInt("page");
         EventBus.getDefault().register(this);
@@ -202,25 +202,10 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
 //        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
 
         mSpeechService.createFileRecord();
-        mSpeechService.recognizeFileStream(title, tags, filePath);
+//        mSpeechService.recognizeFileStream(title, tags, filePath);
+        mSpeechService.recognizeVideoStream(title, tags, filePath);
     }
 
-//    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-//    public void onProcessEvent(ProcessEvent event) {
-//
-//        realm.beginTransaction();
-//        if (event.getType() == ProcessEvent.FILE) {
-//            file.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getId()).findFirst());
-//        }
-//        if (event.getType() == ProcessEvent.RECORD) {
-//            record.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getId()).findFirst());
-//        }
-//
-//        realm.commitTransaction();
-//        EventBus.getDefault().removeStickyEvent(event);
-//
-//
-//    }
 
     public void setRecordItem(int recordId) {
         this.recordId = recordId;

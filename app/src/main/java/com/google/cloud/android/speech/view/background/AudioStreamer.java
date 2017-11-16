@@ -50,7 +50,6 @@ public class AudioStreamer {
     private String mMediaPath;
 
 
-
     public AudioStreamer(MediaCodecCallBack mListener) {
         this.mListener = mListener;
         mState = State.Stopped;
@@ -71,10 +70,11 @@ public class AudioStreamer {
             }
         }).start();
     }
+
     final int API_LIMIT = 30;
+
     public void setUrlString(String mUrlString) {
         this.mMediaPath = mUrlString;
-
 
         mExtractor = new MediaExtractor();
         try {
@@ -85,77 +85,50 @@ public class AudioStreamer {
 
 
     }
+
     private void decodeData() throws IOException {
         ByteBuffer[] codecInputBuffers;
         ByteBuffer[] codecOutputBuffers;
 
 
-        MediaFormat format = mExtractor.getTrackFormat(0);
-        String mime = format.getString(MediaFormat.KEY_MIME);
-        long duration = format.getLong(MediaFormat.KEY_DURATION);
-        int channel = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-        int sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-        int limitSize = API_LIMIT*sampleRate;
-        int limitCount=0;
-        int totalSec = (int) (duration / 1000 / 1000);
-        int min = totalSec / 60;
-        int sec = totalSec % 60;
+        int sampleRate = 0;
+        int limitSize = 0;
+        int limitCount = 0;
 
-        format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE,22100);
-        mMediaCodec = MediaCodec.createDecoderByType(mime);
-        mMediaCodec.configure(format, null, null, 0);
+        int numTracks = mExtractor.getTrackCount();
+        for (int i = 0; i < numTracks; ++i) {
+            MediaFormat inputFormat = mExtractor.getTrackFormat(i);
+            String mime = inputFormat.getString(MediaFormat.KEY_MIME);
+            if (mime.startsWith("audio/")) {
+                mExtractor.selectTrack(i);
+                sampleRate = inputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                limitSize = API_LIMIT * sampleRate;
+                limitCount = 0;
+                mMediaCodec = MediaCodec.createDecoderByType(mime);
+                mMediaCodec.configure(inputFormat, null, null, 0);
+                break;
+            }
+        }
         mMediaCodec.start();
         codecInputBuffers = mMediaCodec.getInputBuffers();
         codecOutputBuffers = mMediaCodec.getOutputBuffers();
 
-//
-//
-//        Log.i(TAG, "mime " + mime);
-//        Log.i(TAG, "sampleRate " + sampleRate);
-
-//        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, AudioFormat.CHANNEL_OUT_MONO,
-//                AudioFormat.ENCODING_PCM_16BIT, AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO,
-//                AudioFormat.ENCODING_PCM_16BIT), AudioTrack.MODE_STREAM);
-//
-//        mAudioTrack.play();
-        mExtractor.selectTrack(0);
 
         final long kTimeOutUs = 0;
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
         boolean sawInputEOS = false;
         int noOutputCounter = 0;
         int noOutputCounterLimit = 50;
-//        ArrayList<double[][]> feature = new ArrayList<>();
-//        ArrayList<Integer> silence = new ArrayList<>();
-//        int count = 0;
 
 
         while (!sawInputEOS && noOutputCounter < noOutputCounterLimit && !isForceStop) {
             if (!sawInputEOS) {
-//                if(isPause)
-//                {
-//                    if(mState != State.Pause)
-//                    {
-//                        mState = State.Pause;
-//
-//                        mAudioPlayerHandler.onAudioPlayerPause();
-//                    }
-//                    continue;
-//                }
                 noOutputCounter++;
                 Log.d(TAG, String.valueOf(noOutputCounter));
-//                if (isSeek)
-//                {
-//                    mExtractor.seekTo(seekTime * 1000 * 1000, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
-//                    isSeek = false;
-//                }
-
                 mInputBufIndex = mMediaCodec.dequeueInputBuffer(kTimeOutUs); // 1. inputBuffer의 index를 받아와서
                 if (mInputBufIndex >= 0) {
                     ByteBuffer dstBuf = codecInputBuffers[mInputBufIndex]; // 2. 해당 index의 buffer에 read 한다
-
                     int sampleSize = mExtractor.readSampleData(dstBuf, 0);
-
                     long presentationTimeUs = 0;
 
                     if (sampleSize < 0) {
@@ -164,10 +137,6 @@ public class AudioStreamer {
                         sampleSize = 0;
                     } else {
                         presentationTimeUs = mExtractor.getSampleTime();
-
-                        Log.d(TAG, "presentaionTime = " + (int) (presentationTimeUs / 1000 / 1000));
-
-//                        mAudioPlayerHandler.onAudioPlayerCurrentTime((int) (presentationTimeUs / 1000 / 1000));
                     }
 
                     mMediaCodec.queueInputBuffer(mInputBufIndex, 0, sampleSize, presentationTimeUs,
@@ -175,30 +144,20 @@ public class AudioStreamer {
                     if (!sawInputEOS) {
                         mExtractor.advance();
                     }
-                } else {
-                    Log.e(TAG, "inputBufIndex " + mInputBufIndex);
                 }
             }
 
-            ////
-
             int res = mMediaCodec.dequeueOutputBuffer(info, kTimeOutUs);
-
             if (res >= 0) {
                 if (info.size > 0) {
                     noOutputCounter = 0;
-
                 }
 
-                //reset if 1 minute passed
-                limitCount+=info.size;
-                if(limitCount>limitSize){
-                    limitCount=0;
-                    Log.d("lmit","Asdf");
-                    mListener.onReset();
-                }
-
-                Log.d(TAG, String.valueOf(noOutputCounter));// ?
+//                limitCount += info.size;
+//                if (limitCount > limitSize) {
+//                    limitCount = 0;
+//                    mListener.onStart();
+//                }
 
                 int outputBufIndex = res;
                 ByteBuffer buf = codecOutputBuffers[outputBufIndex];
@@ -207,17 +166,14 @@ public class AudioStreamer {
                 Log.d(TAG, "buffer size : " + String.valueOf(info.size));
                 buf.get(chunk);
                 buf.clear();
-                mListener.onBufferRead(chunk,sampleRate); //TODO
-
+                mListener.onBufferRead(chunk, sampleRate); //TODO
                 mMediaCodec.releaseOutputBuffer(outputBufIndex, false);
 
             } else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
                 codecOutputBuffers = mMediaCodec.getOutputBuffers();
-
                 Log.d(TAG, "output buffers have changed.");
             } else if (res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 MediaFormat oformat = mMediaCodec.getOutputFormat();
-
                 Log.d(TAG, "output format has changed to " + oformat);
             } else {
                 Log.d(TAG, "dequeueOutputBuffer returned " + res);
@@ -225,20 +181,7 @@ public class AudioStreamer {
         }
 
         mListener.onCompleted();
-
-
-        Log.d(TAG, "stopping...");
-
         releaseResources(true);
-
-//        this.mState = State.Stopped;
-//        isForceStop = true;
-
-        if (noOutputCounter >= noOutputCounterLimit) {
-//            mAudioPlayerHandler.onAudioPlayerError(AudioStreamPlayer.this);
-        } else {
-//            mAudioPlayerHandler.onAudioPlayerStop(AudioStreamPlayer.this);
-        }
     }
 
 //    private void decodeLoop() throws IOException {

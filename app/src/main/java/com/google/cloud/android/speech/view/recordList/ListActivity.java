@@ -158,7 +158,7 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
         if (realm == null) {
             realm.init(this);
             RealmConfiguration config = new RealmConfiguration.Builder()
-                    .deleteRealmIfMigrationNeeded()
+//                    .deleteRealmIfMigrationNeeded()
                     .build();
             Realm.setDefaultConfiguration(config);
             realm = Realm.getDefaultInstance();
@@ -243,8 +243,8 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
             // If one wanted to search for ogg vorbis files, the type would be "audio/ogg".
             // To search for all documents available via installed storage providers,
             // it would be "*/*".
-            intent.setType("audio/*");
-
+//            intent.setType("audio/*");
+            intent.setType("*/*");
             startActivityForResult(intent, AUDIO_FILE_REQUEST);
 
 //            mSpeechService.recognizeFileStream(FileUtil.getFilename(fileUri));
