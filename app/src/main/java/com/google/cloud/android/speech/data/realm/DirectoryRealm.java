@@ -12,6 +12,21 @@ public class DirectoryRealm extends RealmObject implements PrimaryRealm {
     @PrimaryKey
     int id;
 
+    private RealmList<DirectoryRealm> directoryRealms = new RealmList<>();
+    private int upperId = -1;
+    private int depth;
+    private String name;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    private RealmList<RecordRealm> recordRealms = new RealmList<>();
+
     public RealmList<DirectoryRealm> getDirectoryRealms() {
         return directoryRealms;
     }
@@ -44,10 +59,6 @@ public class DirectoryRealm extends RealmObject implements PrimaryRealm {
         this.recordRealms = recordRealms;
     }
 
-    RealmList<DirectoryRealm> directoryRealms = new RealmList<>();
-    int upperId=-1;
-    int depth;
-    RealmList<RecordRealm> recordRealms = new RealmList<>();
     @Override
     public int getId() {
         return id;
@@ -57,7 +68,6 @@ public class DirectoryRealm extends RealmObject implements PrimaryRealm {
     public void setId(int id) {
         this.id = id;
     }
-
 
 
 }

@@ -18,8 +18,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.cloud.android.speech.data.realm.DirectoryRealm;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.R;
+import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.recordList.adapter.ListRealmAdapter;
 import com.google.cloud.android.speech.view.recordList.ListActivity;
 import com.google.cloud.android.speech.view.recordList.handler.ListHandler;
@@ -34,6 +36,9 @@ import java.io.File;
 import java.io.IOException;
 
 import io.realm.Realm;
+import io.realm.RealmChangeListener;
+import io.realm.RealmList;
+import io.realm.RealmObject;
 import io.realm.RealmResults;
 
 public class ResultListFragment extends Fragment implements ListHandler {
@@ -144,8 +149,7 @@ public class ResultListFragment extends Fragment implements ListHandler {
         binding.setHandler(this);
 
 
-
-        RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted", true).equalTo("isOrigin",true).findAll();
+        RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted", true).equalTo("isOrigin", true).findAll();
 
         Log.d("lifecycle", "resultlist create view");
 //        for (final RecordRealm record : result) {
@@ -174,11 +178,55 @@ public class ResultListFragment extends Fragment implements ListHandler {
 //        }
 
 //        recyclerView = (RecyclerView) view.findViewById(R.id.rv_record);
+//        recyclerView = binding.rvRecord;
+//        recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+//        adapter = new ListRealmAdapter(result, true, true, getActivity());
+//        recyclerView.setAdapter(adapter);
+
+        final RealmList<RealmObject> dirOrFiles = new RealmList<>();
+        DirectoryRealm defaultDirectory = realm.where(DirectoryRealm.class).equalTo("depth", 0).findFirst();
+
+        if (defaultDirectory == null) {
+            realm.beginTransaction();
+            defaultDirectory = RealmUtil.createObject(realm, DirectoryRealm.class);
+            defaultDirectory.setDepth(0);
+            defaultDirectory.setName("default");
+            realm.commitTransaction();
+
+        }
+
+        for (RealmObject o : defaultDirectory.getDirectoryRealms()) {
+            dirOrFiles.add(o);
+        }
+        for (RealmObject o : defaultDirectory.getRecordRealms()) {
+            dirOrFiles.add(o);
+        }
         recyclerView = binding.rvRecord;
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-        adapter = new ListRealmAdapter(result, true, true, getActivity());
+        adapter = new ListRealmAdapter(dirOrFiles, getActivity());
         recyclerView.setAdapter(adapter);
+        realm.addChangeListener(new RealmChangeListener<Realm>() {
+            @Override
+            public void onChange(Realm realm) {
+                DirectoryRealm defaultDirectory = realm.where(DirectoryRealm.class).equalTo("depth", 0).findFirst();
+                if (defaultDirectory == null) {
+                    realm.beginTransaction();
+                    defaultDirectory = RealmUtil.createObject(realm, DirectoryRealm.class);
+                    defaultDirectory.setDepth(0);
+                    defaultDirectory.setName("default");
+                    realm.commitTransaction();
 
+                }
+
+                for (RealmObject o : defaultDirectory.getDirectoryRealms()) {
+                    dirOrFiles.add(o);
+                }
+                for (RealmObject o : defaultDirectory.getRecordRealms()) {
+                    dirOrFiles.add(o);
+                }
+                adapter.set
+            }
+        });
         return view;
     }
 
