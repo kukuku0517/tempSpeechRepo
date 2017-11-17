@@ -472,9 +472,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
     public void onClickDiary(View v) {
         diary.setValue(true);
         binding.executePendingBindings();
-
         Toast.makeText(getBaseContext(), String.valueOf(duplicateRecordId), Toast.LENGTH_SHORT).show();
-
 //        Thread thread = new Thread(new Runnable() {
 //            @Override
 //            public void run() {
@@ -515,7 +513,6 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 //            }
 //        });
 //        thread.start();
-
         new ClusterAsync().execute(20);
 
     }
@@ -546,11 +543,13 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
     @Override
     public void onClickViewOrigin(View v) {
         swapRecord(originRecordId);
+        Toast.makeText(getBaseContext(), "origin clicked", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onClickViewDiary(View v) {
         swapRecord(duplicateRecordId);
+        Toast.makeText(getBaseContext(), "diary clicked", Toast.LENGTH_SHORT).show();
     }
 
 

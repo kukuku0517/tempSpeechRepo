@@ -1,8 +1,14 @@
 package com.google.cloud.android.speech.data;
 
 import android.databinding.BindingAdapter;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.GradientDrawable;
+import android.support.v4.content.ContextCompat;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.cloud.android.speech.R;
+import com.google.cloud.android.speech.event.PartialStatusEvent;
 import com.google.cloud.android.speech.util.DateUtil;
 
 /**
@@ -31,4 +37,19 @@ public class BindingAdapters {
         v.setText(DateUtil.dateToNumFormat((int) value));
     }
 
+
+    @BindingAdapter("statusColor")
+    public static void onPartialStatusChange(ImageView v, int status) {
+
+        switch (status) {
+            case PartialStatusEvent.SILENCE:
+            case PartialStatusEvent.END:
+                v.setColorFilter(ContextCompat.getColor(v.getContext(), R.color.light_gray), PorterDuff.Mode.SRC_ATOP);
+                break;
+            case PartialStatusEvent.VOICE:
+                v.setColorFilter(ContextCompat.getColor(v.getContext(),R.color.red), PorterDuff.Mode.SRC_ATOP);
+                break;
+
+        }
+    }
 }

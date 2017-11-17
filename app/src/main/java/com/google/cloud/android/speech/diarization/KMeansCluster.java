@@ -485,8 +485,9 @@ public class KMeansCluster {
         for (int i = start; i < end; i++) {
             int cluster = clusters[i];
             if (cluster == 0) {
-                if (includeZero)
+                if (includeZero) {
                     clusterCount[cluster]++;
+                }
             } else {
                 clusterCount[cluster]++;
             }

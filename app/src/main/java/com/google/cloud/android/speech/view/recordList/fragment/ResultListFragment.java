@@ -120,6 +120,7 @@ public class ResultListFragment extends Fragment implements ListHandler {
         mPageNumber = getArguments().getInt("page");
         realm = ((ListActivity) getActivity()).realm;
         if (realm == null) {
+            realm.init(getContext());
             ((ListActivity) getActivity()).realm = Realm.getDefaultInstance();
             realm = ((ListActivity) getActivity()).realm;
         }
@@ -141,6 +142,8 @@ public class ResultListFragment extends Fragment implements ListHandler {
         View view = inflater.inflate(R.layout.fragment_result_list, container, false);
         binding = DataBindingUtil.bind(view);
         binding.setHandler(this);
+
+
 
         RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted", true).equalTo("isOrigin",true).findAll();
 

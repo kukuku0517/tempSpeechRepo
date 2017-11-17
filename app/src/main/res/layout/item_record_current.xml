@@ -8,9 +8,16 @@
         <import type="android.view.View" />
 
         <variable
-            name="sentence"
-            type="com.google.cloud.android.speech.data.realm.SentenceRealm"/>
+            name="sentenceString"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;String>" />
 
+        <variable
+            name="partialStatus"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Integer>" />
+
+        <variable
+            name="sentence"
+            type="com.google.cloud.android.speech.data.realm.SentenceRealm" />
     </data>
 
     <LinearLayout
@@ -35,17 +42,15 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_gravity="center_vertical"
-
                 android:src="@drawable/ic_account_circle_black_24dp"
-                android:tint="@color/light_gray" />
+                app:statusColor="@{partialStatus.getValue}" />
 
 
         </LinearLayout>
+
         <ImageView
             android:layout_width="8dp"
-            android:layout_height="match_parent"
-           />
-
+            android:layout_height="match_parent" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -64,17 +69,13 @@
                 android:layout_gravity="end"
                 android:textColor="@color/light_gray"
                 android:textSize="12sp"
-                app:durationText="@{sentence.startMillis}"
                 tools:text="1 min 10 sec" />
 
-
-            <com.google.cloud.android.speech.view.customView.RealmSpannableTextView
+            <TextView
+                android:id="@+id/tv_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@android:color/black"
-                android:textSize="16sp"
-                app:sid="@{sentence.id}"
-                tools:text="this is an example " />
+                android:text="@{sentenceString.getValue}" />
 
 
         </LinearLayout>

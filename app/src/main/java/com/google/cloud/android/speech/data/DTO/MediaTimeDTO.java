@@ -13,8 +13,8 @@ import com.google.cloud.android.speech.util.DateUtil;
  */
 
 public class MediaTimeDTO extends BaseObservable {
-    int total;
-    int now;
+    int total=0;
+    int now=0;
 
     @Bindable
     public int getTotal() {

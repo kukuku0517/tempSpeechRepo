@@ -23,24 +23,45 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.databinding.BindingAdapter;
+import android.databinding.DataBindingUtil;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
+import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.google.cloud.android.speech.data.DTO.MediaTimeDTO;
+import com.google.cloud.android.speech.data.DTO.ObservableDTO;
+import com.google.cloud.android.speech.data.DTO.RecordDTO;
+import com.google.cloud.android.speech.data.realm.TagRealm;
+import com.google.cloud.android.speech.databinding.ActivityRecordBinding;
+import com.google.cloud.android.speech.databinding.ItemRecordBinding;
 import com.google.cloud.android.speech.event.PartialEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
+import com.google.cloud.android.speech.event.PartialStatusEvent;
+import com.google.cloud.android.speech.event.PartialTimerEvent;
+import com.google.cloud.android.speech.view.recordList.adapter.TagRealmAdapter;
+import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
+import com.google.cloud.android.speech.view.recordResult.CustomView.SentenceItemTouchHelperCallBack;
+import com.google.cloud.android.speech.view.recordResult.adapter.ResultRealmAdapter;
 import com.google.cloud.android.speech.view.recording.adapter.RecordRealmAdapter;
 import com.google.cloud.android.speech.view.background.SpeechService;
+import com.google.cloud.android.speech.view.recording.handler.RecordHandler;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -52,7 +73,7 @@ import java.util.ArrayList;
 import io.realm.Realm;
 
 
-public class RecordActivity extends AppCompatActivity implements MessageDialogFragment.Listener {
+public class RecordActivity extends AppCompatActivity implements MessageDialogFragment.Listener, RecordHandler {
 
     private static final String FRAGMENT_MESSAGE_DIALOG = "message_dialog";
 
@@ -75,9 +96,11 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
     String title;
 
+    private ActivityRecordBinding activityRecordBinding;
+    private ItemRecordBinding currentBinding;
 
     ArrayList<Integer> tags = new ArrayList<>();
-
+    ObservableDTO<Integer> status = new ObservableDTO<>();
 
     @Override
     protected void onDestroy() {
@@ -87,50 +110,105 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onPartialEvent(PartialEvent event) {
-        mText.setText(event.getPartial());
+        currentText.setValue(event.getPartial());
     }
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onPartialTimerEvent(PartialTimerEvent event) {
+        timeDTO.setTotal(event.getSecond() * 1000);
+        EventBus.getDefault().removeStickyEvent(event);
+    }
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onPartialStatusEvent(PartialStatusEvent event) {
+
+        status.setValue(event.getStatus());
+        if (event.getStatus() == PartialStatusEvent.END) {
+            currentText.setValue("");
+        }
+        EventBus.getDefault().removeStickyEvent(event);
+    }
+
+
+    private RecyclerView tagRecyclerView;
+    private TagRealmAdapter tagAdapter;
+    private RecyclerView.LayoutManager tagLayout;
+    private SeekBar seekBar;
+    private ArrayList<TagRealm> tagTags = new ArrayList<>();
+    ObservableDTO<Boolean> isPlaying = new ObservableDTO<>();
+    ObservableDTO<String> currentText = new ObservableDTO<>();
+    MediaTimeDTO timeDTO = new MediaTimeDTO();
+    RecordDTO recordDTO;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_record);
-        EventBus.getDefault().register(this);
-        title = getIntent().getStringExtra("title");
-
-        tags = Parcels.unwrap(getIntent().getParcelableExtra("tags"));
 
         realm = Realm.getDefaultInstance();
-        setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
+        EventBus.getDefault().register(this);
+        title = getIntent().getStringExtra("title");
+        tags = Parcels.unwrap(getIntent().getParcelableExtra("tags"));
+        isPlaying.setValue(false);
+
+        activityRecordBinding = DataBindingUtil.setContentView(this, R.layout.activity_record);
+        activityRecordBinding.setHandler(this);
+        activityRecordBinding.setTime(timeDTO);
+        activityRecordBinding.setIsPlaying(isPlaying);
+        activityRecordBinding.setSentenceString(currentText);
+        activityRecordBinding.setPartialStatus(status);
+        activityRecordBinding.tvTitle.setText(title);
+
+        tagRecyclerView = activityRecordBinding.rvTags;
+        seekBar = activityRecordBinding.sbNavigate;
+        seekBar.setMax(1);
+
+        //set tag recyclerview
+        for (int i : tags) {
+            tagTags.add(realm.where(TagRealm.class).equalTo("id", i).findFirst());
+        }
+        tagAdapter = new TagRealmAdapter(getBaseContext(), tagTags, new TagHandler() {
+            @Override
+            public void onClickTag(View v, TagRealm tag) {
+
+            }
+        });
+        tagAdapter.setHasStableIds(true);
+        tagLayout = new LinearLayoutManager(getBaseContext(), LinearLayoutManager.HORIZONTAL, false);
+        tagRecyclerView.setAdapter(tagAdapter);
+        tagRecyclerView.setLayoutManager(tagLayout);
+
+        setSupportActionBar(activityRecordBinding.toolbar);
         getSupportActionBar().setTitle("");
 
         mStatus = (TextView) findViewById(R.id.status);
         mText = (TextView) findViewById(R.id.text);
-        recordBtn = (ImageButton) findViewById(R.id.record);
-        stopBtn = (ImageButton) findViewById(R.id.stop);
 
         if (SpeechService.IS_RECORDING) {
             initService();
         }
 
-        recordBtn.setOnClickListener(new View.OnClickListener() {
+        seekBar.setPadding(0, 0, 0, 0);
+        seekBar.setMinimumHeight(40);
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onClick(View v) {
-                initService();
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
             }
         });
 
-        stopBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopVoiceRecorder();
-                serviceBinded = false;
-                unbindService(mServiceConnection);
-                stopService(new Intent(context, SpeechService.class));
-                mSpeechService = null;
-                onBackPressed();
-                //TODO save Duration or get Duration first loading from directory
-            }
-        });
+
     }
 
     private void initService() {
@@ -151,17 +229,20 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
                 recordId = mSpeechService.createSpeechRecord();
             }
 
-            realm.executeTransaction(new Realm.Transaction() {
-                @Override
-                public void execute(Realm realm) {
-                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
-                }
-            });
+            realm.beginTransaction();
+            record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+            realm.commitTransaction();
+            recordDTO = new RecordDTO(record);
+            activityRecordBinding.setRecord(recordDTO);
 
-            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+
+            mRecyclerView = activityRecordBinding.recyclerView;
             mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
-            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
+            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), recordId, true, true, context);
             mRecyclerView.setAdapter(mAdapter);
+            ItemTouchHelper.Callback callback = new SentenceItemTouchHelperCallBack(mAdapter);
+            ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
+            touchHelper.attachToRecyclerView(mRecyclerView);
 
             String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
             if (checkPermissions(context, PERMISSIONS)) {
@@ -184,6 +265,53 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         }
 
     };
+
+    @Override
+    protected void onStop() {
+        if (serviceBinded) {
+            unbindService(mServiceConnection);
+        }
+        super.onStop();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
+
+    private void stopVoiceRecorder() {
+        mSpeechService.stopSpeechRecognizing();
+    }
+
+    private void showPermissionMessageDialog() {
+        MessageDialogFragment
+                .newInstance(getString(R.string.permission_message))
+                .show(getSupportFragmentManager(), FRAGMENT_MESSAGE_DIALOG);
+    }
+
+    @Override
+    public void onMessageDialogDismissed() {
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},
+                1);
+    }
+
+
+    @Override
+    public void onClickStart(View v) {
+        initService();
+        isPlaying.setValue(true);
+    }
+
+    @Override
+    public void onClickStop(View v) {
+        stopVoiceRecorder();
+        serviceBinded = false;
+        unbindService(mServiceConnection);
+        stopService(new Intent(context, SpeechService.class));
+        mSpeechService = null;
+        isPlaying.setValue(false);
+        onBackPressed();
+    }
 
     private boolean checkPermissions(Context context, String... permissions) {
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
@@ -213,35 +341,4 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-
-    @Override
-    protected void onStop() {
-        if (serviceBinded) {
-            unbindService(mServiceConnection);
-        }
-        super.onStop();
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-    }
-
-    private void stopVoiceRecorder() {
-        mSpeechService.stopSpeechRecognizing();
-    }
-
-    private void showPermissionMessageDialog() {
-        MessageDialogFragment
-                .newInstance(getString(R.string.permission_message))
-                .show(getSupportFragmentManager(), FRAGMENT_MESSAGE_DIALOG);
-    }
-
-
-    @Override
-    public void onMessageDialogDismissed() {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},
-                1);
-    }
-
 }

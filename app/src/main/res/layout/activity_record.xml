@@ -13,105 +13,350 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
     tools:context="com.google.cloud.android.speech.view.recording.RecordActivity">
 
-    <android.support.design.widget.CoordinatorLayout
+    <data>
 
+        <import type="android.view.View" />
+
+        <variable
+            name="handler"
+            type="com.google.cloud.android.speech.view.recording.handler.RecordHandler" />
+
+        <variable
+            name="sentenceString"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;String>" />
+
+
+        <variable
+            name="isPlaying"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>" />
+
+        <variable
+            name="time"
+            type="com.google.cloud.android.speech.data.DTO.MediaTimeDTO" />
+
+        <variable
+            name="partialStatus"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Integer>"/>
+        <variable
+            name="record"
+            type="com.google.cloud.android.speech.data.DTO.RecordDTO" />
+    </data>
+
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <android.support.design.widget.CoordinatorLayout
 
-        <android.support.design.widget.AppBarLayout
-            android:id="@+id/app_bar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark">
+            android:layout_height="match_parent"
+            android:layout_above="@+id/ll_player"
+            android:layout_alignParentStart="true">
 
-            <android.support.v7.widget.Toolbar
-                android:id="@+id/toolbar"
+
+            <android.support.design.widget.AppBarLayout
+                android:id="@+id/app_bar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="?attr/colorPrimary"
-                android:paddingLeft="32dp"
-                android:paddingRight="32dp">
+                android:theme="@style/ThemeOverlay.AppCompat.Dark">
 
-            </android.support.v7.widget.Toolbar>
+                <android.support.v7.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/white"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="8dp"
+                    android:titleTextColor="@color/naver_green">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="8dp">
+
+                        <TextView
+                            android:id="@+id/tv_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal"
+                            android:text="@{record.title.length()!=0?record.title:null}"
+                            android:textColor="@android:color/background_dark"
+                            android:textSize="20dp"
+                            android:textStyle="bold"
+                            tools:text="Title" />
+
+                        <android.support.v7.widget.RecyclerView
+                            android:id="@+id/rv_tags"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="64dp"
+                            android:layout_marginRight="64dp"
+                            tools:layout_height="10dp" />
+
+                    </LinearLayout>
+
+                </android.support.v7.widget.Toolbar>
 
 
-            <include layout="@layout/item_result" />
+            </android.support.design.widget.AppBarLayout>
 
-        </android.support.design.widget.AppBarLayout>
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <android.support.v7.widget.RecyclerView
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/recycler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
 
-            android:id="@+id/recycler_view"
+                    android:layout_above="@+id/ll_current"
+                    android:layout_alignParentTop="true"
+                    android:paddingBottom="@dimen/spacing_small"
+                    android:paddingTop="@dimen/spacing_small" />
+
+                <LinearLayout
+                    android:id="@+id/ll_current"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_above="@+id/fl_player">
+
+                    <include
+                        layout="@layout/item_record_current"
+                        app:sentenceString="@{sentenceString}"
+                        app:partialStatus="@{partialStatus}"/>
+
+                </LinearLayout>
+
+                <FrameLayout
+                    android:id="@+id/fl_player"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true">
+
+                    <SeekBar
+                        android:id="@+id/sb_navigate"
+                        style="@style/tallerBarStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:alpha="0.8"
+                        android:progressDrawable="@drawable/seekbar_bar"
+                        android:thumb="@null"
+                        tools:progress="20" />
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/tv_now"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:layout_margin="12dp"
+                            android:textColor="@color/white"
+                            android:textSize="12.5sp"
+                            app:durationNum="@{time.now}"
+                            tools:text="00:15" />
+
+                        <TextView
+                            android:id="@+id/tv_total"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:layout_marginRight="12dp"
+                            android:textColor="@color/white"
+                            android:textSize="12.5sp"
+                            app:durationNum="@{time.total}"
+                            tools:text="00:31" />
+
+                    </RelativeLayout>
+
+                </FrameLayout>
+            </RelativeLayout>
+
+
+        </android.support.design.widget.CoordinatorLayout>
+
+        <!--<RelativeLayout-->
+        <!--android:id="@+id/rl_player"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_alignParentBottom="true">-->
+
+        <!--<ImageButton-->
+        <!--android:id="@+id/record"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_centerHorizontal="true"-->
+        <!--android:layout_weight="1"-->
+        <!--android:background="@android:color/transparent"-->
+        <!--android:padding="10dp"-->
+        <!--android:src="@drawable/ic_play_arrow_black_24dp" />-->
+
+        <!--<ImageButton-->
+        <!--android:id="@+id/stop"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_toRightOf="@id/record"-->
+        <!--android:layout_weight="1"-->
+        <!--android:background="@android:color/transparent"-->
+        <!--android:padding="10dp"-->
+        <!--android:src="@drawable/ic_stop_black_24dp" />-->
+
+
+        <!--<SeekBar-->
+        <!--android:id="@+id/sb_navigate"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_below="@id/record" />-->
+
+        <!--<TextView-->
+        <!--android:id="@+id/tv_total"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_below="@id/sb_navigate"-->
+
+
+        <!--/>-->
+
+        <!--<TextView-->
+        <!--android:id="@+id/tv_now"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_below="@id/sb_navigate"-->
+        <!--android:layout_toRightOf="@id/tv_total" />-->
+
+
+        <!--</RelativeLayout>-->
+        <LinearLayout
+            android:id="@+id/ll_player"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-
-            android:layout_alignParentTop="true"
-            android:paddingBottom="@dimen/spacing_small"
-            android:paddingTop="@dimen/spacing_small"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
-
-
-    </android.support.design.widget.CoordinatorLayout>
-
-    <RelativeLayout
-        android:id="@+id/rl_player"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true">
-
-        <ImageButton
-            android:id="@+id/record"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:layout_weight="1"
+            android:layout_alignParentBottom="true"
             android:background="@android:color/transparent"
-            android:padding="10dp"
-            android:src="@drawable/ic_play_arrow_black_24dp" />
 
-        <ImageButton
-            android:id="@+id/stop"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_toRightOf="@id/record"
-            android:layout_weight="1"
-            android:background="@android:color/transparent"
-            android:padding="10dp"
-            android:src="@drawable/ic_stop_black_24dp" />
+            android:orientation="vertical">
 
 
-        <SeekBar
-            android:id="@+id/sb_navigate"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/record" />
-
-        <TextView
-            android:id="@+id/tv_total"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/sb_navigate"
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp">
 
 
-            />
+                <ImageButton
+                    android:id="@+id/btn_diary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
 
-        <TextView
-            android:id="@+id/tv_now"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/sb_navigate"
-            android:layout_toRightOf="@id/tv_total" />
+                    android:paddingLeft="10dp"
+                    android:tint="@color/naver_green"
+                    app:srcCompat="@drawable/ic_people_black_24dp" />
 
+
+                <ImageButton
+                    android:id="@+id/btn_view_origin"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_toRightOf="@id/btn_diary"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+
+                    android:paddingLeft="10dp"
+                    android:tint="@color/naver_green"
+                    app:srcCompat="@drawable/ic_people_black_24dp" />
+
+
+                <ImageButton
+                    android:id="@+id/btn_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_gravity="center_vertical"
+                    android:layout_toLeftOf="@+id/fl_play_pause"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+
+                    android:padding="10dp"
+
+
+                    app:srcCompat="@drawable/ic_fast_rewind_black_24dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_view_diary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+
+
+                    android:paddingLeft="10dp"
+                    android:tint="@color/naver_green"
+                    app:srcCompat="@drawable/ic_people_black_24dp" />
+
+                <FrameLayout
+                    android:id="@+id/fl_play_pause"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerHorizontal="true">
+
+                    <ImageButton
+                        android:id="@+id/btn_play"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:onClick="@{handler::onClickStart}"
+                        android:padding="10dp"
+                        android:visibility="@{isPlaying.getValue==false?View.VISIBLE:View.GONE}"
+                        app:srcCompat="@drawable/ic_play_arrow_black_24dp" />
+
+
+                    <ImageButton
+                        android:id="@+id/btn_pause"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:onClick="@{handler::onClickStop}"
+                        android:padding="10dp"
+                        android:visibility="@{isPlaying.getValue==true?View.VISIBLE:View.GONE}"
+                        app:srcCompat="@drawable/ic_stop_black_24dp"
+                        tools:visibility="gone" />
+
+                </FrameLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_ff"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_gravity="center_vertical"
+                    android:layout_toRightOf="@id/fl_play_pause"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+
+                    android:padding="10dp"
+                    app:srcCompat="@drawable/ic_fast_forward_black_24dp" />
+
+
+            </RelativeLayout>
+
+        </LinearLayout>
 
     </RelativeLayout>
-
-</RelativeLayout>
+</layout>

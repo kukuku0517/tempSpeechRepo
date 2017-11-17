@@ -31,6 +31,7 @@ import com.google.cloud.android.speech.diarization.FeatureVector;
 import com.google.cloud.android.speech.diarization.KMeansCluster;
 import com.google.cloud.android.speech.diarization.main.SpeechDiary;
 import com.google.cloud.android.speech.event.PartialEvent;
+import com.google.cloud.android.speech.event.PartialStatusEvent;
 import com.google.cloud.android.speech.event.PartialTimerEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.longRunning.recognizeObservable;
@@ -198,7 +199,23 @@ public class SpeechService extends Service {
 
         @Override
         public void onCompleted() {
+            EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.END));
+            if (true) {
 
+                    byte[] dataBlock = new byte[recordBufferSize];
+                    int count = 0;
+                    byte[] temp;
+                    while (!recordByteQueue.isEmpty()) {
+                        temp = recordByteQueue.poll();
+                        System.arraycopy(temp, 0, dataBlock, count, temp.length);
+                        count += temp.length;
+                    }
+                    float[] pcmFloat = floatMe(shortMe(dataBlock));
+                    recordBufferSize = 0;
+                    new FeatureExtractAsync().execute(pcmFloat);
+
+
+            }
         }
 
     };
@@ -636,27 +653,55 @@ public class SpeechService extends Service {
             recordByteQueue.offer(data);
             recordBufferSize += data.length;
 
-            if (recordBufferSize > recordSampleRate*4) {
-                byte[] dataBlock = new byte[recordBufferSize];
-                int count = 0;
-                byte[] temp=null;
-                while (!recordByteQueue.isEmpty()) {
-                    temp = recordByteQueue.poll();
-                    System.arraycopy(temp, 0, dataBlock, count, temp.length);
-                    count += temp.length;
-                }
-                float[] pcmFloat = floatMe(shortMe(dataBlock));
-                SpeechDiary speechDiary = new SpeechDiary(recordId, recordSampleRate);
-                FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
-                Log.d("record", "fv start");
-                if (fv != null) {
-                    Log.d("record", "fv added");
-                    collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), recordId);
-                }
-                recordBufferSize = 0;
-            }
+//            if (recordBufferSize > recordSampleRate * 4) {
+//                byte[] dataBlock = new byte[recordBufferSize];
+//                int count = 0;
+//                byte[] temp;
+//                while (!recordByteQueue.isEmpty()) {
+//                    temp = recordByteQueue.poll();
+//                    System.arraycopy(temp, 0, dataBlock, count, temp.length);
+//                    count += temp.length;
+//                }
+//                float[] pcmFloat = floatMe(shortMe(dataBlock));
+//                recordBufferSize = 0;
+//                new FeatureExtractAsync().execute(pcmFloat);
+//            }
         }
     }
+
+    class FeatureExtractAsync extends AsyncTask<float[], Void, Void> {
+
+        @Override
+        protected Void doInBackground(float[]... params) {
+            SpeechDiary speechDiary = new SpeechDiary(recordId, recordSampleRate);
+            FeatureVector fv = speechDiary.extractFeatureFromFile(params[0]);
+            Log.d("record", "fv start");
+            if (fv != null) {
+                Log.d("record", "fv added");
+                collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), recordId);
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+
+            new ClusterAsync(recordId, new ClusterAsyncCallback() {
+                @Override
+                public void onProgress(float progress) {
+
+                }
+
+                @Override
+                public void onPostExecute(int dupId) {
+                    Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
+                }
+
+            }).execute(10);
+        }
+    }
+
 
     public void recognizeFileStream(final String title, final ArrayList<Integer> tags, final String fileName) {
         startForeground();
@@ -771,6 +816,7 @@ public class SpeechService extends Service {
                 mVoiceRecorder.dismiss();
             }
         }
+
         String text = alternative.getTranscript();
 
         if (!TextUtils.isEmpty(text)) {
@@ -785,34 +831,57 @@ public class SpeechService extends Service {
                 long startOfSentence = startOfCall - startOfRecording;
                 sentence.setStartMillis((int) (startOfSentence));
                 List<WordInfo> words = alternative.getWordsList();
-                TreeMap<Long, Integer> wordTimeRange = new TreeMap<>();
+
+//                TreeMap<Long, Integer> wordTimeRange = new TreeMap<>();
+//
+//                for (int i = 0; i < words.size(); i++) {
+//                    WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
+//                    word.setWord(words.get(i).getWord());
+//                    word.setSentenceId(sentence.getId());
+//                    long second = words.get(i).getStartTime().getSeconds() * 1000 + startOfSentence;
+//                    word.setStartMillis(second);
+//                    sentence.getWordList().add(word);
+//
+//                    if (wordTimeRange.containsKey(second)) {
+//                        wordTimeRange.put(second, wordTimeRange.get(second) + 1);
+//                    } else {
+//                        wordTimeRange.put(second, 1);
+//                    }
+//                }
+//
+//
+//                int count = 0;
+//
+//                for (Map.Entry<Long, Integer> entry : wordTimeRange.entrySet()) {
+//                    for (int i = 0; i < entry.getValue(); i++) {
+//                        sentence.getWordList().get(count).setStartMillis(entry.getKey() + i * 1000 / entry.getValue());
+//                        count++;
+//                    }
+//                }
 
                 for (int i = 0; i < words.size(); i++) {
                     WordRealm word = new RealmUtil().createObject(realm, WordRealm.class);
                     word.setWord(words.get(i).getWord());
                     word.setSentenceId(sentence.getId());
-                    long second = words.get(i).getStartTime().getSeconds() * 1000 + startOfSentence;
-                    word.setStartMillis(second);
+                    long startSecond = words.get(i).getStartTime().getSeconds() * 1000;
+                    startSecond += words.get(i).getStartTime().getNanos() / 1000000+ startOfSentence;
+                    word.setStartMillis(startSecond);
+
+                    long endSecond = words.get(i).getEndTime().getSeconds() * 1000;
+                    endSecond += words.get(i).getEndTime().getNanos() / 1000000+ startOfSentence;
+                    word.setEndMillis(endSecond);
+
                     sentence.getWordList().add(word);
 
-                    if (wordTimeRange.containsKey(second)) {
-                        wordTimeRange.put(second, wordTimeRange.get(second) + 1);
-                    } else {
-                        wordTimeRange.put(second, 1);
+                    if (i == 0) {
+                        sentence.setStartMillis(startSecond);
+                    }
+                    if (i == words.size() - 1) {
+                        sentence.setEndMillis(endSecond);
                     }
                 }
 
 
-                int count = 0;
-
-                for (Map.Entry<Long, Integer> entry : wordTimeRange.entrySet()) {
-                    for (int i = 0; i < entry.getValue(); i++) {
-                        sentence.getWordList().get(count).setStartMillis(entry.getKey() + i * 1000 / entry.getValue());
-                        count++;
-                    }
-                }
-
-                sentence.setEndMillis(sentence.getWordList().get(count - 1).getStartMillis());
                 sentence.setSentence();
                 record.getSentenceRealms().add(sentence);
                 realm.commitTransaction();

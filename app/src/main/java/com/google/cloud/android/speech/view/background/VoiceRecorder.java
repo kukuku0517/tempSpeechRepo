@@ -8,8 +8,11 @@ import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.google.cloud.android.speech.event.PartialStatusEvent;
 import com.google.cloud.android.speech.util.FileUtil;
 import com.google.cloud.android.speech.view.interfaces.VoiceRecorderCallBack;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -120,8 +123,8 @@ public class VoiceRecorder {
             mBuffer = null;
             if (isRecording) {
 
-                    Log.d(TAG, "recording en");
-                    isRecording = false;
+                Log.d(TAG, "recording en");
+                isRecording = false;
 
 
                 new Thread(new Runnable() {
@@ -132,7 +135,7 @@ public class VoiceRecorder {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        FileUtil.copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE),recorderSampleRate,RECORDER_BPP,bufferSize,1);
+                        FileUtil.copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE), recorderSampleRate, RECORDER_BPP, bufferSize, 1);
                         Log.d("buffersize", String.valueOf(bufferSize));
                         deleteTempFile();
 
@@ -211,8 +214,6 @@ public class VoiceRecorder {
      * Continuously processes the captured audio and notifies {@link #mCallback} of corresponding
      * events.
      */
-
-    int count=0;
     private class ProcessVoice implements Runnable {
 
         @Override
@@ -222,11 +223,8 @@ public class VoiceRecorder {
                     if (Thread.currentThread().isInterrupted()) {
                         break;
                     }
-                    short sData[] = new short[BufferElements2Rec];
-                    int size=0;
-
+                    int size = 0;
                     if (mAudioRecord != null) {
-
                         size = mAudioRecord.read(mBuffer, 0, bufferSize);
                         try {
                             os.write(mBuffer);
@@ -237,10 +235,8 @@ public class VoiceRecorder {
 
                     final long now = System.currentTimeMillis();
 
-
                     if (isHearingVoice(mBuffer, size)) {
-                        Log.d("bufferCount voice", String.valueOf(count++));
-
+                        EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.VOICE));
                         if (mLastVoiceHeardMillis == Long.MAX_VALUE) {
                             mVoiceStartedMillis = now;
                             try {
@@ -250,13 +246,12 @@ public class VoiceRecorder {
                             }
                         }
                         mCallback.onVoice(mBuffer, size);
-                        Log.i(TAG, "onVoice");
                         mLastVoiceHeardMillis = now;
                         if (now - mVoiceStartedMillis > MAX_SPEECH_LENGTH_MILLIS) { //인식중 + 최대시간 초과
                             end();
                         }
                     } else if (mLastVoiceHeardMillis != Long.MAX_VALUE) {
-                        Log.d("bufferCount voice", String.valueOf(count++));
+                        EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.SILENCE));
                         mCallback.onVoice(mBuffer, size);
                         if (now - mLastVoiceHeardMillis > SPEECH_TIMEOUT_MILLIS) { //인식정지 시간초과
                             end();

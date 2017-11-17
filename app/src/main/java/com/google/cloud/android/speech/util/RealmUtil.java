@@ -125,6 +125,7 @@ public class RealmUtil {
         copy.setTitle(origin.getTitle());
         copy.setOrigin(false);
 
+
         for (SentenceRealm oSentence : origin.getSentenceRealms()) {
 
             SentenceRealm cSentence = createObject(realm, SentenceRealm.class);

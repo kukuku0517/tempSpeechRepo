@@ -13,7 +13,6 @@ public class ObservableDTO<T> extends BaseObservable {
 
     T value;
 
-
     @Bindable
     public T getValue() {
         return value;

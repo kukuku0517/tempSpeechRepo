@@ -232,12 +232,12 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onPartialTimerEvent(PartialTimerEvent event) {
-//        Log.d(TAG,"eventbus timer end"+event.getSecond());
-        record.setDuration(event.getSecond() * 1000);
+
         if (binding == null && record == null) {
-            Log.d(TAG, "eventbus timer end" + event.getSecond());
-        } else {
-            Log.d(TAG, "eventbus timer end" + event.getSecond());
+
+        } else{
+            record.setDuration(event.getSecond() * 1000);
+
         }
         EventBus.getDefault().removeStickyEvent(event);
     }
