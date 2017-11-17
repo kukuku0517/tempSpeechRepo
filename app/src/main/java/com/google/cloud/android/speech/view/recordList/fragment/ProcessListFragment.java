@@ -188,6 +188,9 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         Log.d("lifecycle", "process stop");
     }
 
+    private static final int REQUEST_AUDIO = 2;
+    private static final int REQUEST_VIDEO = 3;
+
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onMessageEvent(FileEvent event) {
@@ -195,15 +198,16 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         title = event.getTitle();
         tags = event.getTags();
         filePath = event.getFilePath();
-        Log.d(TAG + "file", filePath);
-//
-//        Intent intent = new Intent(getActivity(), SpeechService.class);
-//        getActivity().startService(intent);
-//        getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
-
         mSpeechService.createFileRecord();
-//        mSpeechService.recognizeFileStream(title, tags, filePath);
-        mSpeechService.recognizeVideoStream(title, tags, filePath);
+
+        switch (event.getRequestCode()) {
+            case REQUEST_AUDIO:
+                mSpeechService.recognizeFileStream(title, tags, filePath);
+                break;
+            case REQUEST_VIDEO:
+                mSpeechService.recognizeVideoStream(title, tags, filePath);
+                break;
+        }
     }
 
 

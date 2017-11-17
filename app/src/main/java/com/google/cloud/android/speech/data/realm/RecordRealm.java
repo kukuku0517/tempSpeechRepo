@@ -1,9 +1,6 @@
 package com.google.cloud.android.speech.data.realm;
 
 import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
-import com.google.cloud.android.speech.data.realm.primitive.StringRealm;
-
-import java.util.ArrayList;
 
 import io.realm.RealmList;
 import io.realm.RealmObject;
@@ -18,16 +15,33 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
     @PrimaryKey
     private int id;
     private String title = "";
-    private String filePath;
-
+    private String audioPath;
+    private String videoPath;
     private int duration = 0;
     private long startMillis = -1;
     private boolean converted = false;
-
     private RealmList<TagRealm> tagList = new RealmList<>();
     private RealmList<SentenceRealm> sentenceList = new RealmList<>();
     private RealmList<ClusterRealm> clusterMembers = new RealmList<>();
     private RealmList<IntegerRealm> cluster = new RealmList<>();
+    private boolean isOrigin=true;
+    private int duplicateId=-1;
+
+    public int getDuplicateId() {
+        return duplicateId;
+    }
+
+    public void setDuplicateId(int duplicateId) {
+        this.duplicateId = duplicateId;
+    }
+
+    public boolean isOrigin() {
+        return isOrigin;
+    }
+
+    public void setOrigin(boolean origin) {
+        isOrigin = origin;
+    }
 
     @Override
     public int getId() {
@@ -43,13 +57,20 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         return cluster;
     }
 
+    public String getVideoPath() {
+        return videoPath;
+    }
+
+    public void setVideoPath(String videoPath) {
+        this.videoPath = videoPath;
+    }
+
     public void setCluster(RealmList<IntegerRealm> cluster) {
         this.cluster = cluster;
     }
 
-
     public void setCluster(int[] cluster) {
-        for(int i:cluster){
+        for (int i : cluster) {
             IntegerRealm integerRealm = new IntegerRealm();
             integerRealm.set(i);
             this.cluster.add(integerRealm);
@@ -63,7 +84,6 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
     public void setClusterMembers(RealmList<ClusterRealm> clusterMembers) {
         this.clusterMembers = clusterMembers;
     }
-
 
     public boolean isConverted() {
         return converted;
@@ -101,7 +121,6 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
     public RecordRealm() {
     }
 
-
     public String getTitle() {
         return title;
     }
@@ -110,12 +129,12 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         this.title = title;
     }
 
-    public String getFilePath() {
-        return filePath;
+    public String getAudioPath() {
+        return audioPath;
     }
 
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
+    public void setAudioPath(String audioPath) {
+        this.audioPath = audioPath;
     }
 
     public int getDuration() {
@@ -131,9 +150,9 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         return tagList;
     }
 
-    public ClusterRealm getByClusterNo(int clusterNo){
-        for(int i=0;i<clusterMembers.size();i++){
-            if(clusterMembers.get(i).getClusterNo()==clusterNo){
+    public ClusterRealm getByClusterNo(int clusterNo) {
+        for (int i = 0; i < clusterMembers.size(); i++) {
+            if (clusterMembers.get(i).getClusterNo() == clusterNo) {
                 return clusterMembers.get(i);
             }
         }
@@ -141,14 +160,17 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
     }
 
 
-    public void addTagList(TagRealm tag){
-        for(TagRealm t:tagList){
-            if(t.getId()==tag.getId())return;
+    public void addTagList(TagRealm tag) {
+        for (TagRealm t : tagList) {
+            if (t.getId() == tag.getId()) return;
         }
         tagList.add(tag);
     }
 
     public void cascadeDelete() {
+
+        cluster.deleteAllFromRealm();
+
         for (SentenceRealm sentence : sentenceList) {
             sentence.getWordList().deleteAllFromRealm();
         }

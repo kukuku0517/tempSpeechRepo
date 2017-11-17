@@ -10,6 +10,11 @@ public class FileEvent {
     private String title;
     private ArrayList<Integer> tags;
     private String filePath;
+    private int requestCode;
+
+    public int getRequestCode() {
+        return requestCode;
+    }
 
     public String getTitle() {
         return title;
@@ -23,10 +28,11 @@ public class FileEvent {
         return filePath;
     }
 
-    public FileEvent(String title, ArrayList<Integer>tags, String filePath){
-        this.title=title;
-        this.tags=tags;
+    public FileEvent(String title, ArrayList<Integer> tags, String filePath, int requestCode) {
+        this.title = title;
+        this.tags = tags;
         this.filePath = filePath;
+        this.requestCode=requestCode;
     }
 
 }

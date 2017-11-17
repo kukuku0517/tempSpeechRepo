@@ -21,7 +21,7 @@ import com.google.cloud.android.speech.diarization.main.SpeechDiary;
 import com.google.cloud.android.speech.view.interfaces.MediaCodecCallBack;
 
 
-public class AudioStreamer {
+public class BufferStreamer {
     private static final String TAG = "AudioStreamPlayer";
     private MediaExtractor mExtractor = null;
     private MediaCodec mMediaCodec = null;
@@ -50,7 +50,7 @@ public class AudioStreamer {
     private String mMediaPath;
 
 
-    public AudioStreamer(MediaCodecCallBack mListener) {
+    public BufferStreamer(MediaCodecCallBack mListener) {
         this.mListener = mListener;
         mState = State.Stopped;
     }

@@ -5,5 +5,5 @@ package com.google.cloud.android.speech.view.recordResult.handler;
  */
 
 public interface SpeakerDiaryClickListener {
-    void onSpeakerDiaryComplete();
+    void onSpeakerDiaryComplete(int process);
 }

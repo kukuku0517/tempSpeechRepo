@@ -22,17 +22,16 @@ public class SpeechDiary {
 
     public FeatureVector extractFeatureFromFile(float[] arrAmp) {
         prp = new PreProcess(arrAmp, sampleRate);
-        if (prp.framedSignal.length > 1) {
-            featureExtract = new FeatureExtract(prp.framedSignal, sampleRate, FEATURE_DIMENSION);
-            featureExtract.makeMfccFeatureVector();
-            featureExtract.setSilence(arrAmp);
-            return featureExtract.getFeatureVector();
-        } else {
-            return null;
-        }
+
+        featureExtract = new FeatureExtract(prp.framedSignal, sampleRate, FEATURE_DIMENSION);
+        featureExtract.makeMfccFeatureVector();
+//            featureExtract.setSilence();
+        featureExtract.setSilence(arrAmp);
+        return featureExtract.getFeatureVector();
+
     }
 
-    public SpeechDiary(int id,int sampleRate) {
-        this.sampleRate=sampleRate;
+    public SpeechDiary(int id, int sampleRate) {
+        this.sampleRate = sampleRate;
     }
 }

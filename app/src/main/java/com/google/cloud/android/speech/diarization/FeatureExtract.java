@@ -55,20 +55,15 @@ public class FeatureExtract {
         mfcc = new MFCC(samplingRate, numCepstra,featureDimension);
         fv = new FeatureVector();
         mfccFeature = new double[noOfFrames][featureDimension];
-//        deltaMfcc = new double[noOfFrames][numCepstra];
-//        deltaDeltaMfcc = new double[noOfFrames][numCepstra];
-//        energyVal = new double[noOfFrames];
-//        deltaEnergy = new double[noOfFrames];
-//        deltaDeltaEnergy = new double[noOfFrames];
-//        featureVector = new double[noOfFrames][numCepstra];
 
-//		featureVector = new double[noOfFrames][3 * numCepstra + 3];
-//		en = new Energy(samplePerFrame);
-//		delta = new Delta();
     }
 
-    public void setSilence(float[] original) {
-        fv.setSilence(AudioUtil.getSilenceFrames(original, sampleRate));
+    public void setSilence() {
+        fv.setSilence(AudioUtil.getSilenceFrames(framedSignal));
+    }
+
+    public void setSilence(float[] origin) {
+        fv.setSilence(AudioUtil.getSilenceFrames(origin, sampleRate));
     }
 
     public FeatureVector getFeatureVector() {

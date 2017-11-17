@@ -9,6 +9,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -51,6 +52,17 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
         binding.setFocus(index);
     }
 
+    Realm realm;
+
+    @Override
+    public void onClickCluster(View v) {
+        Toast.makeText(context, String.valueOf(sentenceRealm.getCluster().getClusterNo()), Toast.LENGTH_SHORT).show();
+        realm = Realm.getDefaultInstance();
+        realm.beginTransaction();
+        sentenceRealm.getCluster().setClusterNo(3);
+        realm.commitTransaction();
+    }
+
     @BindingAdapter("focus")
     public static void setFocus(TextView v, boolean focus) {
         if (focus) {
@@ -59,6 +71,21 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
         } else {
             v.setTextColor(context.getResources().getColor(R.color.text_gray));
             v.setTypeface(null, Typeface.NORMAL);
+        }
+    }
+
+    @BindingAdapter("droppable")
+    public static void setFocus(LinearLayout v, int focus) {
+        switch (focus) {
+            case 0:
+                v.setBackgroundColor(ContextCompat.getColor(context, R.color.default_background));
+                break;
+            case 1:
+                v.setBackgroundColor(ContextCompat.getColor(context, R.color.red));
+                break;
+            case 2:
+                v.setBackgroundColor(ContextCompat.getColor(context, R.color.light_gray));
+                break;
         }
     }
 
@@ -71,7 +98,7 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
     public static void setClusterColor(ImageView v, int value) {
         switch (value) {
             case 0:
-                v.setColorFilter(Color.WHITE);
+                v.setBackgroundColor(ContextCompat.getColor(context, R.color.default_background));
                 break;
             case 1:
                 v.setBackgroundColor(ContextCompat.getColor(context, R.color.cluster_a));
@@ -80,16 +107,5 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
                 v.setBackgroundColor(ContextCompat.getColor(context, R.color.cluster_b));
                 break;
         }
-    }
-
-    Realm realm;
-
-    @Override
-    public void onClickCluster(View v) {
-        Toast.makeText(context, String.valueOf(sentenceRealm.getCluster().getClusterNo()), Toast.LENGTH_SHORT).show();
-        realm = Realm.getDefaultInstance();
-        realm.beginTransaction();
-        sentenceRealm.getCluster().setClusterNo(3);
-        realm.commitTransaction();
     }
 }

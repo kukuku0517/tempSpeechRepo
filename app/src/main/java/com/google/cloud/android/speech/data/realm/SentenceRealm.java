@@ -27,7 +27,7 @@ public class SentenceRealm extends RealmObject implements PrimaryRealm {
         return cluster;
     }
 
-    public void setCluster(  ClusterRealm cluster) {
+    public void setCluster( ClusterRealm cluster) {
         this.cluster = cluster;
     }
 

@@ -1,7 +1,6 @@
 package com.google.cloud.android.speech.util;
 
 import android.content.Context;
-import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
@@ -13,7 +12,6 @@ import java.io.IOException;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
-import retrofit2.http.Multipart;
 
 /**
  * Created by USER on 2017-10-20.
@@ -21,7 +19,7 @@ import retrofit2.http.Multipart;
 
 public class AudioUtil {
 
-    private static final int AMPLITUDE_THRESHOLD = 1500;
+    private static final int AMPLITUDE_THRESHOLD = 1500*10;
 
     public static MultipartBody.Part wrap(File file) {
         RequestBody surveyBody = RequestBody.create(MediaType.parse("audio/*"), file);
@@ -79,11 +77,44 @@ public class AudioUtil {
     private static final float windowSize = 0.025f;
     private static final float windowStep = 0.010f;
 
+
+    public static short[] floatToByte(float[] framedSignal) {
+        short[] temp = new short[framedSignal.length];
+        for (int i = 0; i < framedSignal.length; i++) {
+            temp[i] = (short) framedSignal[i];
+        }
+        return temp;
+    }
+
+    public static byte[] shortToByte(short[] framedSignal) {
+        byte[] temp = new byte[framedSignal.length * 2];
+        for (int i = 0; i < framedSignal.length; i++) {
+            temp[i] = (byte) (framedSignal[i] & 0xff);
+            temp[i + 1] = (byte) ((framedSignal[i] >> 8) & 0xff);
+        }
+        return temp;
+    }
+
+    public static boolean getSileceFrame(float[] signal) {
+        return isHearingVoice(shortToByte(floatToByte(signal)), signal.length);
+    }
+
+    public static int[] getSilenceFrames(float[][] signals) {
+        int[] silence = new int[signals.length];
+        for (int i = 0; i < signals.length; i++) {
+            silence[i] = getSileceFrame(signals[i]) ? 1 : 0;
+        }
+
+        LogUtil.print(silence, "silence22222222222222");
+        return silence;
+    }
+
+    final static float SAMPLE_INTERVAL = 0.5f;
     public static int[] getSilenceFrames(float[] originalSignal, int sampleRate) {
         int samplePerFrame = (int) (sampleRate * windowSize);
         int samplePerStep = (int) (sampleRate * windowStep);
 
-        int firstSamples = (int) (samplePerFrame * 0.2);
+        int firstSamples = (int) (sampleRate* SAMPLE_INTERVAL);
         firstSamples = originalSignal.length > firstSamples ? firstSamples : originalSignal.length;
 
         float[] voiced = new float[originalSignal.length];
@@ -104,12 +135,13 @@ public class AudioUtil {
         sd = Math.sqrt(sum / firstSamples);
 
         for (int i = 0; i < originalSignal.length; i++) {
-            if ((Math.abs(originalSignal[i] - m) / sd) > 2) {
+            if ((Math.abs(originalSignal[i] - m) / sd) > 3) {
                 voiced[i] = 1;
             } else {
                 voiced[i] = 0;
             }
         }
+
 
         int noOfFrames;
         if (originalSignal.length < samplePerFrame) {
@@ -158,7 +190,7 @@ public class AudioUtil {
             voicedFrame[noOfFrames - 1] = 0;
         }
 
-        LogUtil.print(voicedFrame, "silence");
+        LogUtil.print(voicedFrame, "silence111");
 
         return voicedFrame;
     }

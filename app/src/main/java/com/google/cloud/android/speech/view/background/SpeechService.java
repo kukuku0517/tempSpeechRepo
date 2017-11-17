@@ -62,7 +62,6 @@ import com.google.protobuf.ByteString;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -257,25 +256,25 @@ public class SpeechService extends Service {
                     sampleRate = rate;
                     byteQueue.offer(buffer);
                     bufferTotal += buffer.length;
-
-                    if (bufferTotal >= rate * 5) {
-                        byte[] bufferBlock = new byte[bufferTotal];
-
-                        int count = 0;
-                        while (!byteQueue.isEmpty()) {
-                            byte[] temp = byteQueue.poll();
-                            System.arraycopy(temp, 0, bufferBlock, count, temp.length);
-                            count += temp.length;
-                        }
-
-                        float[] pcmFloat = floatMe(shortMe(bufferBlock));
-                        SpeechDiary speechDiary = new SpeechDiary(fileId, rate);
-                        FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
-                        if (fv != null) {
-                            collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), fileId);
-                        }
-                        bufferTotal = 0;
-                    }
+//
+//                    if (bufferTotal >= rate * 5) {
+//                        byte[] bufferBlock = new byte[bufferTotal];
+//
+//                        int count = 0;
+//                        while (!byteQueue.isEmpty()) {
+//                            byte[] temp = byteQueue.poll();
+//                            System.arraycopy(temp, 0, bufferBlock, count, temp.length);
+//                            count += temp.length;
+//                        }
+//
+//                        float[] pcmFloat = floatMe(shortMe(bufferBlock));
+//                        SpeechDiary speechDiary = new SpeechDiary(fileId, rate);
+//                        FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
+//                        if (fv != null) {
+//                            collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), fileId);
+//                        }
+//                        bufferTotal = 0;
+//                    }
                 }
             }
         }
@@ -298,7 +297,6 @@ public class SpeechService extends Service {
                 collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), fileId);
             }
             bufferTotal = 0;
-
             fileObservable.setSpeakerDiary(false);
             Log.d("observv", "speaker");
         }
@@ -332,15 +330,15 @@ public class SpeechService extends Service {
         @Override
         public void onCompleted() throws IOException {
             os.close();
-            os=null;
+            os = null;
 
             Realm realm = Realm.getDefaultInstance();
             RecordRealm fileRecord = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
-            FileUtil.copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(fileRecord.getTitle()), fileSampleRate, 16, videoBufferSize,2);
+            FileUtil.copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(fileRecord.getTitle()), fileSampleRate, 16, videoBufferSize, 2);
 
             File file = new File(FileUtil.getFilename(fileRecord.getTitle()));
             fileSampleRate = AudioUtil.getSampleRate(file);
-            AudioStreamer audioStreamer = new AudioStreamer(audioCodecCallback);
+            BufferStreamer audioStreamer = new BufferStreamer(audioCodecCallback);
             audioStreamer.setUrlString(file.getAbsolutePath());
             GoogleClientRetrofit googleClientRetrofit = new GoogleClientRetrofit();
             googleClientRetrofit.longrunningRequestRetrofit(file.getName(), fileSampleRate, AudioUtil.wrap(file), longrunningObserver);
@@ -348,12 +346,12 @@ public class SpeechService extends Service {
             videoBufferSize = 0;
 
 
-
         }
     };
 
 
     private int fileSampleRate;
+    private int recordSampleRate;
 
     private StreamObserverRetrofit<LongrunningResponse> longrunningObserver
             = new StreamObserverRetrofit<LongrunningResponse>() {
@@ -401,6 +399,7 @@ public class SpeechService extends Service {
 
         }
     };
+
     private RecognizeObserver speechObserver = new RecognizeObserver() {
 
         @Override
@@ -502,7 +501,7 @@ public class SpeechService extends Service {
         startForeground();
 
         startOfRecording = System.currentTimeMillis();
-
+        recordSampleRate = FileUtil.getRecordSampleRate();
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
@@ -512,7 +511,7 @@ public class SpeechService extends Service {
                     tagRealm.setCount(tagRealm.getCount() + 1);
                     record.addTagList(tagRealm);
                 }
-                record.setFilePath(FileUtil.getFilename(title));
+                record.setAudioPath(FileUtil.getFilename(title));
                 record.setStartMillis(startOfRecording);
                 recordId = record.getId();
             }
@@ -619,6 +618,46 @@ public class SpeechService extends Service {
         return false;
     }
 
+
+    private int recordBufferSize = 0;
+    private Queue<byte[]> recordByteQueue = new LinkedList<>();
+
+    public void recognizeSpeechStream(byte[] data, int size) {
+        if (mRequestObserver == null) {
+            return;
+        }
+
+        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                .setAudioContent(ByteString.copyFrom(data, 0, size))
+                .build());
+
+        //TODO
+        if (checkEmptyBytes(data)) {
+            recordByteQueue.offer(data);
+            recordBufferSize += data.length;
+
+            if (recordBufferSize > recordSampleRate*4) {
+                byte[] dataBlock = new byte[recordBufferSize];
+                int count = 0;
+                byte[] temp=null;
+                while (!recordByteQueue.isEmpty()) {
+                    temp = recordByteQueue.poll();
+                    System.arraycopy(temp, 0, dataBlock, count, temp.length);
+                    count += temp.length;
+                }
+                float[] pcmFloat = floatMe(shortMe(dataBlock));
+                SpeechDiary speechDiary = new SpeechDiary(recordId, recordSampleRate);
+                FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
+                Log.d("record", "fv start");
+                if (fv != null) {
+                    Log.d("record", "fv added");
+                    collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), recordId);
+                }
+                recordBufferSize = 0;
+            }
+        }
+    }
+
     public void recognizeFileStream(final String title, final ArrayList<Integer> tags, final String fileName) {
         startForeground();
         fileObservable.setSpeakerDiary(true);
@@ -630,7 +669,7 @@ public class SpeechService extends Service {
                 @Override
                 public void execute(Realm realm) {
                     fileRecord.setTitle(title);
-                    fileRecord.setFilePath(fileName);
+                    fileRecord.setAudioPath(fileName);
                     for (int i : tags) {
                         fileRecord.addTagList(realm.where(TagRealm.class).equalTo("id", i).findFirst());
                     }
@@ -639,7 +678,7 @@ public class SpeechService extends Service {
 
             File file = new File(fileName);
             fileSampleRate = AudioUtil.getSampleRate(file);
-            AudioStreamer audioStreamer = new AudioStreamer(audioCodecCallback);
+            BufferStreamer audioStreamer = new BufferStreamer(audioCodecCallback);
             audioStreamer.setUrlString(fileName);
             GoogleClientRetrofit googleClientRetrofit = new GoogleClientRetrofit();
             googleClientRetrofit.longrunningRequestRetrofit(file.getName(), fileSampleRate, AudioUtil.wrap(file), longrunningObserver);
@@ -660,7 +699,7 @@ public class SpeechService extends Service {
                 @Override
                 public void execute(Realm realm) {
                     fileRecord.setTitle(title);
-                    fileRecord.setFilePath(fileName);
+                    fileRecord.setVideoPath(fileName);
                     for (int i : tags) {
                         fileRecord.addTagList(realm.where(TagRealm.class).equalTo("id", i).findFirst());
                     }
@@ -669,9 +708,7 @@ public class SpeechService extends Service {
 
             File file = new File(fileName);
             fileSampleRate = AudioUtil.getSampleRate(file);
-
-
-            AudioStreamer audioStreamer = new AudioStreamer(videoCodecCallBack);
+            BufferStreamer audioStreamer = new BufferStreamer(videoCodecCallBack);
             audioStreamer.setUrlString(fileName);
             audioStreamer.play();
 
@@ -679,32 +716,6 @@ public class SpeechService extends Service {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public void recognizeSpeechStream(byte[] data, int size) {
-        if (mRequestObserver == null) {
-            return;
-        }
-
-        // Call the streaming recognition API
-//        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-//                .setAudioContent(ByteString.copyFrom(data, 0, size))
-//                .build());
-        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                .setAudioContent(ByteString.copyFrom(data, 0, size))
-                .build());
-
-        //TODO
-        if (checkEmptyBytes(data)) {
-            float[] pcmFloat = floatMe(shortMe(data));
-            SpeechDiary speechDiary = new SpeechDiary(recordId, fileSampleRate);
-            FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
-            if (fv != null) {
-                collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), recordId);
-            }
-        }
-
-//        Log.i(TAG, "buffer sent");
     }
 
     private void onFileResult(boolean isFinal, Alternatives alternative, long startOfCall) {
@@ -746,8 +757,6 @@ public class SpeechService extends Service {
                 sentence.setSentence();
                 record.getSentenceRealms().add(sentence);
                 realm.commitTransaction();
-                Log.d("observv", "speech");
-
             } else {
                 EventBus.getDefault().post(new PartialEvent(text));
             }
@@ -846,7 +855,7 @@ public class SpeechService extends Service {
 
         Realm realm = Realm.getDefaultInstance();
         final RecordRealm[] fileRecord = {realm.where(RecordRealm.class).equalTo("id", fileId).findFirst()};
-        String path = fileRecord[0].getFilePath();
+        String path = fileRecord[0].getAudioPath();
         final float UNIT = 0.01f;
         /**************************************************************/
 

@@ -17,7 +17,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.R;
@@ -120,9 +119,9 @@ public class ResultListFragment extends Fragment implements ListHandler {
         super.onCreate(savedInstanceState);
         mPageNumber = getArguments().getInt("page");
         realm = ((ListActivity) getActivity()).realm;
-        if(realm==null){
-            ((ListActivity) getActivity()).realm=Realm.getDefaultInstance();
-            realm=    ((ListActivity) getActivity()).realm;
+        if (realm == null) {
+            ((ListActivity) getActivity()).realm = Realm.getDefaultInstance();
+            realm = ((ListActivity) getActivity()).realm;
         }
     }
 
@@ -143,33 +142,33 @@ public class ResultListFragment extends Fragment implements ListHandler {
         binding = DataBindingUtil.bind(view);
         binding.setHandler(this);
 
-        RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted", true).findAll();
+        RealmResults<RecordRealm> result = realm.where(RecordRealm.class).equalTo("converted", true).equalTo("isOrigin",true).findAll();
 
         Log.d("lifecycle", "resultlist create view");
-        for (final RecordRealm record : result) {
-            if (record.getDuration() == 0) {
-                String filePath = record.getFilePath();
-                Uri mUri = Uri.fromFile(new File(filePath));
-                //TODO uncomment this
-                try {
-                    MediaPlayer mediaPlayer = new MediaPlayer();
-                    mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                    mediaPlayer.setDataSource(getActivity(), mUri);
-                    mediaPlayer.prepareAsync();
-                    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                        @Override
-                        public void onPrepared(MediaPlayer mp) {
-                            realm.beginTransaction();
-                            record.setDuration(mp.getDuration());
-                            realm.commitTransaction();
-                        }
-                    });
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }
+//        for (final RecordRealm record : result) {
+//            if (record.getDuration() == 0) {
+//                String filePath = recRord.getAudioPath();
+//                Uri mUri = Uri.fromFile(new File(filePath));
+//                //TODO uncomment this
+//                try {
+//                    MediaPlayer mediaPlayer = new MediaPlayer();
+//                    mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+//                    mediaPlayer.setDataSource(getActivity(), mUri);
+//                    mediaPlayer.prepareAsync();
+//                    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+//                        @Override
+//                        public void onPrepared(MediaPlayer mp) {
+//                            realm.beginTransaction();
+//                            record.setDuration(mp.getDuration());
+//                            realm.commitTransaction();
+//                        }
+//                    });
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//
+//            }
+//        }
 
 //        recyclerView = (RecyclerView) view.findViewById(R.id.rv_record);
         recyclerView = binding.rvRecord;
@@ -219,6 +218,8 @@ public class ResultListFragment extends Fragment implements ListHandler {
 
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 1;
     private static final int REQUEST_FILE_AUDIO_PERMISSION = 2;
+    private static final int REQUEST_FILE_VIDEO_PERMISSION = 3;
+
 
     @Override
     public void onClickFabRecord(View view) {
@@ -232,7 +233,7 @@ public class ResultListFragment extends Fragment implements ListHandler {
 
     @Override
     public void onClickFabVideo(View view) {
-        Toast.makeText(getContext(), "coming soon", Toast.LENGTH_SHORT).show();
+        ((ListActivity) getActivity()).openDialog(REQUEST_FILE_VIDEO_PERMISSION);
     }
 
 }

@@ -1,15 +1,7 @@
 package com.google.cloud.android.speech.view.recordList;
 
-import android.content.ContentUris;
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.databinding.DataBindingUtil;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Environment;
-import android.provider.DocumentsContract;
-import android.provider.MediaStore;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -23,9 +15,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import com.google.cloud.android.speech.data.realm.TagRealm;
-import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
 import com.google.cloud.android.speech.event.FileEvent;
+import com.google.cloud.android.speech.util.FileUtil;
 import com.google.cloud.android.speech.view.recordList.fragment.ProcessListFragment;
 import com.google.cloud.android.speech.view.recordList.fragment.ResultListFragment;
 import com.google.cloud.android.speech.view.recording.RecordActivity;
@@ -35,11 +26,9 @@ import com.google.cloud.android.speech.databinding.ActivityListBinding;
 
 
 import org.greenrobot.eventbus.EventBus;
-import org.parceler.Parcel;
 import org.parceler.Parcels;
 
 import java.util.ArrayList;
-import java.util.StringTokenizer;
 
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
@@ -48,81 +37,11 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
 
 
     ActivityListBinding binding;
-    private static final int AUDIO_FILE_REQUEST = 0;
-    private static final int VIDEO_FILE_REQUEST = 1;
     String TAG = "SpeechAPI";
 
     public SpeechService mSpeechService;
     public Realm realm;
-
-//
-//
-//    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-//    public void onProcessIdEvent(ProcessIdEvent event) {
-//
-//        Log.d("lifecycle","list process event");
-//        if (event.IS_RECORDING()) {
-//            binding.fabRecord.setEnabled(false);
-//            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setRecordItem(event.getRecordId());
-//        } else {
-//            binding.fabRecord.setEnabled(true);
-//        }
-//        if (event.isFiling()) {
-//            binding.fabFile.setEnabled(false);
-//            ((ProcessListFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_process_list)).setFileItem(event.getFileId());
-//        } else {
-//            binding.fabFile.setEnabled(true);
-//        }
-//    }
-
-
-//    private final ServiceConnection mServiceConnection = new ServiceConnection() {
-//
-//        @Override
-//        public void onServiceConnected(ComponentName componentName, IBinder binder) {
-//            mSpeechService = SpeechService.from(binder);
-//            mSpeechService.notifyProcess();
-//            Log.d("lifecycle","service con");
-//
-//
-//            //TODO enable after end
-//
-//
-////            recordId = mSpeechService.getRecordId();
-//////            mSpeechService.addListener(mSpeechServiceListener);
-////            mStatus.setVisibility(View.VISIBLE);
-////            serviceBinded = true;
-//
-////            realm.executeTransaction(new Realm.Transaction() {
-////                @Override
-////                public void execute(Realm realm) {
-////                    Log.d(TAG, "in service" + String.valueOf(recordId));
-////                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
-////
-////                }
-////            });
-////
-////            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-////            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
-//////        final ArrayList<String> results = savedInstanceState == null ? null :
-//////                savedInstanceState.getStringArrayList(STATE_RESULTS);
-//////
-////
-////            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
-////            mRecyclerView.setAdapter(mAdapter);
-//        }
-//
-//        @Override
-//        public void onServiceDisconnected(ComponentName componentName) {
-//
-//            Log.d("lifecycle","service discon");
-//            mSpeechService = null;
-//        }
-//
-//    };
-
-
-    PagerAdapter mPagerAdapter;
+    private PagerAdapter mPagerAdapter;
 
     @Override
     protected void onStop() {
@@ -158,7 +77,7 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
         if (realm == null) {
             realm.init(this);
             RealmConfiguration config = new RealmConfiguration.Builder()
-//                    .deleteRealmIfMigrationNeeded()
+                    .deleteRealmIfMigrationNeeded()
                     .build();
             Realm.setDefaultConfiguration(config);
             realm = Realm.getDefaultInstance();
@@ -210,8 +129,9 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
         });
     }
 
-    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 1;
-    private static final int REQUEST_FILE_AUDIO_PERMISSION = 2;
+    private static final int REQUEST_RECORD = 1;
+    private static final int REQUEST_AUDIO = 2;
+    private static final int REQUEST_VIDEO = 3;
 
 
     public void openDialog(int permission) {
@@ -223,41 +143,27 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
     @Override
     public void onDialogPositiveClick(String title, ArrayList<Integer> tags, int requestCode) {
 
-        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
+        if (requestCode == REQUEST_RECORD) {
             Intent intent = new Intent(this, RecordActivity.class);
             intent.putExtra("title", title);
             intent.putExtra("tags", Parcels.wrap(tags));
             startActivity(intent);
-
-        } else if (requestCode == REQUEST_FILE_AUDIO_PERMISSION) {
-
+        } else if (requestCode == REQUEST_AUDIO) {
             tempTitle = title;
             tempTags = tags;
-
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            // Filter to only show results that can be "opened", such as a
-            // file (as opposed to a list of contacts or timezones)
             intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("audio/*");
+            startActivityForResult(intent, REQUEST_AUDIO);
 
-            // Filter to show only images, using the image MIME data type.
-            // If one wanted to search for ogg vorbis files, the type would be "audio/ogg".
-            // To search for all documents available via installed storage providers,
-            // it would be "*/*".
-//            intent.setType("audio/*");
-            intent.setType("*/*");
-            startActivityForResult(intent, AUDIO_FILE_REQUEST);
-
-//            mSpeechService.recognizeFileStream(FileUtil.getFilename(fileUri));
-//            mSpeechService.recognizeFileStream(title, tags, fileUri);
-//            try {
-//                FileInputStream fileInputStream = new FileInputStream(file);
-//
-//                mSpeechService.recognizeInputStream(fileInputStream);
-//            } catch (FileNotFoundException e) {
-//                e.printStackTrace();
-//            }
+        } else if (requestCode == REQUEST_VIDEO) {
+            tempTitle = title;
+            tempTags = tags;
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("video/*");
+            startActivityForResult(intent, REQUEST_VIDEO);
         }
-
     }
 
     String tempTitle;
@@ -269,152 +175,28 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
     }
 
 
-    public static String getPath(final Context context, final Uri uri) {
-
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-
-        // DocumentProvider
-        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
-            // ExternalStorageProvider
-            if (isExternalStorageDocument(uri)) {
-                final String docId = DocumentsContract.getDocumentId(uri);
-                final String[] split = docId.split(":");
-                final String type = split[0];
-
-                if ("primary".equalsIgnoreCase(type)) {
-                    return Environment.getExternalStorageDirectory() + "/" + split[1];
-                }
-
-                // TODO handle non-primary volumes
-            }
-            // DownloadsProvider
-            else if (isDownloadsDocument(uri)) {
-
-                final String id = DocumentsContract.getDocumentId(uri);
-                final Uri contentUri = ContentUris.withAppendedId(
-                        Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
-
-                return getDataColumn(context, contentUri, null, null);
-            }
-            // MediaProvider
-            else if (isMediaDocument(uri)) {
-                final String docId = DocumentsContract.getDocumentId(uri);
-                final String[] split = docId.split(":");
-                final String type = split[0];
-
-                Uri contentUri = null;
-                if ("image".equals(type)) {
-                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                } else if ("video".equals(type)) {
-                    contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-                } else if ("audio".equals(type)) {
-                    contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-                }
-
-                final String selection = "_id=?";
-                final String[] selectionArgs = new String[]{
-                        split[1]
-                };
-
-                return getDataColumn(context, contentUri, selection, selectionArgs);
-            }
-        }
-        // MediaStore (and general)
-        else if ("content".equalsIgnoreCase(uri.getScheme())) {
-
-            // Return the remote address
-            if (isGooglePhotosUri(uri))
-                return uri.getLastPathSegment();
-
-            return getDataColumn(context, uri, null, null);
-        }
-        // File
-        else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            return uri.getPath();
-        }
-
-        return null;
-    }
-
-    /**
-     * Get the value of the data column for this Uri. This is useful for
-     * MediaStore Uris, and other file-based ContentProviders.
-     *
-     * @param context       The context.
-     * @param uri           The Uri to query.
-     * @param selection     (Optional) Filter used in the query.
-     * @param selectionArgs (Optional) Selection arguments used in the query.
-     * @return The value of the _data column, which is typically a file path.
-     */
-    public static String getDataColumn(Context context, Uri uri, String selection,
-                                       String[] selectionArgs) {
-
-        Cursor cursor = null;
-        final String column = "_data";
-        final String[] projection = {
-                column
-        };
-
-        try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
-                    null);
-            if (cursor != null && cursor.moveToFirst()) {
-                final int index = cursor.getColumnIndexOrThrow(column);
-                return cursor.getString(index);
-            }
-        } finally {
-            if (cursor != null)
-                cursor.close();
-        }
-        return null;
-    }
-
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is ExternalStorageProvider.
-     */
-    public static boolean isExternalStorageDocument(Uri uri) {
-        return "com.android.externalstorage.documents".equals(uri.getAuthority());
-    }
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is DownloadsProvider.
-     */
-    public static boolean isDownloadsDocument(Uri uri) {
-        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
-    }
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is MediaProvider.
-     */
-    public static boolean isMediaDocument(Uri uri) {
-        return "com.android.providers.media.documents".equals(uri.getAuthority());
-    }
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is Google Photos.
-     */
-    public static boolean isGooglePhotosUri(Uri uri) {
-        return "com.google.android.apps.photos.content".equals(uri.getAuthority());
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        String mediaPath;
         switch (requestCode) {
-            case AUDIO_FILE_REQUEST:
+            case REQUEST_AUDIO:
                 if (data != null) {
-                    String audioPath = getPath(getBaseContext(), data.getData());
-                    Log.i(TAG, audioPath);
+                    mediaPath = FileUtil.getPath(getBaseContext(), data.getData());
                     binding.vpList.setCurrentItem(1);
-                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, audioPath));
+                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_AUDIO));
                 }
+                break;
+            case REQUEST_VIDEO:
+                if (data != null) {
+                    mediaPath = FileUtil.getPath(getBaseContext(), data.getData());
+                    binding.vpList.setCurrentItem(1);
+                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_VIDEO));
+                }
+                break;
         }
 
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

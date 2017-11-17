@@ -2,18 +2,12 @@ package com.google.cloud.android.speech.data.DTO;
 
 import android.databinding.BaseObservable;
 import android.databinding.Bindable;
-import android.databinding.BindingAdapter;
-import android.widget.TextView;
 
 import com.google.cloud.android.speech.BR;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.TagRealm;
-import com.google.cloud.android.speech.data.realm.primitive.StringRealm;
-import com.google.cloud.android.speech.util.DateUtil;
 
 import java.util.ArrayList;
-
-import io.realm.Realm;
 
 /**
  * Created by samsung on 2017-10-07.
@@ -25,6 +19,7 @@ public class RecordDTO extends BaseObservable {
     private ArrayList<TagRealm> tagList = new ArrayList<>();
     private long startMillis = -1;
     private String filePath;
+    private String videoPath;
 
     public RecordDTO() {
 
@@ -46,7 +41,8 @@ public class RecordDTO extends BaseObservable {
         setTitle(recordRealm.getTitle());
         this.duration = recordRealm.getDuration();
         setStartMillis(recordRealm.getStartMillis());
-        setFilePath(recordRealm.getFilePath());
+        setFilePath(recordRealm.getAudioPath());
+        setVideoPath(recordRealm.getVideoPath());
         ArrayList<TagRealm> temp = new ArrayList<>();
         for (TagRealm s : recordRealm.getTagList()) {
             temp.add(s);
@@ -54,12 +50,12 @@ public class RecordDTO extends BaseObservable {
         setTagList(temp);
     }
 
-
-
     @Bindable
     public String getTitle() {
         return title;
     }
+
+
 
     @Bindable
     public int getDuration() {
@@ -74,6 +70,16 @@ public class RecordDTO extends BaseObservable {
     @Bindable
     public long getStartMillis() {
         return startMillis;
+    }
+
+    @Bindable
+    public String getVideoPath() {
+        return videoPath;
+    }
+
+    public void setVideoPath(String videoPath) {
+        this.videoPath = videoPath;
+        notifyPropertyChanged(BR.videoPath);
     }
 
     public void setTitle(String title) {

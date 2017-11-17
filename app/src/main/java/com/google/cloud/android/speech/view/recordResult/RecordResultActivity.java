@@ -1,17 +1,17 @@
 package com.google.cloud.android.speech.view.recordResult;
 
 import android.databinding.DataBindingUtil;
-import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
+import android.support.v7.widget.helper.ItemTouchHelper;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.Toast;
@@ -19,11 +19,9 @@ import android.widget.Toast;
 import com.google.cloud.android.speech.data.DTO.MediaTimeDTO;
 import com.google.cloud.android.speech.data.DTO.ObservableDTO;
 import com.google.cloud.android.speech.data.DTO.RecordDTO;
-import com.google.cloud.android.speech.data.realm.ClusterDataRealm;
 import com.google.cloud.android.speech.data.realm.FeatureRealm;
 import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.data.realm.VectorRealm;
-import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
 import com.google.cloud.android.speech.diarization.KMeansCluster;
 import com.google.cloud.android.speech.event.SeekEvent;
 import com.google.cloud.android.speech.R;
@@ -31,9 +29,11 @@ import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.util.FileUtil;
 import com.google.cloud.android.speech.util.LogUtil;
+import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.customView.CenterLinearLayoutManager;
 import com.google.cloud.android.speech.view.recordList.adapter.TagRealmAdapter;
 import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
+import com.google.cloud.android.speech.view.recordResult.CustomView.SentenceItemTouchHelperCallBack;
 import com.google.cloud.android.speech.view.recordResult.handler.ResultHandler;
 import com.google.cloud.android.speech.view.recordResult.adapter.ResultRealmAdapter;
 import com.google.cloud.android.speech.databinding.ActivityResultBinding;
@@ -51,36 +51,39 @@ import java.util.Arrays;
 
 import io.realm.Realm;
 import io.realm.RealmList;
-import io.realm.RealmResults;
 
-public class RecordResultActivity extends AppCompatActivity implements ResultHandler {
-    private final static String TAG = "Speech";
+public class RecordResultActivity extends AppCompatActivity implements ResultHandler, SurfaceHolder.Callback {
     private Realm realm;
-    private RecyclerView mRecyclerView;
-    private ResultRealmAdapter mAdapter;
-    private String filePath;
-    private MediaPlayer mediaPlayer; //TODO release
-    private SeekBar seekbar;
-    private ObservableDTO<Boolean> isPlaying = new ObservableDTO<>();
-    private ObservableDTO<Boolean> diary = new ObservableDTO<>();
-    private ObservableDTO<Boolean> loop = new ObservableDTO<>();
     private ActivityResultBinding binding;
-    private int pos;
-    private MediaTimeDTO timeDTO = new MediaTimeDTO();
-    private RecordRealm record;
-    private int recordId;
+    private MediaPlayer mediaPlayer; //TODO release
+    private RecyclerView mRecyclerView;
 
+    private SeekBar seekbar;
     private RecyclerView tagRecyclerView;
     private TagRealmAdapter tagAdapter;
     private RecyclerView.LayoutManager tagLayout;
-    private ArrayList<TagRealm> tagTags = new ArrayList<>();
+    private SurfaceView surfaceView;
 
-    private int prev = -1;
+    private SurfaceHolder surfaceHolder;
+    private ResultRealmAdapter mAdapter;
+
+    private String filePath;
+    private boolean hasVideo = false;
+    private ObservableDTO<Boolean> isPlaying = new ObservableDTO<>();
+    private ObservableDTO<Boolean> diary = new ObservableDTO<>();
+    private ObservableDTO<Boolean> loop = new ObservableDTO<>();
+    private ObservableDTO<String> progress = new ObservableDTO<>();
+    private ObservableDTO<Integer> hasDiary = new ObservableDTO<>();
 
     private MediaThread mediaThread = new MediaThread();
+    private MediaTimeDTO timeDTO = new MediaTimeDTO();
 
+    private int originRecordId;
+    private int duplicateRecordId = -1;
 
-
+    private RecordRealm record;
+    private ArrayList<TagRealm> tagTags = new ArrayList<>();
+    private int[] results;
 
     class MediaThread extends Thread {
         @Override
@@ -93,6 +96,108 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     }
 
+    class ClusterAsync extends AsyncTask<Integer, Float, Integer> {
+
+        @Override
+        protected Integer doInBackground(final Integer... params) {
+
+            Realm realm = Realm.getDefaultInstance();
+            FeatureRealm feature = realm.where(FeatureRealm.class).equalTo("id", originRecordId).findFirst();
+
+            int[] sil = new int[feature.getSilence().size()];
+            for (int i = 0; i < feature.getSilence().size(); i++) {
+                sil[i] = feature.getSilence().get(i).get();
+            }
+            LogUtil.print(sil, "silence");
+
+            KMeansCluster cluster = new KMeansCluster(3, dimension, feature.getFeatureVectors(), feature.getSilence());
+            cluster.setListener(new SpeakerDiaryClickListener() {
+                @Override
+                public void onSpeakerDiaryComplete(int process) {
+                    publishProgress(process / (float) params[0]);
+                }
+            });
+
+            try {
+                results = cluster.iterRun(params[0]);
+                realm.beginTransaction();
+                if (duplicateRecordId != -1) {
+                    RecordRealm dupToDelete = realm.where(RecordRealm.class).equalTo("id", duplicateRecordId).findFirst();
+                    dupToDelete.cascadeDelete();
+                }
+                duplicateRecordId = RealmUtil.duplicateRecord(realm, originRecordId);
+                realm.commitTransaction();
+                cluster.applyClusterToRealm(3, results, duplicateRecordId, 0.01f);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return duplicateRecordId;
+        }
+
+        @Override
+        protected void onProgressUpdate(Float... values) {
+            super.onProgressUpdate(values);
+            progress.setValue(String.format("Loading... %.0f%%", values[0] * 100));
+
+        }
+
+        @Override
+        protected void onPostExecute(Integer aVoid) {
+            diary.setValue(false);
+            Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
+            Realm realm = Realm.getDefaultInstance();
+            swapRecord(aVoid);
+            hasDiary.setValue(duplicateRecordId);
+            realm.beginTransaction();
+            record.setCluster(results);
+            realm.commitTransaction();
+        }
+    }
+
+    private void swapRecord(int recordId) {
+        Realm realm = Realm.getDefaultInstance();
+        record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+        mAdapter.updateData(record.getSentenceRealms());
+    }
+
+    /**
+     * only if video path exist.
+     *
+     * @param holder
+     */
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        Uri mUri = Uri.fromFile(new File(filePath));
+        try {
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setDisplay(surfaceHolder);
+            mediaPlayer.setLooping(true); // true:무한반복
+            mediaPlayer.setDataSource(this, mUri);
+            mediaPlayer.prepareAsync();
+            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    int total = mp.getDuration();
+                    seekbar.setMax(total);
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+    }
+
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,12 +205,17 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
         //get data
         realm = Realm.getDefaultInstance();
-        recordId = getIntent().getIntExtra("id", 1);
-        record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
+        originRecordId = getIntent().getIntExtra("id", 1);
 
+        record = realm.where(RecordRealm.class).equalTo("id", originRecordId).findFirst();
+        if (record.getDuplicateId() != -1) {
+            duplicateRecordId = record.getDuplicateId();
+
+        }
         //init values from data
         RealmList<SentenceRealm> sentenceResults = record.getSentenceRealms();
-        filePath = record.getFilePath();
+
+
         timeDTO.setTotal(record.getDuration());
         timeDTO.setNow(0);
 
@@ -113,6 +223,8 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         loop.setValue(true);
         isPlaying.setValue(false);
         diary.setValue(false);
+        progress.setValue("Loading...0%");
+        hasDiary.setValue(duplicateRecordId);
 
         //init databinding
         binding = DataBindingUtil.setContentView(this, R.layout.activity_result);
@@ -123,11 +235,22 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         tagRecyclerView = binding.rvTags;
         seekbar = binding.sbNavigate;
 
+        if (record.getVideoPath() != null) {
+            hasVideo = true;
+            filePath = record.getVideoPath();
+            surfaceView = binding.svVideo;
+            surfaceHolder = surfaceView.getHolder();
+            surfaceHolder.addCallback(this);
+        } else {
+            filePath = record.getAudioPath();
+        }
+
         binding.setHandler(this);
         binding.setTime(timeDTO);
         binding.setIsPlaying(isPlaying);
         binding.setLoop(loop);
         binding.setDiary(diary);
+        binding.setProgress(progress);
         binding.setRecord(new RecordDTO(record));
 
         //set tag recyclerview
@@ -147,32 +270,35 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
         //set data recylcerview
         mRecyclerView = (RecyclerView) findViewById(R.id.rv_record_result);
-        mAdapter = new ResultRealmAdapter(sentenceResults, true, true, this);
+        mAdapter = new ResultRealmAdapter(sentenceResults, originRecordId, true, true, this);
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(new CenterLinearLayoutManager(this));
         mRecyclerView.setItemAnimator(null);
-
+        ItemTouchHelper.Callback callback = new SentenceItemTouchHelperCallBack(mAdapter);
+        ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
+        touchHelper.attachToRecyclerView(mRecyclerView);
         //set mediaplayer
-        Uri mUri = Uri.fromFile(new File(filePath));
-        try {
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mediaPlayer.setLooping(true); // true:무한반복
-            mediaPlayer.setDataSource(this, mUri);
-            mediaPlayer.prepareAsync();
-            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    int total = mp.getDuration();
-                    seekbar.setMax(total);
-                }
-            });
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!hasVideo) {
+            Uri mUri = Uri.fromFile(new File(filePath));
+            try {
+                mediaPlayer = new MediaPlayer();
+                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                mediaPlayer.setLooping(true); // true:무한반복
+                mediaPlayer.setDataSource(this, mUri);
+                mediaPlayer.prepareAsync();
+                mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                    @Override
+                    public void onPrepared(MediaPlayer mp) {
+                        int total = mp.getDuration();
+                        seekbar.setMax(total);
+                    }
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-
         //set seekbar
-        seekbar.setPadding(0,0,0,0);
+        seekbar.setPadding(0, 0, 0, 0);
         seekbar.setMinimumHeight(40);
         seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -251,7 +377,6 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     }
 
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -295,7 +420,6 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     @Override
     public void onClickStop(View v) {
-        pos = mediaPlayer.getCurrentPosition();
         mediaPlayer.pause(); // 일시중지
         isPlaying.setValue(false); // 쓰레드 정지
     }
@@ -315,6 +439,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         mediaPlayer.seekTo(progress);
 
     }
+
 
     @Override
     public void onClickForward(View v) {
@@ -343,71 +468,89 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     }
 
-    int[] results;
-
     @Override
     public void onClickDiary(View v) {
         diary.setValue(true);
         binding.executePendingBindings();
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Realm realm = Realm.getDefaultInstance();
-                FeatureRealm feature = realm.where(FeatureRealm.class).equalTo("id", recordId).findFirst();
 
-                int[] sil = new int[feature.getSilence().size()];
-                for (int i = 0; i < feature.getSilence().size(); i++) {
-                    sil[i] = feature.getSilence().get(i).get();
-                }
-                LogUtil.print(sil, "silence");
+        Toast.makeText(getBaseContext(), String.valueOf(duplicateRecordId), Toast.LENGTH_SHORT).show();
 
-                KMeansCluster cluster = new KMeansCluster(3, dimension, feature.getFeatureVectors(), feature.getSilence());
-//                KMeansCluster cluster = new KMeansCluster(3,dimension*2,getMidTermFeatureVectors(feature.getFeatureVectors()),feature.getSilence());
-                cluster.setListener(new SpeakerDiaryClickListener() {
-                    @Override
-                    public void onSpeakerDiaryComplete() {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                diary.setValue(false);
-                                Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
-                                Realm realm = Realm.getDefaultInstance();
-                                realm.beginTransaction();
-                                record.setCluster(results);
-                                realm.commitTransaction();
-                            }
-                        });
-                    }
-                });
-                try {
-                    results = cluster.iterRun(20);
-                    cluster.applyClusterToRealm(3, results, recordId, 0.01f);
+//        Thread thread = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                Realm realm = Realm.getDefaultInstance();
+//                FeatureRealm feature = realm.where(FeatureRealm.class).equalTo("id", originRecordId).findFirst();
+//
+//                int[] sil = new int[feature.getSilence().size()];
+//                for (int i = 0; i < feature.getSilence().size(); i++) {
+//                    sil[i] = feature.getSilence().get(i).get();
+//                }
+//                LogUtil.print(sil, "silence");
+//
+//                KMeansCluster cluster = new KMeansCluster(3, dimension, feature.getFeatureVectors(), feature.getSilence());
+////                KMeansCluster cluster = new KMeansCluster(3,dimension*2,getMidTermFeatureVectors(feature.getFeatureVectors()),feature.getSilence());
+//                cluster.setListener(new SpeakerDiaryClickListener() {
+//                    @Override
+//                    public void onSpeakerDiaryComplete() {
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                diary.setValue(false);
+//                                Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
+//                                Realm realm = Realm.getDefaultInstance();
+//                                realm.beginTransaction();
+//                                record.setCluster(results);
+//                                realm.commitTransaction();
+//                            }
+//                        });
+//                    }
+//                });
+//
+//                try {
+//                    results = cluster.iterRun(20);
+//                    cluster.applyClusterToRealm(3, results, originRecordId, 0.01f);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        });
+//        thread.start();
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        thread.start();
+        new ClusterAsync().execute(20);
 
     }
 
     @Override
     public void onClickDelete(View v) {
 
-            realm.executeTransaction(new Realm.Transaction() {
-                @Override
-                public void execute(Realm realm) {
-                    String filePath = record.getFilePath();
-                    record.cascadeDelete();
-                    FileUtil.deleteFile(getBaseContext(), filePath);
-                }
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                String filePath = record.getAudioPath();
+                record.cascadeDelete();
+                FileUtil.deleteFile(getBaseContext(), filePath);
+            }
 
 
-            });
+        });
 
-            onBackPressed();
+        onBackPressed();
 
+    }
+
+    @Override
+    public void onClickTitle(View v) {
+
+    }
+
+    @Override
+    public void onClickViewOrigin(View v) {
+        swapRecord(originRecordId);
+    }
+
+    @Override
+    public void onClickViewDiary(View v) {
+        swapRecord(duplicateRecordId);
     }
 
 

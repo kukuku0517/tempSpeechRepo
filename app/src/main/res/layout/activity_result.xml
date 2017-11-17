@@ -21,6 +21,10 @@
             type="com.google.cloud.android.speech.data.DTO.MediaTimeDTO" />
 
         <variable
+            name="hasDiary"
+            type="Integer"/>
+
+        <variable
             name="isPlaying"
             type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>" />
 
@@ -31,6 +35,11 @@
         <variable
             name="diary"
             type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>" />
+
+        <variable
+            name="progress"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;String>" />
+
     </data>
 
     <RelativeLayout
@@ -101,12 +110,24 @@
                 android:layout_height="wrap_content"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
+
                 <android.support.v7.widget.RecyclerView
                     android:id="@+id/rv_record_result"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:layout_above="@+id/sv_video"
+                    android:layout_alignParentTop="true"
                     android:nestedScrollingEnabled="false"
                     android:visibility="@{diary.getValue==false?View.VISIBLE:View.GONE}" />
+
+                <SurfaceView
+                    android:id="@+id/sv_video"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_alignParentBottom="true"
+                    android:visibility="@{record.videoPath==null?View.GONE:View.VISIBLE}"
+
+                    />
 
                 <FrameLayout
                     android:layout_width="match_parent"
@@ -153,15 +174,32 @@
                     </RelativeLayout>
 
                 </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:visibility="@{diary.getValue==true?View.VISIBLE:View.GONE}"
+                    tools:visibility="visible"
+                    android:orientation="vertical">
+
+                    <ProgressBar
+                        android:id="@+id/pb_diary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@{progress.getValue}"
+                        android:textAlignment="center"
+                        tools:text="loading" />
+                </LinearLayout>
+
             </RelativeLayout>
 
-            <ProgressBar
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:visibility="@{diary.getValue==true?View.VISIBLE:View.GONE}"
-                app:layout_behavior="@string/appbar_scrolling_view_behavior"
-                tools:visibility="visible" />
+
         </android.support.design.widget.CoordinatorLayout>
 
         <LinearLayout
@@ -206,6 +244,32 @@
                     android:tint="@color/naver_green"
                     app:srcCompat="@drawable/ic_people_black_24dp" />
 
+
+                <ImageButton
+                    android:id="@+id/btn_view_origin"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_toRightOf="@id/btn_diary"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:onClick="@{handler::onClickViewOrigin}"
+                    android:paddingLeft="10dp"
+                    android:tint="@color/naver_green"
+                    app:srcCompat="@drawable/ic_people_black_24dp" />
+
+
+                <ImageButton
+                    android:id="@+id/btn_view_diary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_toLeftOf="@+id/btn_loop"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:onClick="@{handler::onClickViewDiary}"
+                    android:paddingLeft="10dp"
+                    android:clickable="@{hasDiary==-1?false:true}"
+                    android:tint="@color/naver_green"
+                    app:srcCompat="@drawable/ic_people_black_24dp" />
                 <ImageButton
                     android:id="@+id/btn_back"
                     android:layout_width="wrap_content"
