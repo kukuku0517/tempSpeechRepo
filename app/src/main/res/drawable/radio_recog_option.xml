@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <ripple android:color="#8bc34a" />
+    </item>
+    <item>
+
+        <selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+            <item
+                android:drawable="@drawable/ic_play_arrow_black_24dp"
+                android:state_checked="true"
+                android:state_pressed="true">
+                
+            </item>
+
+            <item
+                android:drawable="@drawable/ic_people_black_24dp"
+                android:state_pressed="true" />
+
+            <item
+                android:drawable="@drawable/ic_person_black_24dp"
+                android:state_checked="true" />
+
+
+            <item android:drawable="@drawable/ic_stop_black_24dp" />
+
+        </selector>
+    </item>
+</layer-list>

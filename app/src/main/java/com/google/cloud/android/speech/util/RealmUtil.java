@@ -1,6 +1,7 @@
 package com.google.cloud.android.speech.util;
 
 import com.google.cloud.android.speech.data.realm.ClusterRealm;
+import com.google.cloud.android.speech.data.realm.DirectoryRealm;
 import com.google.cloud.android.speech.data.realm.PrimaryRealm;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
@@ -39,14 +40,6 @@ public class RealmUtil {
         }
         sentence.setSentence(builder.toString());
     }
-
-//    private int id;
-//    private RealmList<WordRealm> wordList;
-//    private long startMillis;
-//    private long endMillis;
-//    private String sentence;
-//    ClusterRealm cluster;
-
 
     public static void mergeSentence(Realm realm, int recordId, int fromId, int toId, int from, int to) {
         RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
@@ -160,32 +153,43 @@ public class RealmUtil {
 
     }
 
-//          realm.beginTransaction();
-//    SentenceRealm origin = sentence;
-//    SentenceRealm add = RealmUtil.createObject(realm, SentenceRealm.class);
-//
-//                        add.setEndMillis(origin.getEndMillis());
-//                        origin.setEndMillis(word.getStartMillis());
-//                        add.setStartMillis(word.getStartMillis());
-//                        add.setCluster(cluster);
-//
-//    RealmList<WordRealm> originWords = new RealmList<>();
-//    RealmList<WordRealm> addWords = new RealmList<>();
-//
-//    RealmList<WordRealm> words = sentence.getWordList();
-//                        for (int j = 0; j < words.size(); j++) {
-//        if (j < i) {
-//            originWords.add(words.get(j));
-//        } else {
-//            addWords.add(words.get(j));
-//        }
-//    }
-//
-//                        origin.setWordList(originWords);
-//                        add.setWordList(addWords);
-//                        origin.setSentence();
-//                        add.setSentence();
-//                        sentences.add(sentenceIndex + 1, add);
-//                        realm.commitTransaction();
-//                        break;
+    public static void dirTodir(Realm realm, int fromId, int toId) {
+
+        DirectoryRealm from = realm.where(DirectoryRealm.class).equalTo("id", fromId).findFirst();
+        DirectoryRealm to = realm.where(DirectoryRealm.class).equalTo("id", toId).findFirst();
+        DirectoryRealm upper = realm.where(DirectoryRealm.class).equalTo("id", from.getUpperId()).findFirst();
+
+        int depth = to.getDepth() + 1;
+
+        for(int i=0;i<upper.getDirectoryRealms().size();i++){
+            if(upper.getDirectoryRealms().get(i).getId()==fromId){
+                upper.getDirectoryRealms().remove(i);
+                break;
+            }
+        }
+        from.setUpperId(toId);
+        from.setDepth(depth);
+        to.getDirectoryRealms().add(from);
+
+    }
+
+    public static void recordToDir(Realm realm, int fromId, int toId){
+
+        RecordRealm from = realm.where(RecordRealm.class).equalTo("id", fromId).findFirst();
+        DirectoryRealm to = realm.where(DirectoryRealm.class).equalTo("id", toId).findFirst();
+        DirectoryRealm upper = realm.where(DirectoryRealm.class).equalTo("id", from.getDirectoryId()).findFirst();
+
+        if(upper!=null){
+            for(int i=0;i<upper.getRecordRealms().size();i++){
+                if(upper.getRecordRealms().get(i).getId()==fromId){
+                    upper.getRecordRealms().remove(i);
+                    break;
+                }
+            }
+        }
+
+        from.setDirectoryId(toId);
+        to.getRecordRealms().add(from);
+
+    }
 }

@@ -8,13 +8,22 @@
         <variable
             name="data"
             type="com.google.cloud.android.speech.data.realm.DirectoryRealm" />
+        <variable
+            name="focus"
+            type="Integer"/>
+
+        <variable
+            name="handler"
+            type="com.google.cloud.android.speech.view.recordList.adapter.ListDirectoryViewHolder" />
     </data>
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="10dp"
+        android:onClick="@{handler::onItemClick}"
+        app:droppable="@{focus}">
 
         <TextView
             android:id="@+id/tv_title"
@@ -25,6 +34,18 @@
             android:text="@{data.name}"
             android:textStyle="bold"
             tools:text="171013_marketing_lecture" />
+
+        <ImageButton
+            android:layout_centerVertical="true"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:padding="6dp"
+            android:tint="@color/gray"
+            android:scaleType="fitStart"
+            android:layout_alignParentRight="true"
+            android:onClick="@{handler::onMenuClick}"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/dot_menu" />
 
     </RelativeLayout>
 

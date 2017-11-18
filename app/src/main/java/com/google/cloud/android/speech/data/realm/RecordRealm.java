@@ -14,6 +14,16 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
 
     @PrimaryKey
     private int id;
+    private int directoryId=-1;
+
+    public int getDirectoryId() {
+        return directoryId;
+    }
+
+    public void setDirectoryId(int directoryId) {
+        this.directoryId = directoryId;
+    }
+
     private String title = "";
     private String audioPath;
     private String videoPath;

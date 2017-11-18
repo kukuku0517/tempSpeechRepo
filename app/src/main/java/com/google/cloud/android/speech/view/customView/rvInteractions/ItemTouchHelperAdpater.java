@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.view.recordResult.CustomView;
+package com.google.cloud.android.speech.view.customView.rvInteractions;
 
 /**
  * Created by USER on 2017-11-16.

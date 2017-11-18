@@ -37,22 +37,19 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
 
 
     ActivityListBinding binding;
-    String TAG = "SpeechAPI";
-
     public SpeechService mSpeechService;
     public Realm realm;
     private PagerAdapter mPagerAdapter;
+    private String tempTitle;
+    private ArrayList<Integer> tempTags;
+
+    private static final int REQUEST_RECORD = 1;
+    private static final int REQUEST_AUDIO = 2;
+    private static final int REQUEST_VIDEO = 3;
 
     @Override
     protected void onStop() {
         super.onStop();
-//        if (mSpeechService != null) {
-//            unbindService(mServiceConnection);
-//
-//            Log.d("lifecycle","list unbind longrunningRequestRetrofit in stop");
-//        }
-
-//        EventBus.getDefault().unregister(this);
         Log.d("lifecycle", "list stop");
     }
 
@@ -60,12 +57,6 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
     protected void onResume() {
         super.onResume();
         Log.d("lifecycle", "list resume");
-//        EventBus.getDefault().register(this);
-        FragmentManager fragmentManager = getSupportFragmentManager();
-//
-//        Intent intent = new Intent(this, SpeechService.class);
-//        startService(intent);
-//        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
 
     }
 
@@ -86,18 +77,15 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
 
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_list);
-//        binding.setHandler(this);
         setSupportActionBar(binding.toolbar);
         getSupportActionBar().setTitle(null);
         mPagerAdapter = new PagerAdapter(getSupportFragmentManager());
 
 
         binding.vpList.setAdapter(mPagerAdapter);
-
         binding.vpList.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
             }
 
             @Override
@@ -129,24 +117,25 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
         });
     }
 
-    private static final int REQUEST_RECORD = 1;
-    private static final int REQUEST_AUDIO = 2;
-    private static final int REQUEST_VIDEO = 3;
 
-
-    public void openDialog(int permission) {
+    public void openDialog(int permission, int currentDirId) {
         NewRecordDialog dialog = new NewRecordDialog();
-        dialog.setRequestCode(permission);
+        dialog.setRequestCode(permission, currentDirId);
         dialog.show(getSupportFragmentManager(), "NewRecordDialogFragment");
     }
 
+    private int dirId;
+
     @Override
-    public void onDialogPositiveClick(String title, ArrayList<Integer> tags, int requestCode) {
+    public void onDialogPositiveClick(String title, ArrayList<Integer> tags, int requestCode, int dirId) {
+        this.dirId = dirId;
 
         if (requestCode == REQUEST_RECORD) {
             Intent intent = new Intent(this, RecordActivity.class);
             intent.putExtra("title", title);
             intent.putExtra("tags", Parcels.wrap(tags));
+            intent.putExtra("dirId", dirId);
+
             startActivity(intent);
         } else if (requestCode == REQUEST_AUDIO) {
             tempTitle = title;
@@ -154,6 +143,7 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("audio/*");
+
             startActivityForResult(intent, REQUEST_AUDIO);
 
         } else if (requestCode == REQUEST_VIDEO) {
@@ -166,8 +156,6 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
         }
     }
 
-    String tempTitle;
-    ArrayList<Integer> tempTags;
 
     @Override
     public void onDialogNegativeClick() {
@@ -183,14 +171,14 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
                 if (data != null) {
                     mediaPath = FileUtil.getPath(getBaseContext(), data.getData());
                     binding.vpList.setCurrentItem(1);
-                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_AUDIO));
+                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_AUDIO,dirId));
                 }
                 break;
             case REQUEST_VIDEO:
                 if (data != null) {
                     mediaPath = FileUtil.getPath(getBaseContext(), data.getData());
                     binding.vpList.setCurrentItem(1);
-                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_VIDEO));
+                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_VIDEO,dirId));
                 }
                 break;
         }

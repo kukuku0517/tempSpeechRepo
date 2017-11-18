@@ -23,24 +23,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.databinding.BindingAdapter;
 import android.databinding.DataBindingUtil;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -57,8 +51,7 @@ import com.google.cloud.android.speech.event.PartialStatusEvent;
 import com.google.cloud.android.speech.event.PartialTimerEvent;
 import com.google.cloud.android.speech.view.recordList.adapter.TagRealmAdapter;
 import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
-import com.google.cloud.android.speech.view.recordResult.CustomView.SentenceItemTouchHelperCallBack;
-import com.google.cloud.android.speech.view.recordResult.adapter.ResultRealmAdapter;
+import com.google.cloud.android.speech.view.customView.rvInteractions.ItemTouchHelperCallBack;
 import com.google.cloud.android.speech.view.recording.adapter.RecordRealmAdapter;
 import com.google.cloud.android.speech.view.background.SpeechService;
 import com.google.cloud.android.speech.view.recording.handler.RecordHandler;
@@ -87,7 +80,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     private RecyclerView mRecyclerView;
     private Context context = this;
     private ImageButton recordBtn, stopBtn;
-
+private int dirId;
     boolean serviceBinded = false;
     private Realm realm;
     private RecordRealm record;
@@ -150,6 +143,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         EventBus.getDefault().register(this);
         title = getIntent().getStringExtra("title");
         tags = Parcels.unwrap(getIntent().getParcelableExtra("tags"));
+        dirId = getIntent().getIntExtra("dirId",1);
         isPlaying.setValue(false);
 
         activityRecordBinding = DataBindingUtil.setContentView(this, R.layout.activity_record);
@@ -226,7 +220,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
             if (SpeechService.IS_RECORDING) {
                 recordId = mSpeechService.getRecordId();
             } else {
-                recordId = mSpeechService.createSpeechRecord();
+                recordId = mSpeechService.createSpeechRecord(dirId);
             }
 
             realm.beginTransaction();
@@ -240,7 +234,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
             mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
             mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), recordId, true, true, context);
             mRecyclerView.setAdapter(mAdapter);
-            ItemTouchHelper.Callback callback = new SentenceItemTouchHelperCallBack(mAdapter);
+            ItemTouchHelper.Callback callback = new ItemTouchHelperCallBack(mAdapter);
             ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
             touchHelper.attachToRecyclerView(mRecyclerView);
 

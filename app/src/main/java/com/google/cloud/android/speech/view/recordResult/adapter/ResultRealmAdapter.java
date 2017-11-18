@@ -2,20 +2,17 @@ package com.google.cloud.android.speech.view.recordResult.adapter;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.databinding.BindingAdapter;
 import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 
 import com.google.cloud.android.speech.event.SeekEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.util.RealmUtil;
-import com.google.cloud.android.speech.view.recordResult.CustomView.ItemTouchHelperAdpater;
+import com.google.cloud.android.speech.view.customView.rvInteractions.ItemTouchHelperAdpater;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -52,7 +49,7 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
 
 
     //    @BindingAdapter("dragFocusIndex")
-//    public static void setFocus(LinearLayout v, boolean focus) {
+//    public static void setDroppable(LinearLayout v, boolean focus) {
 //        if (focus) {
 //            v.setBackgroundColor(context.getResources().getColor(R.color.light_gray));
 //        } else {

@@ -33,7 +33,7 @@ import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.customView.CenterLinearLayoutManager;
 import com.google.cloud.android.speech.view.recordList.adapter.TagRealmAdapter;
 import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
-import com.google.cloud.android.speech.view.recordResult.CustomView.SentenceItemTouchHelperCallBack;
+import com.google.cloud.android.speech.view.customView.rvInteractions.ItemTouchHelperCallBack;
 import com.google.cloud.android.speech.view.recordResult.handler.ResultHandler;
 import com.google.cloud.android.speech.view.recordResult.adapter.ResultRealmAdapter;
 import com.google.cloud.android.speech.databinding.ActivityResultBinding;
@@ -274,7 +274,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(new CenterLinearLayoutManager(this));
         mRecyclerView.setItemAnimator(null);
-        ItemTouchHelper.Callback callback = new SentenceItemTouchHelperCallBack(mAdapter);
+        ItemTouchHelper.Callback callback = new ItemTouchHelperCallBack(mAdapter);
         ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
         touchHelper.attachToRecyclerView(mRecyclerView);
         //set mediaplayer

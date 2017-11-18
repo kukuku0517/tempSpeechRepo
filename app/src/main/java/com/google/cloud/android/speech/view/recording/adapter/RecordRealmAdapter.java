@@ -13,7 +13,7 @@ import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.util.DateUtil;
 import com.google.cloud.android.speech.util.RealmUtil;
-import com.google.cloud.android.speech.view.recordResult.CustomView.ItemTouchHelperAdpater;
+import com.google.cloud.android.speech.view.customView.rvInteractions.ItemTouchHelperAdpater;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.Realm;

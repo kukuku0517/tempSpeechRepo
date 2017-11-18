@@ -13,8 +13,10 @@ public class DirectoryRealm extends RealmObject implements PrimaryRealm {
     int id;
 
     private RealmList<DirectoryRealm> directoryRealms = new RealmList<>();
+    private RealmList<RecordRealm> recordRealms = new RealmList<>();
     private int upperId = -1;
     private int depth;
+
     private String name;
 
     public String getName() {
@@ -24,8 +26,6 @@ public class DirectoryRealm extends RealmObject implements PrimaryRealm {
     public void setName(String name) {
         this.name = name;
     }
-
-    private RealmList<RecordRealm> recordRealms = new RealmList<>();
 
     public RealmList<DirectoryRealm> getDirectoryRealms() {
         return directoryRealms;

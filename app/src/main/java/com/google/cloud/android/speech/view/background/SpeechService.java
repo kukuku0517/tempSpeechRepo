@@ -21,6 +21,7 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.android.speech.data.realm.ClusterDataRealm;
 import com.google.cloud.android.speech.data.realm.ClusterRealm;
+import com.google.cloud.android.speech.data.realm.DirectoryRealm;
 import com.google.cloud.android.speech.data.realm.FeatureRealm;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
@@ -202,17 +203,17 @@ public class SpeechService extends Service {
             EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.END));
             if (true) {
 
-                    byte[] dataBlock = new byte[recordBufferSize];
-                    int count = 0;
-                    byte[] temp;
-                    while (!recordByteQueue.isEmpty()) {
-                        temp = recordByteQueue.poll();
-                        System.arraycopy(temp, 0, dataBlock, count, temp.length);
-                        count += temp.length;
-                    }
-                    float[] pcmFloat = floatMe(shortMe(dataBlock));
-                    recordBufferSize = 0;
-                    new FeatureExtractAsync().execute(pcmFloat);
+                byte[] dataBlock = new byte[recordBufferSize];
+                int count = 0;
+                byte[] temp;
+                while (!recordByteQueue.isEmpty()) {
+                    temp = recordByteQueue.poll();
+                    System.arraycopy(temp, 0, dataBlock, count, temp.length);
+                    count += temp.length;
+                }
+                float[] pcmFloat = floatMe(shortMe(dataBlock));
+                recordBufferSize = 0;
+                new FeatureExtractAsync().execute(pcmFloat);
 
 
             }
@@ -550,23 +551,28 @@ public class SpeechService extends Service {
         timer.schedule(timertask, 1000, 1000);    // 1초 후에
     }
 
-    public int createSpeechRecord() {
+    public int createSpeechRecord(final int dirId) {
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
                 record = new RealmUtil().createObject(realm, RecordRealm.class);
+                record.setDirectoryId(dirId);
                 recordId = record.getId();
 
+                DirectoryRealm defaultDir = realm.where(DirectoryRealm.class).equalTo("id", dirId).findFirst();
+                defaultDir.getRecordRealms().add(record);
             }
         });
         return recordId;
     }
 
-    public int createFileRecord() {
+    public int createFileRecord(int dirId) {
         realm.beginTransaction();
         fileRecord = new RealmUtil().createObject(realm, RecordRealm.class);
         fileId = fileRecord.getId();
         fileRecord.setStartMillis(System.currentTimeMillis());
+        DirectoryRealm defaultDir = realm.where(DirectoryRealm.class).equalTo("id", dirId).findFirst();
+        defaultDir.getRecordRealms().add(fileRecord);
         realm.commitTransaction();
         return fileId;
     }
@@ -864,11 +870,11 @@ public class SpeechService extends Service {
                     word.setWord(words.get(i).getWord());
                     word.setSentenceId(sentence.getId());
                     long startSecond = words.get(i).getStartTime().getSeconds() * 1000;
-                    startSecond += words.get(i).getStartTime().getNanos() / 1000000+ startOfSentence;
+                    startSecond += words.get(i).getStartTime().getNanos() / 1000000 + startOfSentence;
                     word.setStartMillis(startSecond);
 
                     long endSecond = words.get(i).getEndTime().getSeconds() * 1000;
-                    endSecond += words.get(i).getEndTime().getNanos() / 1000000+ startOfSentence;
+                    endSecond += words.get(i).getEndTime().getNanos() / 1000000 + startOfSentence;
                     word.setEndMillis(endSecond);
 
                     sentence.getWordList().add(word);

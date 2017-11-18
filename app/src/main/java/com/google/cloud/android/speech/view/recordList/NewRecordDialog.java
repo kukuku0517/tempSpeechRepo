@@ -75,14 +75,14 @@ public class NewRecordDialog extends DialogFragment implements DialogHandler {
             for (TagRealm t : addedTags) {
                 tagIds.add(t.getId());
             }
-            mListener.onDialogPositiveClick(title, tagIds, requestCode);
+            mListener.onDialogPositiveClick(title, tagIds, requestCode,dirId);
             dismiss();
         }
 
     }
 
     public interface NewRecordDialogListener {
-        void onDialogPositiveClick(String title, ArrayList<Integer> tags, int requestCode);
+        void onDialogPositiveClick(String title, ArrayList<Integer> tags, int requestCode,int dirId);
 
         void onDialogNegativeClick();
     }
@@ -106,9 +106,11 @@ public class NewRecordDialog extends DialogFragment implements DialogHandler {
 
     private int requestCode;
     private Realm realm;
+    private int dirId;
 
-    public void setRequestCode(int requestCode) {
+    public void setRequestCode(int requestCode, int dirId) {
         this.requestCode = requestCode;
+        this.dirId = dirId;
     }
 
 

@@ -1,4 +1,4 @@
-package com.google.cloud.android.speech.view.recordResult.CustomView;
+package com.google.cloud.android.speech.view.customView.rvInteractions;
 
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -8,12 +8,12 @@ import android.util.Log;
  * Created by USER on 2017-11-16.
  */
 
-public class SentenceItemTouchHelperCallBack extends ItemTouchHelper.Callback {
+public class ItemTouchHelperCallBack extends ItemTouchHelper.Callback {
 
     private final ItemTouchHelperAdpater mAdapter;
-    private RecyclerView.ViewHolder target;
-
-    public SentenceItemTouchHelperCallBack(ItemTouchHelperAdpater mAdapter) {
+//    private RecyclerView.ViewHolder target;
+private int targetIndex;
+    public ItemTouchHelperCallBack(ItemTouchHelperAdpater mAdapter) {
         this.mAdapter = mAdapter;
     }
 
@@ -34,12 +34,14 @@ public class SentenceItemTouchHelperCallBack extends ItemTouchHelper.Callback {
         return makeMovementFlags(dragFlags, swipeFlags);
     }
 
+
     @Override
     public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
-        this.target = target;
         int from = viewHolder.getAdapterPosition();
         int to = target.getAdapterPosition();
+        this.targetIndex=to;
         mAdapter.onItemMove(from, to);
+        Log.d("position",from+":"+to);
         return true;
     }
 
@@ -47,7 +49,7 @@ public class SentenceItemTouchHelperCallBack extends ItemTouchHelper.Callback {
     @Override
     public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
         super.clearView(recyclerView, viewHolder);
-        mAdapter.onItemDrop(viewHolder.getAdapterPosition(), target.getAdapterPosition());
+        mAdapter.onItemDrop(viewHolder.getAdapterPosition(), targetIndex);
         Log.d("dragdrop", "drop");
     }
 

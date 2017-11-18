@@ -11,7 +11,7 @@ import io.realm.annotations.PrimaryKey;
  */
 
 public class ClusterDataRealm extends RealmObject implements PrimaryRealm {
-
+int i;
     @PrimaryKey
     int id;
 

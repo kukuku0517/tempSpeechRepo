@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.graphics.Color;
-import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.Toast;
 
@@ -35,13 +34,8 @@ public class ListRealmViewHolder extends ListViewHolder {
         super(view);
         this.context = context;
         binding = DataBindingUtil.bind(itemView);
-        //TODO change in bindviewholder, according to tag specific color
-//        "hsl(" + 360 * Math.random() + ',' +
-//                (25 + 70 * Math.random()) + '%,' +
-//                (85 + 10 * Math.random()) + '%)';
 
-        Random rnd = new Random();
-        binding.tvTag.setBackgroundColor(Color.HSVToColor(new float[]{rnd.nextInt(100) + 100, (float) (rnd.nextFloat() * 0.5 + 0.3), (float) (rnd.nextFloat() * 0.5 + 0.3)}));
+
     }
 
     public void onItemClick(View view) {
@@ -59,6 +53,10 @@ public class ListRealmViewHolder extends ListViewHolder {
         RecordDTO recordDTO = new RecordDTO((RecordRealm) data);
         setData((RecordRealm)data);
         binding.setRecord(recordDTO);
+        binding.setFocus(droppable);
         binding.setItem(this);
+        if(recordRealm.getTagList().size()>0){
+            binding.tvTag.setBackgroundColor(Color.HSVToColor(new float[]{recordRealm.getTagList().get(0).getColorCode(), 0.5f,0.5f}));
+        }
     }
 }

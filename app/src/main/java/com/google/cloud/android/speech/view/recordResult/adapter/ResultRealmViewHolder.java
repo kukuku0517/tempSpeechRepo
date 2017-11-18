@@ -10,6 +10,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -63,49 +64,4 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
         realm.commitTransaction();
     }
 
-    @BindingAdapter("focus")
-    public static void setFocus(TextView v, boolean focus) {
-        if (focus) {
-            v.setTextColor(context.getResources().getColor(R.color.text_black));
-            v.setTypeface(null, Typeface.BOLD);
-        } else {
-            v.setTextColor(context.getResources().getColor(R.color.text_gray));
-            v.setTypeface(null, Typeface.NORMAL);
-        }
-    }
-
-    @BindingAdapter("droppable")
-    public static void setFocus(LinearLayout v, int focus) {
-        switch (focus) {
-            case 0:
-                v.setBackgroundColor(ContextCompat.getColor(context, R.color.default_background));
-                break;
-            case 1:
-                v.setBackgroundColor(ContextCompat.getColor(context, R.color.red));
-                break;
-            case 2:
-                v.setBackgroundColor(ContextCompat.getColor(context, R.color.light_gray));
-                break;
-        }
-    }
-
-    @BindingAdapter("clusterNumber")
-    public static void setSentence(TextView v, String value) {
-        v.setText(value);
-    }
-
-    @BindingAdapter("clusterColor")
-    public static void setClusterColor(ImageView v, int value) {
-        switch (value) {
-            case 0:
-                v.setBackgroundColor(ContextCompat.getColor(context, R.color.default_background));
-                break;
-            case 1:
-                v.setBackgroundColor(ContextCompat.getColor(context, R.color.cluster_a));
-                break;
-            case 2:
-                v.setBackgroundColor(ContextCompat.getColor(context, R.color.cluster_b));
-                break;
-        }
-    }
 }

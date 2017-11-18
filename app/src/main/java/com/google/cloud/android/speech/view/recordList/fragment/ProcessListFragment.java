@@ -45,13 +45,23 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     private int mPageNumber;
     private SpeechService mSpeechService;
     private String title;
+    private int dirId;
     private ArrayList<Integer> tags;
     private String filePath;
+
+    FragmentProcessListBinding binding;
+    Realm realm;
+
+    private int recordId;
+    private int fileId;
+
+
+    private static final int REQUEST_AUDIO = 2;
+    private static final int REQUEST_VIDEO = 3;
 
     public ProcessListFragment() {
         // Required empty public constructor
     }
-
 
     public static ProcessListFragment create(int pageNumber) {
         if (instance == null) {
@@ -63,11 +73,6 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         return instance;
     }
 
-    FragmentProcessListBinding binding;
-    Realm realm;
-
-    private int recordId;
-    private int fileId;
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
@@ -76,33 +81,6 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
             mSpeechService = SpeechService.from(binder);
             mSpeechService.notifyProcess();
             Log.d("lifecycle", "service con");
-
-
-            //TODO enable after end
-
-
-//            recordId = mSpeechService.getRecordId();
-////            mSpeechService.addListener(mSpeechServiceListener);
-//            mStatus.setVisibility(View.VISIBLE);
-//            serviceBinded = true;
-
-//            realm.executeTransaction(new Realm.Transaction() {
-//                @Override
-//                public void execute(Realm realm) {
-//                    Log.d(TAG, "in service" + String.valueOf(recordId));
-//                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
-//
-//                }
-//            });
-//
-//            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-//            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
-////        final ArrayList<String> results = savedInstanceState == null ? null :
-////                savedInstanceState.getStringArrayList(STATE_RESULTS);
-////
-//
-//            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
-//            mRecyclerView.setAdapter(mAdapter);
         }
 
         @Override
@@ -129,7 +107,6 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         Log.d("lifecycle", "process create");
     }
 
-
     @Override
     public void onResume() {
         super.onResume();
@@ -144,6 +121,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         getActivity().startService(intent);
         getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -161,7 +139,6 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         binding.includeRecord.setItemHandler(this);
         return view;
     }
-
 
     @Override
     public void onAttach(Context context) {
@@ -188,9 +165,6 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         Log.d("lifecycle", "process stop");
     }
 
-    private static final int REQUEST_AUDIO = 2;
-    private static final int REQUEST_VIDEO = 3;
-
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onMessageEvent(FileEvent event) {
@@ -198,7 +172,8 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         title = event.getTitle();
         tags = event.getTags();
         filePath = event.getFilePath();
-        mSpeechService.createFileRecord();
+        dirId=event.getDirId();
+        mSpeechService.createFileRecord(dirId);
 
         switch (event.getRequestCode()) {
             case REQUEST_AUDIO:

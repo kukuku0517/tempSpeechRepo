@@ -11,9 +11,15 @@ import io.realm.RealmObject;
 
 public abstract class ListViewHolder extends RecyclerView.ViewHolder{
 
+    int droppable;
+
     public ListViewHolder(View itemView) {
         super(itemView);
     }
 
     public abstract  void bindView(RealmObject data);
+
+    public void setDroppable(int focus){
+        this.droppable =focus;
+    }
 }

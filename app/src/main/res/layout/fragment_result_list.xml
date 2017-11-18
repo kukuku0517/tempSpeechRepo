@@ -5,6 +5,12 @@
 
     <data>
 
+        <import type="android.view.View" />
+
+        <variable
+            name="depth"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Integer>" />
+
         <variable
             name="handler"
             type="com.google.cloud.android.speech.view.recordList.handler.ListHandler" />
@@ -19,10 +25,9 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="150dp"
-            android:orientation="horizontal"
-            android:padding="8dp"
             android:background="@color/naver_green_light"
-            >
+            android:orientation="horizontal"
+            android:padding="8dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -78,16 +83,70 @@
                     app:srcCompat="@drawable/video_icon" />
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <ImageButton
+                    android:id="@+id/btn_add"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:onClick="@{(v) -> handler.onClickMakeDir(v)}"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"
+                    app:srcCompat="@drawable/video_icon" />
+            </LinearLayout>
+
 
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioGroup
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/radio_recog_option"
+                    android:button="@android:color/transparent" />
+
+                <RadioButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/radio_recog_option"
+                    android:button="@android:color/transparent" />
+
+                <RadioButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/radio_recog_option"
+                    android:button="@android:color/transparent" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:layout_margin="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:onClick="@{handler::onClickBack}"
+            android:src="@drawable/ic_arrow_back_black_24dp"
+            android:visibility="@{depth.getValue==0?View.GONE:View.VISIBLE}" />
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/rv_record"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="4dp"
-          >
+            android:padding="4dp">
 
         </android.support.v7.widget.RecyclerView>
 
