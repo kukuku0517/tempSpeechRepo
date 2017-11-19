@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 
-public class ListActivity extends AppCompatActivity{
+public class ListActivity extends AppCompatActivity {
 
 
     ActivityListBinding binding;
@@ -92,6 +92,15 @@ public class ListActivity extends AppCompatActivity{
 
             @Override
             public void onPageSelected(int position) {
+                switch (position) {
+                    case 0:
+                        binding.searchView.setVisibility(View.GONE);
+                        break;
+                    case 1:
+                        binding.searchView.setVisibility(View.VISIBLE);
+                        break;
+                }
+
                 binding.tlList.getTabAt(position).select();
             }
 
@@ -104,6 +113,14 @@ public class ListActivity extends AppCompatActivity{
         binding.tlList.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
+                switch (tab.getPosition()) {
+                    case 0:
+                        binding.searchView.setVisibility(View.GONE);
+                        break;
+                    case 1:
+                        binding.searchView.setVisibility(View.VISIBLE);
+                        break;
+                }
                 binding.vpList.setCurrentItem(tab.getPosition());
             }
 
@@ -200,10 +217,8 @@ public class ListActivity extends AppCompatActivity{
 
             switch (position) {
                 case 0:
-                    binding.searchView.setVisibility(View.GONE);
                     return ProcessListFragment.create(position);
                 case 1:
-                    binding.searchView.setVisibility(View.VISIBLE);
                     return ResultListFragment.create(position);
 
             }
