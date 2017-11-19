@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
+import com.google.instrumentation.stats.Tag;
 
 import java.util.ArrayList;
 
@@ -25,6 +26,9 @@ public class TagRealmAdapter extends RecyclerView.Adapter<TagRealmViewHolder> {
     private TagHandler tagHandler;
     private ArrayList<TagRealm> tags;
 
+    public void updateData(ArrayList<TagRealm> tags){
+        this.tags=tags;
+    }
     public TagRealmAdapter(Context context, ArrayList<TagRealm> tags, TagHandler tagHandler) {
         this.context = context;
         this.tags=tags;

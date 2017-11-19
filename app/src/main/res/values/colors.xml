@@ -13,10 +13,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<resources>
+<resources><color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="checked">#50253079</color>
+    <color name="unchecked">#503F51B5</color>
     <color name="naver_green">#a0c962</color>
     <color name="white">#FFF</color>
-    <color name="naver_green_light">#00a0c962</color>
+    <color name="naver_green_light">#a0c962</color>
 
     <color name="highlight">#e45260</color>
 
@@ -35,6 +38,15 @@
     <color name="text_gray">#808080</color>
     <color name="text_black">#424242</color>
     <color name="default_background">#f8f8f8</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <color name="record_icon">#5fd1b4</color>
+    <color name="mp3_icon">#51bde6</color>
+    <color name="video_icon">#bf413f</color>
+
+    <color name="background_start">#29f299</color>
+    <color name="background_end">#0ab2e3</color>
+
 
 
 </resources>

@@ -22,7 +22,7 @@
 
         <variable
             name="hasDiary"
-            type="Integer"/>
+            type="Integer" />
 
         <variable
             name="isPlaying"
@@ -179,15 +179,19 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_centerVertical="true"
+                    android:orientation="vertical"
                     android:visibility="@{diary.getValue==true?View.VISIBLE:View.GONE}"
-                    tools:visibility="visible"
-                    android:orientation="vertical">
+                    tools:visibility="visible">
 
-                    <ProgressBar
-                        android:id="@+id/pb_diary"
-                        android:layout_width="match_parent"
+                    <com.github.ybq.android.spinkit.SpinKitView xmlns:app="http://schemas.android.com/apk/res-auto"
+                        android:id="@+id/spin_kit"
+                        style="@style/SpinKitView.CubeGrid"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+                        android:layout_gravity="center"
+                        android:visibility="visible"
+                        app:SpinKit_Color="@color/cluster_a" />
+
 
                     <TextView
                         android:layout_width="match_parent"
@@ -265,11 +269,12 @@
                     android:layout_centerVertical="true"
                     android:layout_toLeftOf="@+id/btn_loop"
                     android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="@{hasDiary==-1?false:true}"
                     android:onClick="@{handler::onClickViewDiary}"
                     android:paddingLeft="10dp"
-                    android:clickable="@{hasDiary==-1?false:true}"
                     android:tint="@color/naver_green"
                     app:srcCompat="@drawable/ic_people_black_24dp" />
+
                 <ImageButton
                     android:id="@+id/btn_back"
                     android:layout_width="wrap_content"

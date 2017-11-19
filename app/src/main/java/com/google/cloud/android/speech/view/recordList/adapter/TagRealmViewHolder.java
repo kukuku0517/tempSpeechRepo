@@ -7,10 +7,12 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.TextView;
 
+import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.databinding.ItemTagBinding;
 import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
@@ -41,9 +43,10 @@ public class TagRealmViewHolder extends RecyclerView.ViewHolder {
 
     @BindingAdapter("tag_color")
     public static void setTagColor(TextView v, int colorCode) {
-        Random rnd = new Random();
         GradientDrawable tvBackground = (GradientDrawable) v.getBackground();
-        tvBackground.setColorFilter(Color.HSVToColor(new float[]{colorCode, 0.5f, 0.5f}), PorterDuff.Mode.SRC_ATOP);
+        int color = Color.HSVToColor(new float[]{colorCode, 0.5f, 0.5f});
+        tvBackground.setStroke(5, color);
+        v.setTextColor(color);
     }
 
 

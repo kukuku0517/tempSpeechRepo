@@ -8,9 +8,7 @@ import android.view.View;
  */
 
 public interface ListHandler {
-    void onClickFabRecord(View view);
-    void onClickFabFile(View view);
-    void onClickFabVideo(View view);
+
     void onClickMakeDir(View view);
     void onClickBack(View view);
 }

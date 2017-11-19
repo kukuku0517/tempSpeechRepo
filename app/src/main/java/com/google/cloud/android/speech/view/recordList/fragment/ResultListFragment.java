@@ -53,9 +53,10 @@ public class ResultListFragment extends Fragment implements ListHandler {
     Realm realm;
     FragmentResultListBinding binding;
     private SpeechService mSpeechService;
-
     RealmList<RealmObject> dirOrFiles = new RealmList<>();
 
+    private int currentDirId = -1;
+    ObservableDTO<Integer> depth = new ObservableDTO<>();
     public ResultListFragment() {
         // Required empty public constructor
     }
@@ -68,33 +69,7 @@ public class ResultListFragment extends Fragment implements ListHandler {
             mSpeechService.notifyProcess();
             Log.d("lifecycle", "service con");
 
-
-            //TODO enable after end
-
-
-//            recordId = mSpeechService.getRecordId();
-////            mSpeechService.addListener(mSpeechServiceListener);
-//            mStatus.setVisibility(View.VISIBLE);
-//            serviceBinded = true;
-
-//            realm.executeTransaction(new Realm.Transaction() {
-//                @Override
-//                public void execute(Realm realm) {
-//                    Log.d(TAG, "in service" + String.valueOf(recordId));
-//                    record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
-//
-//                }
-//            });
-//
-//            mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-//            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
-////        final ArrayList<String> results = savedInstanceState == null ? null :
-////                savedInstanceState.getStringArrayList(STATE_RESULTS);
-////
-//
-//            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), true, true, context);
-//            mRecyclerView.setAdapter(mAdapter);
-        }
+}
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
@@ -161,8 +136,6 @@ public class ResultListFragment extends Fragment implements ListHandler {
 //        mListener = null;
     }
 
-    private int currentDirId = -1;
-    ObservableDTO<Integer> depth = new ObservableDTO<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -224,37 +197,22 @@ public class ResultListFragment extends Fragment implements ListHandler {
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onProcessIdEvent(ProcessIdEvent event) {
 
-        if (event.isRecording()) {
-            binding.btnRecord.setEnabled(false);
-        } else {
-            binding.btnRecord.setEnabled(true);
-        }
-        if (event.isFiling()) {
-            binding.btnFile.setEnabled(false);
-        } else {
-            binding.btnFile.setEnabled(true);
-        }
+//        if (event.isRecording()) {
+//            binding.btnRecord.setEnabled(false);
+//        } else {
+//            binding.btnRecord.setEnabled(true);
+//        }
+//        if (event.isFiling()) {
+//            binding.btnFile.setEnabled(false);
+//        } else {
+//            binding.btnFile.setEnabled(true);
+//        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onProcessIdEvent(DirEvent event) {
         moveTodir(event.getId());
 
-    }
-
-    @Override
-    public void onClickFabRecord(View view) {
-        ((ListActivity) getActivity()).openDialog(REQUEST_RECORD_AUDIO_PERMISSION, currentDirId);
-    }
-
-    @Override
-    public void onClickFabFile(View view) {
-        ((ListActivity) getActivity()).openDialog(REQUEST_FILE_AUDIO_PERMISSION,currentDirId);
-    }
-
-    @Override
-    public void onClickFabVideo(View view) {
-        ((ListActivity) getActivity()).openDialog(REQUEST_FILE_VIDEO_PERMISSION,currentDirId);
     }
 
     @Override

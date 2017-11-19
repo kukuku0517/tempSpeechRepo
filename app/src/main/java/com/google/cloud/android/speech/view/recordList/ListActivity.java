@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 
-public class ListActivity extends AppCompatActivity implements NewRecordDialog.NewRecordDialogListener {
+public class ListActivity extends AppCompatActivity{
 
 
     ActivityListBinding binding;
@@ -68,7 +68,7 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
         if (realm == null) {
             realm.init(this);
             RealmConfiguration config = new RealmConfiguration.Builder()
-                    .deleteRealmIfMigrationNeeded()
+//                    .deleteRealmIfMigrationNeeded()
                     .build();
             Realm.setDefaultConfiguration(config);
             realm = Realm.getDefaultInstance();
@@ -126,64 +126,64 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
 
     private int dirId;
 
-    @Override
-    public void onDialogPositiveClick(String title, ArrayList<Integer> tags, int requestCode, int dirId) {
-        this.dirId = dirId;
-
-        if (requestCode == REQUEST_RECORD) {
-            Intent intent = new Intent(this, RecordActivity.class);
-            intent.putExtra("title", title);
-            intent.putExtra("tags", Parcels.wrap(tags));
-            intent.putExtra("dirId", dirId);
-
-            startActivity(intent);
-        } else if (requestCode == REQUEST_AUDIO) {
-            tempTitle = title;
-            tempTags = tags;
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("audio/*");
-
-            startActivityForResult(intent, REQUEST_AUDIO);
-
-        } else if (requestCode == REQUEST_VIDEO) {
-            tempTitle = title;
-            tempTags = tags;
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("video/*");
-            startActivityForResult(intent, REQUEST_VIDEO);
-        }
-    }
-
-
-    @Override
-    public void onDialogNegativeClick() {
-
-    }
+//    @Override
+//    public void onDialogPositiveClick(String title, ArrayList<Integer> tags, int requestCode, int dirId) {
+//        this.dirId = dirId;
+//
+//        if (requestCode == REQUEST_RECORD) {
+//            Intent intent = new Intent(this, RecordActivity.class);
+//            intent.putExtra("title", title);
+//            intent.putExtra("tags", Parcels.wrap(tags));
+//            intent.putExtra("dirId", dirId);
+//
+//            startActivity(intent);
+//        } else if (requestCode == REQUEST_AUDIO) {
+//            tempTitle = title;
+//            tempTags = tags;
+//            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+//            intent.addCategory(Intent.CATEGORY_OPENABLE);
+//            intent.setType("audio/*");
+//
+//            startActivityForResult(intent, REQUEST_AUDIO);
+//
+//        } else if (requestCode == REQUEST_VIDEO) {
+//            tempTitle = title;
+//            tempTags = tags;
+//            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+//            intent.addCategory(Intent.CATEGORY_OPENABLE);
+//            intent.setType("video/*");
+//            startActivityForResult(intent, REQUEST_VIDEO);
+//        }
+//    }
 
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        String mediaPath;
-        switch (requestCode) {
-            case REQUEST_AUDIO:
-                if (data != null) {
-                    mediaPath = FileUtil.getPath(getBaseContext(), data.getData());
-                    binding.vpList.setCurrentItem(1);
-                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_AUDIO,dirId));
-                }
-                break;
-            case REQUEST_VIDEO:
-                if (data != null) {
-                    mediaPath = FileUtil.getPath(getBaseContext(), data.getData());
-                    binding.vpList.setCurrentItem(1);
-                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_VIDEO,dirId));
-                }
-                break;
-        }
-
-    }
+//    @Override
+//    public void onDialogNegativeClick() {
+//
+//    }
+//
+//
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        String mediaPath;
+//        switch (requestCode) {
+//            case REQUEST_AUDIO:
+//                if (data != null) {
+//                    mediaPath = FileUtil.getPath(getBaseContext(), data.getData());
+//                    binding.vpList.setCurrentItem(1);
+//                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_AUDIO, dirId));
+//                }
+//                break;
+//            case REQUEST_VIDEO:
+//                if (data != null) {
+//                    mediaPath = FileUtil.getPath(getBaseContext(), data.getData());
+//                    binding.vpList.setCurrentItem(1);
+//                    EventBus.getDefault().postSticky(new FileEvent(tempTitle, tempTags, mediaPath, REQUEST_VIDEO, dirId));
+//                }
+//                break;
+//        }
+//
+//    }
 
 
     @Override
@@ -216,9 +216,9 @@ public class ListActivity extends AppCompatActivity implements NewRecordDialog.N
 
             switch (position) {
                 case 0:
-                    return ResultListFragment.create(position);
-                case 1:
                     return ProcessListFragment.create(position);
+                case 1:
+                    return ResultListFragment.create(position);
 
             }
             return null;

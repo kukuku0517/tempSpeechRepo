@@ -1,13 +1,18 @@
 package com.google.cloud.android.speech.util;
 
 import android.content.Context;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaRecorder;
 import android.net.Uri;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -19,7 +24,14 @@ import okhttp3.RequestBody;
 
 public class AudioUtil {
 
-    private static final int AMPLITUDE_THRESHOLD = 1500*10;
+
+    private static final float windowSize = 0.025f;
+    private static final float windowStep = 0.010f;
+    private static final int AMPLITUDE_THRESHOLD = 1500 * 10;
+    private static final int[] SAMPLE_RATE_CANDIDATES = new int[]{16000, 11025, 22050, 44100};
+    private static final int CHANNEL = AudioFormat.CHANNEL_IN_MONO;
+    private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+    final static float SAMPLE_INTERVAL = 0.5f;
 
     public static MultipartBody.Part wrap(File file) {
         RequestBody surveyBody = RequestBody.create(MediaType.parse("audio/*"), file);
@@ -49,7 +61,6 @@ public class AudioUtil {
         return 44100;
     }
 
-
     public static long getAudioLength(Context context, String fileName) {
         Uri uri = Uri.parse(fileName);
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
@@ -72,11 +83,6 @@ public class AudioUtil {
         }
         return false;
     }
-
-
-    private static final float windowSize = 0.025f;
-    private static final float windowStep = 0.010f;
-
 
     public static short[] floatToByte(float[] framedSignal) {
         short[] temp = new short[framedSignal.length];
@@ -109,12 +115,11 @@ public class AudioUtil {
         return silence;
     }
 
-    final static float SAMPLE_INTERVAL = 0.5f;
     public static int[] getSilenceFrames(float[] originalSignal, int sampleRate) {
         int samplePerFrame = (int) (sampleRate * windowSize);
         int samplePerStep = (int) (sampleRate * windowStep);
 
-        int firstSamples = (int) (sampleRate* SAMPLE_INTERVAL);
+        int firstSamples = (int) (sampleRate * SAMPLE_INTERVAL);
         firstSamples = originalSignal.length > firstSamples ? firstSamples : originalSignal.length;
 
         float[] voiced = new float[originalSignal.length];
@@ -194,4 +199,19 @@ public class AudioUtil {
 
         return voicedFrame;
     }
+
+    public static ArrayList<Integer> getAvailableSampleRate() {
+        ArrayList<Integer> list = new ArrayList<>();
+
+        for (int sampleRate : SAMPLE_RATE_CANDIDATES) {
+            final int sizeInBytes = AudioRecord.getMinBufferSize(sampleRate, CHANNEL, ENCODING);
+            if (sizeInBytes == AudioRecord.ERROR_BAD_VALUE) {
+                continue;
+            }
+        list.add(sampleRate);
+        }
+        Collections.sort(list);
+        return list;
+    }
+
 }

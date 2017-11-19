@@ -38,22 +38,7 @@ public class NewRecordDialog extends DialogFragment implements DialogHandler {
 
     @Override
     public void onClickTagAdd(View v) {
-        String tagName = mEditTextTag.getText().toString();
-        TagRealm tag = realm.where(TagRealm.class).equalTo("name", tagName).findFirst();
 
-        if (tag == null) {
-            realm.beginTransaction();
-            tag = RealmUtil.createObject(realm, TagRealm.class);
-            tag.setName(tagName);
-            tag.setCount(1);
-            Random rnd = new Random();
-            tag.setColorCode(rnd.nextInt(100) + 100);
-            realm.commitTransaction();
-            originalTags.add(tag);
-            originalAdapter.notifyDataSetChanged();
-        } else {
-            Toast.makeText(getContext(), "이미 존재하는 이름입니다", Toast.LENGTH_SHORT).show();
-        }
     }
 
     @Override
@@ -63,21 +48,6 @@ public class NewRecordDialog extends DialogFragment implements DialogHandler {
 
     @Override
     public void onClickStart(View v) {
-        String title = mEditTextTitle.getText().toString();
-
-        File file = new File(FileUtil.getFilename(title));
-        if (file.exists()) {
-            Toast.makeText(getContext(), "이미 존재하는 제목 입니다", Toast.LENGTH_SHORT).show();
-        } else if (title.equals("")) {
-            Toast.makeText(getContext(), "제목을 입력하세요", Toast.LENGTH_SHORT).show();
-        } else {
-            ArrayList<Integer> tagIds = new ArrayList<Integer>();
-            for (TagRealm t : addedTags) {
-                tagIds.add(t.getId());
-            }
-            mListener.onDialogPositiveClick(title, tagIds, requestCode,dirId);
-            dismiss();
-        }
 
     }
 
@@ -91,18 +61,18 @@ public class NewRecordDialog extends DialogFragment implements DialogHandler {
     NewRecordDialogListener mListener;
     private EditText mEditTextTitle;
     private EditText mEditTextTag;
-
-    private RecyclerView originalRecyclerView;
-    private RecyclerView addRecyclerView;
-
-    private TagRealmAdapter originalAdapter;
-    private RecyclerView.LayoutManager originalLayout;
-
-    private TagRealmAdapter addAdapter;
-    private RecyclerView.LayoutManager addLayout;
-
-    private ArrayList<TagRealm> originalTags = new ArrayList<>();
-    private ArrayList<TagRealm> addedTags = new ArrayList<>();
+//
+//    private RecyclerView originalRecyclerView;
+//    private RecyclerView addRecyclerView;
+//
+//    private TagRealmAdapter originalAdapter;
+//    private RecyclerView.LayoutManager originalLayout;
+//
+//    private TagRealmAdapter addAdapter;
+//    private RecyclerView.LayoutManager addLayout;
+//
+//    private ArrayList<TagRealm> originalTags = new ArrayList<>();
+//    private ArrayList<TagRealm> addedTags = new ArrayList<>();
 
     private int requestCode;
     private Realm realm;
@@ -125,53 +95,53 @@ public class NewRecordDialog extends DialogFragment implements DialogHandler {
         View view = binding.getRoot();
         mEditTextTitle = binding.etNewRecordTitle;
         mEditTextTag = binding.etNewRecordTag;
-        originalRecyclerView = binding.rvOriginTags;
-        addRecyclerView = binding.rvAddTags;
-
-        RealmResults<TagRealm> tags = realm.where(TagRealm.class).findAll();
-        for (TagRealm tag : tags) {
-            originalTags.add(tag);
-        }
-
-        originalAdapter = new TagRealmAdapter(getContext(), originalTags, new TagHandler() {
-            @Override
-            public void onClickTag(View v, TagRealm tag) {
-                for (int i = 0; i < originalTags.size(); i++) {
-                    if (originalTags.get(i).getId() == tag.getId()) {
-                        originalTags.remove(i);
-                        break;
-                    }
-                }
-                addedTags.add(tag);
-                addAdapter.notifyDataSetChanged();
-                originalAdapter.notifyDataSetChanged();
-            }
-        });
-
-        addAdapter = new TagRealmAdapter(getContext(), addedTags, new TagHandler() {
-            @Override
-            public void onClickTag(View v, TagRealm tag) {
-                for (int i = 0; i < addedTags.size(); i++) {
-                    if (addedTags.get(i).getId() == tag.getId()) {
-                        addedTags.remove(i);
-                        break;
-                    }
-                }
-                originalTags.add(tag);
-                addAdapter.notifyDataSetChanged();
-                originalAdapter.notifyDataSetChanged();
-            }
-        });
-
-        originalAdapter.setHasStableIds(true);
-        originalLayout = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
-        originalRecyclerView.setAdapter(originalAdapter);
-        originalRecyclerView.setLayoutManager(originalLayout);
-
-        addAdapter.setHasStableIds(true);
-        addLayout = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
-        addRecyclerView.setAdapter(addAdapter);
-        addRecyclerView.setLayoutManager(addLayout);
+//        originalRecyclerView = binding.rvOriginTags;
+//        addRecyclerView = binding.rvAddTags;
+//
+//        RealmResults<TagRealm> tags = realm.where(TagRealm.class).findAll();
+//        for (TagRealm tag : tags) {
+//            originalTags.add(tag);
+//        }
+//
+//        originalAdapter = new TagRealmAdapter(getContext(), originalTags, new TagHandler() {
+//            @Override
+//            public void onClickTag(View v, TagRealm tag) {
+//                for (int i = 0; i < originalTags.size(); i++) {
+//                    if (originalTags.get(i).getId() == tag.getId()) {
+//                        originalTags.remove(i);
+//                        break;
+//                    }
+//                }
+//                addedTags.add(tag);
+//                addAdapter.notifyDataSetChanged();
+//                originalAdapter.notifyDataSetChanged();
+//            }
+//        });
+//
+//        addAdapter = new TagRealmAdapter(getContext(), addedTags, new TagHandler() {
+//            @Override
+//            public void onClickTag(View v, TagRealm tag) {
+//                for (int i = 0; i < addedTags.size(); i++) {
+//                    if (addedTags.get(i).getId() == tag.getId()) {
+//                        addedTags.remove(i);
+//                        break;
+//                    }
+//                }
+//                originalTags.add(tag);
+//                addAdapter.notifyDataSetChanged();
+//                originalAdapter.notifyDataSetChanged();
+//            }
+//        });
+//
+//        originalAdapter.setHasStableIds(true);
+//        originalLayout = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
+//        originalRecyclerView.setAdapter(originalAdapter);
+//        originalRecyclerView.setLayoutManager(originalLayout);
+//
+//        addAdapter.setHasStableIds(true);
+//        addLayout = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
+//        addRecyclerView.setAdapter(addAdapter);
+//        addRecyclerView.setLayoutManager(addLayout);
         builder.setView(view);
         return builder.create();
     }
