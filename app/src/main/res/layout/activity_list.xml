@@ -22,56 +22,89 @@
             android:id="@+id/app_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark">
+            android:background="@color/blue_gray"
+            android:theme="@style/ThemeOverlay.AppCompat.Dark"
+            app:elevation="0dp">
 
-            <android.support.v7.widget.Toolbar
-                android:id="@+id/toolbar"
+            <android.support.design.widget.CollapsingToolbarLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+
+                app:layout_scrollFlags="scroll|enterAlways">
+
+                <android.support.v7.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    app:contentInsetLeft="0dp"
+                    app:contentInsetStart="0dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:layout_width="150dp"
+                            android:layout_height="40dp"
+                            android:layout_gravity="center_horizontal"
+                            android:src="@drawable/logo_white_horizontal" />
+                        <SearchView
+                            android:id="@+id/search_view"
+                            android:layout_margin="8dp"
+                            android:padding="4dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="32dp"
+
+                            android:background="@drawable/layout_search"
+                            >
+
+                        </SearchView>
+                    </LinearLayout>
+                </android.support.v7.widget.Toolbar>
+            </android.support.design.widget.CollapsingToolbarLayout>
+
+
+            <android.support.design.widget.TabLayout
+                android:id="@+id/tl_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@android:color/white"
-                android:paddingLeft="16dp"
-                android:paddingRight="8dp"
+                android:layout_alignParentBottom="true"
 
-                >
+                app:tabIndicatorColor="@android:color/transparent"
+                app:tabSelectedTextColor="?attr/colorPrimary"
+                app:tabTextColor="@android:color/darker_gray">
 
-                <android.support.design.widget.TabLayout
-                    android:id="@+id/tl_list"
+                <android.support.design.widget.TabItem
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentBottom="true"
-
-                    app:tabIndicatorColor="@android:color/transparent"
-                    app:tabTextColor="@android:color/darker_gray"
-                    app:tabSelectedTextColor="?attr/colorPrimary"
-                    >
-
-                    <android.support.design.widget.TabItem
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="RESULT"
-                        />
+                    android:text="RESULT" />
 
 
-                    <android.support.design.widget.TabItem
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="PROCESS" />
+                <android.support.design.widget.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PROCESS" />
 
-                </android.support.design.widget.TabLayout>
-            </android.support.v7.widget.Toolbar>
-
-
+            </android.support.design.widget.TabLayout>
         </android.support.design.widget.AppBarLayout>
 
 
-        <android.support.v4.view.ViewPager
-            android:id="@+id/vp_list"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_above="@+id/tl_list"
-            android:layout_alignParentTop="true"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+
+            <android.support.v4.view.ViewPager
+                android:id="@+id/vp_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_above="@+id/tl_list"
+                android:layout_alignParentTop="true" />
+        </LinearLayout>
 
     </android.support.design.widget.CoordinatorLayout>
 

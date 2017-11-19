@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import com.google.cloud.android.speech.event.FileEvent;
@@ -79,6 +80,7 @@ public class ListActivity extends AppCompatActivity{
         binding = DataBindingUtil.setContentView(this, R.layout.activity_list);
         setSupportActionBar(binding.toolbar);
         getSupportActionBar().setTitle(null);
+//        getSupportActionBar().setElevation(0);
         mPagerAdapter = new PagerAdapter(getSupportFragmentManager());
 
 
@@ -186,24 +188,6 @@ public class ListActivity extends AppCompatActivity{
 //    }
 
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_search:
-                Toast.makeText(this, R.string.ready, Toast.LENGTH_SHORT).show();
-                mSpeechService.stopForeground(true);
-                break;
-        }
-        return true;
-    }
-
     private class PagerAdapter extends FragmentStatePagerAdapter {
 
         public PagerAdapter(FragmentManager fm) {
@@ -216,8 +200,10 @@ public class ListActivity extends AppCompatActivity{
 
             switch (position) {
                 case 0:
+                    binding.searchView.setVisibility(View.GONE);
                     return ProcessListFragment.create(position);
                 case 1:
+                    binding.searchView.setVisibility(View.VISIBLE);
                     return ResultListFragment.create(position);
 
             }

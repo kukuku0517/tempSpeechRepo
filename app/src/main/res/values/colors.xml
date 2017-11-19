@@ -18,6 +18,8 @@
     <color name="checked">#50253079</color>
     <color name="unchecked">#503F51B5</color>
     <color name="naver_green">#a0c962</color>
+    <color name="red_gray">#424242</color>
+    <color name="blue_gray">#414956</color>
     <color name="white">#FFF</color>
     <color name="naver_green_light">#a0c962</color>
 
@@ -27,7 +29,7 @@
     <color name="cluster_b">#85cc33</color>
     <color name="red">#e45260</color>
 
-    <color name="primary_dark">#388E3C</color>
+    <color name="primary_dark">@color/blue_gray</color>
     <color name="accent">#536DFE</color>
     <color name="accdddent">#536DFE</color>
     <color name="status_hearing">#7B1FA2</color>
