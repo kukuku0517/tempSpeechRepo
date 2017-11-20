@@ -64,6 +64,7 @@ import com.google.protobuf.ByteString;
 
 import org.greenrobot.eventbus.EventBus;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -82,8 +83,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import io.grpc.CallOptions;
@@ -139,8 +138,10 @@ public class SpeechService extends Service {
     private volatile AccessTokenTask mAccessTokenTask;
     private SpeechGrpc.SpeechStub mApi;
     private FileOutputStream os;
-    private ArrayBlockingQueue<byte[]> recordByteQueue = new ArrayBlockingQueue<>(500);
-    private ArrayBlockingQueue<byte[]> byteQueue = new ArrayBlockingQueue<>(500);
+    private Queue<byte[]> recordByteQueue = new LinkedList<>();
+
+    ByteArrayOutputStream recordByteStream = new ByteArrayOutputStream();
+    private Queue<byte[]> byteQueue = new LinkedList<>();
     private static Handler mHandler;
     private final VoiceRecorderCallBack mVoiceCallback = new VoiceRecorderCallBack() {
         @Override
@@ -208,28 +209,30 @@ public class SpeechService extends Service {
 
         @Override
         public void onCompleted() {
-
-            Log.d("stopcycle", "on completed");
+            Log.d("queue", "completeeeeeeeeeeeeeeeeeeeeeeeeeee");
             EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.END));
 
             if (true) {
                 byte[] dataBlock = new byte[recordBufferSize];
-                Log.d("idrate", String.valueOf(recordBufferSize));
 
+                int count = 0;
+                byte[] temp;
                 synchronized (mLock) {
-                    int count = 0;
-                    byte[] temp;
-                    while (!recordByteQueue.isEmpty()) {
-                        temp = recordByteQueue.poll();
-                        System.arraycopy(temp, 0, dataBlock, count, temp.length);
-                        count += temp.length;
+                    dataBlock = recordByteStream.toByteArray();
+                    try {
+                        recordByteStream.close();
+                        recordByteStream=null;
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
+                    float[] pcmFloat = floatMe(shortMe(dataBlock));
+                    recordBufferSize = 0;
+                    FeatureExtractAsync featureAsync = new FeatureExtractAsync();
+                    featureAsync.setData(recordId, recordSampleRate);
+                    featureAsync.execute(pcmFloat);
                 }
-                float[] pcmFloat = floatMe(shortMe(dataBlock));
-                recordBufferSize = 0;
-                FeatureExtractAsync featureAsync = new FeatureExtractAsync();
-                featureAsync.setData(recordId, recordSampleRate);
-                featureAsync.execute(pcmFloat);
+
+
             }
         }
     };
@@ -584,9 +587,16 @@ public class SpeechService extends Service {
         //TODO
         if (checkEmptyBytes(data)) {
             synchronized (mLock) {
-                recordByteQueue.offer(data);
-                recordBufferSize += data.length;
+                if(recordByteStream==null){
+                    recordByteStream=new ByteArrayOutputStream();
+                }
+                try {
+                    recordByteStream.write(data);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
+
         }
 
         if (mRequestObserver == null) {
@@ -758,6 +768,7 @@ public class SpeechService extends Service {
 
     private void onSpeechResult(boolean isFinal, SpeechRecognitionAlternative alternative, long startOfCall) {
         if (isFinal) {
+            Log.d("queue", "finalllllllllllllllllllllllllllllll");
             if (mVoiceRecorder != null) {
                 mVoiceRecorder.dismiss();
             }

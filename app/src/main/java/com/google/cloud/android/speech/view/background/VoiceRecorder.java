@@ -104,8 +104,8 @@ public class VoiceRecorder {
      */
     public void stop() {
         synchronized (mLock) {
-            Log.d("idrate","countsize"+countSize);
-            Log.d("idrate","sendSize"+sendSize);
+            Log.d("idrate", "countsize" + countSize);
+            Log.d("idrate", "sendSize" + sendSize);
 
             if (mThread != null) {
                 mThread.interrupt();
@@ -211,8 +211,10 @@ public class VoiceRecorder {
      * events.
      */
 
-    double countSize =0;
-    double sendSize=0;
+    double countSize = 0;
+    double sendSize = 0;
+
+    int runsize = 0;
 
     private class ProcessVoice implements Runnable {
 
@@ -223,12 +225,13 @@ public class VoiceRecorder {
                     if (Thread.currentThread().isInterrupted()) {
                         break;
                     }
+
                     int size = 0;
                     if (mAudioRecord != null) {
                         size = mAudioRecord.read(mBuffer, 0, bufferSize);
                         try {
                             os.write(mBuffer);
-                            countSize+=mBuffer.length;
+                            countSize += mBuffer.length;
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -246,22 +249,22 @@ public class VoiceRecorder {
                                 e.printStackTrace();
                             }
                         }
-                        mCallback.onVoice(mBuffer, size,true);
-                        sendSize+=mBuffer.length;
+                        mCallback.onVoice(mBuffer, size, true);
+                        sendSize += mBuffer.length;
                         mLastVoiceHeardMillis = now;
                         if (now - mVoiceStartedMillis > MAX_SPEECH_LENGTH_MILLIS) { //인식중 + 최대시간 초과
                             end();
                         }
                     } else if (mLastVoiceHeardMillis != Long.MAX_VALUE) {
                         EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.SILENCE));
-                        mCallback.onVoice(mBuffer, size,true);
-                        sendSize+=mBuffer.length;
+                        mCallback.onVoice(mBuffer, size, true);
+                        sendSize += mBuffer.length;
                         if (now - mLastVoiceHeardMillis > SPEECH_TIMEOUT_MILLIS) { //인식정지 시간초과
                             end();
                         }
-                    }else{
-                        mCallback.onVoice(mBuffer, size,false);
-                        sendSize+=mBuffer.length;
+                    } else {
+                        mCallback.onVoice(mBuffer, size, false);
+                        sendSize += mBuffer.length;
                     }
                 }
             }
