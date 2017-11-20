@@ -14,9 +14,13 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.google.cloud.android.speech.event.FileEvent;
+import com.google.cloud.android.speech.event.QueryEvent;
 import com.google.cloud.android.speech.util.FileUtil;
 import com.google.cloud.android.speech.view.recordList.fragment.ProcessListFragment;
 import com.google.cloud.android.speech.view.recordList.fragment.ResultListFragment;
@@ -61,6 +65,56 @@ public class ListActivity extends AppCompatActivity {
 
     }
 
+    private void transitionTitle(int index) {
+        if (index == 0) {
+            Animation animation = AnimationUtils.loadAnimation(this, R.anim.fade_out);
+            animation.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    binding.searchView.setVisibility(View.GONE);
+                    binding.ivTitle.setVisibility(View.VISIBLE);
+                    binding.ivTitle.startAnimation(AnimationUtils.loadAnimation(getBaseContext(), R.anim.fade_in));
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+
+                }
+            });
+            binding.searchView.startAnimation(animation);
+
+
+
+        } else {
+            Animation animation = AnimationUtils.loadAnimation(this, R.anim.fade_out);
+            animation.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    binding.ivTitle.setVisibility(View.GONE);
+                    binding.searchView.setVisibility(View.VISIBLE);
+                    binding.searchView.startAnimation(AnimationUtils.loadAnimation(getBaseContext(), R.anim.fade_in));
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+
+                }
+            });
+            binding.ivTitle.startAnimation(animation);
+
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,7 +137,6 @@ public class ListActivity extends AppCompatActivity {
 //        getSupportActionBar().setElevation(0);
         mPagerAdapter = new PagerAdapter(getSupportFragmentManager());
 
-
         binding.vpList.setAdapter(mPagerAdapter);
         binding.vpList.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
@@ -92,15 +145,7 @@ public class ListActivity extends AppCompatActivity {
 
             @Override
             public void onPageSelected(int position) {
-                switch (position) {
-                    case 0:
-                        binding.searchView.setVisibility(View.GONE);
-                        break;
-                    case 1:
-                        binding.searchView.setVisibility(View.VISIBLE);
-                        break;
-                }
-
+                transitionTitle(position);
                 binding.tlList.getTabAt(position).select();
             }
 
@@ -113,14 +158,7 @@ public class ListActivity extends AppCompatActivity {
         binding.tlList.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
-                switch (tab.getPosition()) {
-                    case 0:
-                        binding.searchView.setVisibility(View.GONE);
-                        break;
-                    case 1:
-                        binding.searchView.setVisibility(View.VISIBLE);
-                        break;
-                }
+                transitionTitle(tab.getPosition());
                 binding.vpList.setCurrentItem(tab.getPosition());
             }
 
@@ -132,6 +170,21 @@ public class ListActivity extends AppCompatActivity {
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
 
+            }
+        });
+
+//        binding.searchView.
+        binding.searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                EventBus.getDefault().postSticky(new QueryEvent(query));
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                EventBus.getDefault().postSticky(new QueryEvent(newText));
+                return true;
             }
         });
     }

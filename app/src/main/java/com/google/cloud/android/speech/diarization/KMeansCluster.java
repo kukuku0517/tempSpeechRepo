@@ -388,6 +388,8 @@ public class KMeansCluster {
 
         //TODO
         getSilenceCluster();
+        LogUtil.print(clusterNumber, "kcluster");
+
 //        LogUtil.print(clusterNumber, "kcluster");
         clusterNumber = medianFilter(clusterNumber);
 

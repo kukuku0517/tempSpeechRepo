@@ -28,7 +28,6 @@ public class VoiceRecorder {
 
 
     private static final int[] SAMPLE_RATE_CANDIDATES = new int[]{16000, 11025, 22050, 44100};
-
     private static final int CHANNEL = AudioFormat.CHANNEL_IN_MONO;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int RECORDER_BPP = 16;
@@ -36,14 +35,9 @@ public class VoiceRecorder {
     private static final int SPEECH_TIMEOUT_MILLIS = 2000;
     private static final int MAX_SPEECH_LENGTH_MILLIS = 30 * 1000;
     private static String TITLE = "";
-
-    int BufferElements2Rec = 1024; // want to play 2048 (2K) since 2 bytes we
-    // use only 1024
-    int BytesPerElement = 2; // 2 bytes in 16bit format
-
     private FileOutputStream os;
     private static String TAG = "kjh";
-    private int recorderSampleRate = 44100;
+    private int recorderSampleRate = 0;
     private int bufferSize = 0;
 
     private final VoiceRecorderCallBack mCallback;
@@ -67,8 +61,9 @@ public class VoiceRecorder {
     private long mVoiceStartedMillis;
     private boolean isRecording = false;
 
-    public VoiceRecorder(@NonNull VoiceRecorderCallBack callback) {
+    public VoiceRecorder(@NonNull VoiceRecorderCallBack callback, int sampleRate) {
         mCallback = callback;
+        this.recorderSampleRate = sampleRate;
     }
 
     public void setTitle(String title) {
@@ -109,32 +104,37 @@ public class VoiceRecorder {
      */
     public void stop() {
         synchronized (mLock) {
-            dismiss();
+            Log.d("idrate","countsize"+countSize);
+            Log.d("idrate","sendSize"+sendSize);
+
             if (mThread != null) {
                 mThread.interrupt();
                 mThread = null;
-
+                Log.d("stopcycle", "interrupt");
             }
+
             if (mAudioRecord != null) {
                 mAudioRecord.stop();
                 mAudioRecord.release();
                 mAudioRecord = null;
+                Log.d("stopcycle", "record stop");
             }
+
             mBuffer = null;
             if (isRecording) {
-
-                Log.d(TAG, "recording en");
                 isRecording = false;
-
 
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
+                        Log.d("stopcycle", "os close start");
                         try {
                             os.close();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+
+                        Log.d("stopcycle", "os close stop");
                         FileUtil.copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE), recorderSampleRate, RECORDER_BPP, bufferSize, 1);
                         Log.d("buffersize", String.valueOf(bufferSize));
                         deleteTempFile();
@@ -151,6 +151,7 @@ public class VoiceRecorder {
                 }).start();
 
             }
+            dismiss();
 
         }
     }
@@ -161,6 +162,7 @@ public class VoiceRecorder {
      */
     public void dismiss() {
         if (mLastVoiceHeardMillis != Long.MAX_VALUE) {
+            Log.d("stopcycle", "dismiss");
             mCallback.onVoiceEnd();
             mLastVoiceHeardMillis = Long.MAX_VALUE;
         }
@@ -187,33 +189,31 @@ public class VoiceRecorder {
 
 
     private AudioRecord createAudioRecord() {
-        for (int sampleRate : SAMPLE_RATE_CANDIDATES) {
-            final int sizeInBytes = AudioRecord.getMinBufferSize(sampleRate, CHANNEL, ENCODING);
-//            Log.i(TAG, sizeInBytes + ": bufferSize");
-            if (sizeInBytes == AudioRecord.ERROR_BAD_VALUE) {
-                continue;
-            }
-            recorderSampleRate = sampleRate;
-            bufferSize = sizeInBytes;
-            final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
-                    sampleRate, CHANNEL, ENCODING, sizeInBytes);
 
-//            Log.i(TAG, recorderSampleRate+":sample rate");
-            if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
-                mBuffer = new byte[sizeInBytes];
-                return audioRecord;
-            } else {
-                audioRecord.release();
-            }
+        final int sizeInBytes = AudioRecord.getMinBufferSize(recorderSampleRate, CHANNEL, ENCODING);
+        bufferSize = sizeInBytes;
+        final AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                recorderSampleRate, CHANNEL, ENCODING, sizeInBytes);
+
+        if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
+            mBuffer = new byte[sizeInBytes];
+            return audioRecord;
+        } else {
+            audioRecord.release();
+            return null;
         }
 
-        return null;
+
     }
 
     /**
      * Continuously processes the captured audio and notifies {@link #mCallback} of corresponding
      * events.
      */
+
+    double countSize =0;
+    double sendSize=0;
+
     private class ProcessVoice implements Runnable {
 
         @Override
@@ -228,6 +228,7 @@ public class VoiceRecorder {
                         size = mAudioRecord.read(mBuffer, 0, bufferSize);
                         try {
                             os.write(mBuffer);
+                            countSize+=mBuffer.length;
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -245,17 +246,22 @@ public class VoiceRecorder {
                                 e.printStackTrace();
                             }
                         }
-                        mCallback.onVoice(mBuffer, size);
+                        mCallback.onVoice(mBuffer, size,true);
+                        sendSize+=mBuffer.length;
                         mLastVoiceHeardMillis = now;
                         if (now - mVoiceStartedMillis > MAX_SPEECH_LENGTH_MILLIS) { //인식중 + 최대시간 초과
                             end();
                         }
                     } else if (mLastVoiceHeardMillis != Long.MAX_VALUE) {
                         EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.SILENCE));
-                        mCallback.onVoice(mBuffer, size);
+                        mCallback.onVoice(mBuffer, size,true);
+                        sendSize+=mBuffer.length;
                         if (now - mLastVoiceHeardMillis > SPEECH_TIMEOUT_MILLIS) { //인식정지 시간초과
                             end();
                         }
+                    }else{
+                        mCallback.onVoice(mBuffer, size,false);
+                        sendSize+=mBuffer.length;
                     }
                 }
             }

@@ -20,7 +20,7 @@ public interface VoiceRecorderCallBack {
      * @param data The audio data in {@link AudioFormat#ENCODING_PCM_16BIT}.
      * @param size The size of the actual data in {@code data}.
      */
-    void onVoice(byte[] data, int size);
+    void onVoice(byte[] data, int size,boolean isVoice);
 
     /**
      * Called when the recorder stops hearing voice.

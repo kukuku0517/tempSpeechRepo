@@ -1,5 +1,6 @@
 package com.google.cloud.android.speech.data.realm;
 
+import io.realm.RealmList;
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
 
@@ -15,6 +16,8 @@ public class TagRealm extends RealmObject implements PrimaryRealm {
     String name;
     int colorCode;
     int count=0;
+    RealmList<RecordRealm> records = new RealmList<>();
+
 
     public String getName() {
         return name;
@@ -40,6 +43,13 @@ public class TagRealm extends RealmObject implements PrimaryRealm {
         this.count = count;
     }
 
+    public RealmList<RecordRealm> getRecords() {
+        return records;
+    }
+
+    public void setRecords(RealmList<RecordRealm> records) {
+        this.records = records;
+    }
     @Override
     public int getId() {
         return id;
@@ -49,4 +59,6 @@ public class TagRealm extends RealmObject implements PrimaryRealm {
     public void setId(int id) {
         this.id = id;
     }
+
+
 }

@@ -16,35 +16,91 @@
             name="depth"
             type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Integer>" />
 
+
+        <variable
+            name="currentFolder"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;String>" />
+
     </data>
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/fragment_result_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:background="@color/blue_gray">
 
-
-
-
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="right"
-            android:layout_margin="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:onClick="@{handler::onClickBack}"
-            android:src="@drawable/ic_arrow_back_black_24dp"
-            android:visibility="@{depth.getValue==0?View.GONE:View.VISIBLE}" />
-
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/rv_record"
+        <RelativeLayout
+            android:id="@+id/rl_dirback"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="4dp">
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="8dp">
 
-        </android.support.v7.widget.RecyclerView>
+            <ImageView
+                android:id="@+id/iv_back"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
 
-    </LinearLayout>
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:onClick="@{handler::onClickBack}"
+                android:src="@drawable/ic_arrow_back_black_24dp"
+                android:visibility="@{depth.getValue==0?View.INVISIBLE:View.VISIBLE}" />
+
+            <ImageView
+                android:id="@+id/iv_folder"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_folder_black_24dp"
+                android:tint="@color/gray" />
+
+            <TextView
+                android:id="@id/tv_dir"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="8dp"
+                android:layout_toRightOf="@id/iv_folder"
+                android:text="@{currentFolder.getValue}"
+                android:textColor="@color/gray"
+                tools:text="app/src/holder/idontknow" />
+
+        </RelativeLayout>
+
+
+        <android.support.v7.widget.CardView
+            android:id="@+id/cv_dir"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/rl_dirback"
+            android:layout_margin="8dp"
+            app:cardBackgroundColor="@color/default_background"
+            app:cardCornerRadius="8dp"
+            tools:visibility="invisible">
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/rv_record"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="8dp">
+
+            </android.support.v7.widget.RecyclerView>
+        </android.support.v7.widget.CardView>
+
+        <ImageView
+            android:id="@+id/fab"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_margin="16dp"
+            android:elevation="8dp"
+
+            android:onClick="@{handler::onClickMakeDir}"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_add_circle_black_24dp"
+            android:tint="@color/gray" />
+    </RelativeLayout>
 
 </layout>

@@ -4,10 +4,10 @@ package com.google.cloud.android.speech.event;
  * Created by USER on 2017-10-19.
  */
 
-public class PartialTimerEvent{
+public class PartialRecordEvent {
     int second;
 
-    public PartialTimerEvent(int second){
+    public PartialRecordEvent(int second){
         this.second=second;
     }
 

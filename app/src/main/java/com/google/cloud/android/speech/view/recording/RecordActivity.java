@@ -41,14 +41,15 @@ import android.widget.TextView;
 import com.google.cloud.android.speech.data.DTO.MediaTimeDTO;
 import com.google.cloud.android.speech.data.DTO.ObservableDTO;
 import com.google.cloud.android.speech.data.DTO.RecordDTO;
+import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.databinding.ActivityRecordBinding;
 import com.google.cloud.android.speech.databinding.ItemRecordBinding;
-import com.google.cloud.android.speech.event.PartialEvent;
+import com.google.cloud.android.speech.event.PartialRealtimeTextEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.event.PartialStatusEvent;
-import com.google.cloud.android.speech.event.PartialTimerEvent;
+import com.google.cloud.android.speech.event.PartialRecordEvent;
 import com.google.cloud.android.speech.view.recordList.adapter.TagRealmAdapter;
 import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
 import com.google.cloud.android.speech.view.customView.rvInteractions.ItemTouchHelperCallBack;
@@ -64,6 +65,7 @@ import org.parceler.Parcels;
 import java.util.ArrayList;
 
 import io.realm.Realm;
+import io.realm.RealmList;
 
 
 public class RecordActivity extends AppCompatActivity implements MessageDialogFragment.Listener, RecordHandler {
@@ -80,7 +82,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     private RecyclerView mRecyclerView;
     private Context context = this;
     private ImageButton recordBtn, stopBtn;
-private int dirId;
+    private int dirId;
     boolean serviceBinded = false;
     private Realm realm;
     private RecordRealm record;
@@ -102,12 +104,12 @@ private int dirId;
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onPartialEvent(PartialEvent event) {
+    public void onPartialEvent(PartialRealtimeTextEvent event) {
         currentText.setValue(event.getPartial());
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    public void onPartialTimerEvent(PartialTimerEvent event) {
+    public void onPartialTimerEvent(PartialRecordEvent event) {
         timeDTO.setTotal(event.getSecond() * 1000);
         EventBus.getDefault().removeStickyEvent(event);
     }
@@ -133,7 +135,7 @@ private int dirId;
     ObservableDTO<String> currentText = new ObservableDTO<>();
     MediaTimeDTO timeDTO = new MediaTimeDTO();
     RecordDTO recordDTO;
-
+    RealmList<SentenceRealm> records = new RealmList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,47 +143,48 @@ private int dirId;
 
         realm = Realm.getDefaultInstance();
         EventBus.getDefault().register(this);
-        title = getIntent().getStringExtra("title");
-        tags = Parcels.unwrap(getIntent().getParcelableExtra("tags"));
-        dirId = getIntent().getIntExtra("dirId",1);
-        isPlaying.setValue(false);
 
         activityRecordBinding = DataBindingUtil.setContentView(this, R.layout.activity_record);
+        tagRecyclerView = activityRecordBinding.rvTags;
+        seekBar = activityRecordBinding.sbNavigate;
+        //data초기화
+        isPlaying.setValue(false);
+
         activityRecordBinding.setHandler(this);
         activityRecordBinding.setTime(timeDTO);
         activityRecordBinding.setIsPlaying(isPlaying);
         activityRecordBinding.setSentenceString(currentText);
         activityRecordBinding.setPartialStatus(status);
-        activityRecordBinding.tvTitle.setText(title);
 
-        tagRecyclerView = activityRecordBinding.rvTags;
-        seekBar = activityRecordBinding.sbNavigate;
-        seekBar.setMax(1);
+        //view 초기화
+        setSupportActionBar(activityRecordBinding.toolbar);
+        getSupportActionBar().setTitle("");
 
-        //set tag recyclerview
-        for (int i : tags) {
-            tagTags.add(realm.where(TagRealm.class).equalTo("id", i).findFirst());
-        }
         tagAdapter = new TagRealmAdapter(getBaseContext(), tagTags, new TagHandler() {
             @Override
             public void onClickTag(View v, TagRealm tag) {
 
             }
         });
+
+        seekBar.setMax(1);
         tagAdapter.setHasStableIds(true);
         tagLayout = new LinearLayoutManager(getBaseContext(), LinearLayoutManager.HORIZONTAL, false);
         tagRecyclerView.setAdapter(tagAdapter);
         tagRecyclerView.setLayoutManager(tagLayout);
 
-        setSupportActionBar(activityRecordBinding.toolbar);
-        getSupportActionBar().setTitle("");
+
+        mRecyclerView = activityRecordBinding.recyclerView;
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
+        mAdapter = new RecordRealmAdapter(null, recordId, true, true, context);
+        mRecyclerView.setAdapter(mAdapter);
+        ItemTouchHelper.Callback callback = new ItemTouchHelperCallBack(mAdapter);
+        ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
+        touchHelper.attachToRecyclerView(mRecyclerView);
+
 
         mStatus = (TextView) findViewById(R.id.status);
         mText = (TextView) findViewById(R.id.text);
-
-        if (SpeechService.IS_RECORDING) {
-            initService();
-        }
 
         seekBar.setPadding(0, 0, 0, 0);
         seekBar.setMinimumHeight(40);
@@ -202,6 +205,25 @@ private int dirId;
             }
         });
 
+        //data setting
+
+        title = getIntent().getStringExtra("title");
+        tags = Parcels.unwrap(getIntent().getParcelableExtra("tags"));
+        dirId = getIntent().getIntExtra("dirId", 1);
+
+        if (tags != null && tags.size() != 0) {
+            for (int i : tags) {
+                tagTags.add(realm.where(TagRealm.class).equalTo("id", i).findFirst());
+            }
+        }
+        activityRecordBinding.tvTitle.setText(title);
+
+        if (SpeechService.IS_RECORDING) {
+            initService();
+            isPlaying.setValue(true);
+        }
+        //set tag recyclerview
+
 
     }
 
@@ -220,28 +242,31 @@ private int dirId;
             if (SpeechService.IS_RECORDING) {
                 recordId = mSpeechService.getRecordId();
             } else {
-                recordId = mSpeechService.createSpeechRecord(dirId);
+                recordId = mSpeechService.createSpeechRecord(title, dirId, tagTags);
             }
 
             realm.beginTransaction();
             record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
             realm.commitTransaction();
+
             recordDTO = new RecordDTO(record);
+            dirId = record.getDirectoryId();
+            tags = new ArrayList<>();
+            tagTags = new ArrayList<>();
+            tagTags.addAll(record.getTagList());
+
+            tagAdapter.updateData(tagTags);
+
             activityRecordBinding.setRecord(recordDTO);
+            activityRecordBinding.tvTitle.setText(record.getTitle());
+            mAdapter.updateData(record.getSentenceRealms());
+//            mAdapter.notifyDataSetChanged();
 
-
-            mRecyclerView = activityRecordBinding.recyclerView;
-            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
-            mAdapter = new RecordRealmAdapter(record.getSentenceRealms(), recordId, true, true, context);
-            mRecyclerView.setAdapter(mAdapter);
-            ItemTouchHelper.Callback callback = new ItemTouchHelperCallBack(mAdapter);
-            ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
-            touchHelper.attachToRecyclerView(mRecyclerView);
-
-            String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+            String[]
+                    PERMISSIONS = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
             if (checkPermissions(context, PERMISSIONS)) {
                 if (!SpeechService.IS_RECORDING) {
-                    mSpeechService.initSpeechRecognizing(title, tags);
+                    mSpeechService.initSpeechRecognizing(title);
                 }
             } else if (ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
                     Manifest.permission.RECORD_AUDIO) || ActivityCompat.shouldShowRequestPermissionRationale((Activity) context,
@@ -326,7 +351,7 @@ private int dirId;
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED
                     && grantResults[2] == PackageManager.PERMISSION_GRANTED) {
 
-                mSpeechService.initSpeechRecognizing(title, tags);
+                mSpeechService.initSpeechRecognizing(title);
 
             } else {
                 showPermissionMessageDialog();

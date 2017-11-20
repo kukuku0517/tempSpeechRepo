@@ -23,8 +23,11 @@ import android.widget.Toast;
 import com.google.cloud.android.speech.data.DTO.ObservableDTO;
 import com.google.cloud.android.speech.data.realm.DirectoryRealm;
 import com.google.cloud.android.speech.R;
+import com.google.cloud.android.speech.data.realm.RecordRealm;
+import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.databinding.DialogRenameDirBinding;
 import com.google.cloud.android.speech.event.DirEvent;
+import com.google.cloud.android.speech.event.QueryEvent;
 import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.customView.rvInteractions.ItemTouchHelperCallBack;
 import com.google.cloud.android.speech.view.recordList.adapter.ListRealmAdapter;
@@ -38,10 +41,15 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import io.realm.Realm;
 import io.realm.RealmChangeListener;
 import io.realm.RealmList;
 import io.realm.RealmObject;
+import io.realm.RealmResults;
 
 public class ResultListFragment extends Fragment implements ListHandler {
 
@@ -57,6 +65,8 @@ public class ResultListFragment extends Fragment implements ListHandler {
 
     private int currentDirId = -1;
     ObservableDTO<Integer> depth = new ObservableDTO<>();
+    ObservableDTO<String> currentFolder = new ObservableDTO<>();
+
     public ResultListFragment() {
         // Required empty public constructor
     }
@@ -69,7 +79,7 @@ public class ResultListFragment extends Fragment implements ListHandler {
             mSpeechService.notifyProcess();
             Log.d("lifecycle", "service con");
 
-}
+        }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
@@ -144,6 +154,7 @@ public class ResultListFragment extends Fragment implements ListHandler {
         binding = DataBindingUtil.bind(view);
         binding.setHandler(this);
         binding.setDepth(depth);
+        binding.setCurrentFolder(currentFolder);
 
 //        for (final RecordRealm record : result) {
 //            if (record.getDuration() == 0) {
@@ -215,6 +226,16 @@ public class ResultListFragment extends Fragment implements ListHandler {
 
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onPartialEvent(QueryEvent event) {
+        String query = event.getQuery();
+        if (query.length() == 0) {
+            moveTodir(getDefaultDirectory().getId());
+        } else {
+            query(query);
+        }
+    }
+
     @Override
     public void onClickMakeDir(View view) {
         final DialogRenameDirBinding binding = DataBindingUtil.inflate(LayoutInflater.from(getContext()), R.layout.dialog_rename_dir, null, false);
@@ -266,13 +287,28 @@ public class ResultListFragment extends Fragment implements ListHandler {
         DirectoryRealm dir = realm.where(DirectoryRealm.class).equalTo("id", id).findFirst();
         currentDirId = id;
         depth.setValue(dir.getDepth());
+
+        int count = dir.getDepth();
+        String path = dir.getName();
+        int tempId=dir.getUpperId();
+        while (count > 0) {
+            DirectoryRealm tempDir = realm.where(DirectoryRealm.class).equalTo("id", tempId).findFirst();
+            path = tempDir.getName() + "/" + path;
+            tempId=tempDir.getUpperId();
+            count--;
+        }
+        currentFolder.setValue(path);
+
+
         dirOrFiles.clear();
 
         for (RealmObject o : dir.getDirectoryRealms()) {
             dirOrFiles.add(o);
         }
         for (RealmObject o : dir.getRecordRealms()) {
-            dirOrFiles.add(o);
+            if (((RecordRealm) o).isConverted()) {
+                dirOrFiles.add(o);
+            }
         }
 
         adapter.updateData(dirOrFiles);
@@ -291,4 +327,32 @@ public class ResultListFragment extends Fragment implements ListHandler {
         return dir;
     }
 
+
+    public void query(String query) {
+        RealmResults<RecordRealm> recordRealms = realm.where(RecordRealm.class).contains("title", query).findAll();
+        RealmResults<TagRealm> tagRealms = realm.where(TagRealm.class).contains("name", query).findAll();
+
+        HashMap<Integer, RecordRealm> hashRealm = new HashMap<>();
+        for (RecordRealm r : recordRealms) {
+            hashRealm.put(r.getId(), r);
+        }
+        for (TagRealm tag : tagRealms) {
+            for (RecordRealm r : tag.getRecords()) {
+                hashRealm.put(r.getId(), r);
+            }
+        }
+
+        dirOrFiles.clear();
+
+        Iterator it = hashRealm.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, RecordRealm> pair = (Map.Entry) it.next();
+            dirOrFiles.add(pair.getValue());
+            it.remove();
+        }
+
+        adapter.updateData(dirOrFiles);
+        adapter.notifyDataSetChanged();
+
+    }
 }

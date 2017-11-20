@@ -23,11 +23,11 @@ import com.google.cloud.android.speech.data.realm.FeatureRealm;
 import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.data.realm.VectorRealm;
 import com.google.cloud.android.speech.diarization.KMeansCluster;
+import com.google.cloud.android.speech.event.QueryEvent;
 import com.google.cloud.android.speech.event.SeekEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
-import com.google.cloud.android.speech.util.FileUtil;
 import com.google.cloud.android.speech.util.LogUtil;
 import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.customView.CenterLinearLayoutManager;
@@ -402,6 +402,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         mediaPlayer.seekTo((int) event.getMillis());
     }
 
+
     /**
      * ResultHandler
      **************************************************/
@@ -513,7 +514,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 //            }
 //        });
 //        thread.start();
-        new ClusterAsync().execute(20);
+        new ClusterAsync().execute(10);
 
     }
 
@@ -525,7 +526,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
             public void execute(Realm realm) {
                 String filePath = record.getAudioPath();
                 record.cascadeDelete();
-                FileUtil.deleteFile(getBaseContext(), filePath);
+//                FileUtil.deleteFile(getBaseContext(), filePath);
             }
 
 

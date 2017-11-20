@@ -11,8 +11,9 @@ import android.util.Log;
 public class ItemTouchHelperCallBack extends ItemTouchHelper.Callback {
 
     private final ItemTouchHelperAdpater mAdapter;
-//    private RecyclerView.ViewHolder target;
-private int targetIndex;
+    //    private RecyclerView.ViewHolder target;
+    private int targetIndex;
+
     public ItemTouchHelperCallBack(ItemTouchHelperAdpater mAdapter) {
         this.mAdapter = mAdapter;
     }
@@ -30,7 +31,7 @@ private int targetIndex;
     @Override
     public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
         int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN | ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT;
-        int swipeFlags = ItemTouchHelper.START | ItemTouchHelper.END;
+        int swipeFlags =0;
         return makeMovementFlags(dragFlags, swipeFlags);
     }
 
@@ -39,9 +40,9 @@ private int targetIndex;
     public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
         int from = viewHolder.getAdapterPosition();
         int to = target.getAdapterPosition();
-        this.targetIndex=to;
+        this.targetIndex = to;
         mAdapter.onItemMove(from, to);
-        Log.d("position",from+":"+to);
+        Log.d("position", from + ":" + to);
         return true;
     }
 

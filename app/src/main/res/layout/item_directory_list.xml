@@ -8,9 +8,10 @@
         <variable
             name="data"
             type="com.google.cloud.android.speech.data.realm.DirectoryRealm" />
+
         <variable
             name="focus"
-            type="Integer"/>
+            type="Integer" />
 
         <variable
             name="handler"
@@ -20,32 +21,42 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="10dp"
+        android:background="@color/default_background"
         android:onClick="@{handler::onItemClick}"
+        android:orientation="vertical"
+
+        android:padding="10dp"
         app:droppable="@{focus}">
+
+        <ImageView
+            android:id="@+id/iv_folder"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_margin="8dp"
+            android:src="@drawable/folder" />
 
         <TextView
             android:id="@+id/tv_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_toRightOf="@id/tv_tag"
+            android:layout_centerVertical="true"
+            android:layout_toRightOf="@id/iv_folder"
             android:padding="4dp"
             android:text="@{data.name}"
             android:textStyle="bold"
             tools:text="171013_marketing_lecture" />
 
         <ImageButton
-            android:layout_centerVertical="true"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:padding="6dp"
-            android:tint="@color/gray"
-            android:scaleType="fitStart"
             android:layout_alignParentRight="true"
-            android:onClick="@{handler::onMenuClick}"
+            android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/dot_menu" />
+            android:onClick="@{handler::onMenuClick}"
+            android:padding="6dp"
+            android:scaleType="fitStart"
+            android:src="@drawable/dot_menu"
+            android:tint="@color/gray" />
 
     </RelativeLayout>
 

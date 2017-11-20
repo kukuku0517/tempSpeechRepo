@@ -31,9 +31,10 @@ import com.google.cloud.android.speech.data.realm.WordRealm;
 import com.google.cloud.android.speech.diarization.FeatureVector;
 import com.google.cloud.android.speech.diarization.KMeansCluster;
 import com.google.cloud.android.speech.diarization.main.SpeechDiary;
-import com.google.cloud.android.speech.event.PartialEvent;
+import com.google.cloud.android.speech.event.PartialFileEvent;
+import com.google.cloud.android.speech.event.PartialRealtimeTextEvent;
 import com.google.cloud.android.speech.event.PartialStatusEvent;
-import com.google.cloud.android.speech.event.PartialTimerEvent;
+import com.google.cloud.android.speech.event.PartialRecordEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.longRunning.recognizeObservable;
 import com.google.cloud.android.speech.longRunning.RecognizeObserver;
@@ -81,7 +82,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.TreeMap;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import io.grpc.CallOptions;
@@ -115,35 +117,41 @@ public class SpeechService extends Service {
     private static final int PORT = 443;
     public static boolean IS_RECORDING = false;
 
-    private Realm realm;
-    private RecordRealm record;
-    private RecordRealm fileRecord;
-    private VoiceRecorder mVoiceRecorder;
-
+    private static final int RECORD = 0;
+    private static final int FILE = 1;
     private int recordId = -1;
     private int fileId = -1;
     private long startOfCall = -1;
     private long startOfRecording = -1;
-
     private int timerCount = 0;
-    private static final int RECORD = 0;
-    private static final int FILE = 1;
+    private int fileSampleRate;
+    private int recordSampleRate;
+    private int videoBufferSize = 0;
+    private int bufferTotal = 0;
+    private int sampleRate = 0;
+    private int recordBufferSize = 0;
+    private Realm realm;
+    private RecordRealm record;
+    private RecordRealm fileRecord;
+    private VoiceRecorder mVoiceRecorder;
     private Timer timer = new Timer();
-
     private final SpeechBinder mBinder = new SpeechBinder();
     private volatile AccessTokenTask mAccessTokenTask;
     private SpeechGrpc.SpeechStub mApi;
+    private FileOutputStream os;
+    private ArrayBlockingQueue<byte[]> recordByteQueue = new ArrayBlockingQueue<>(500);
+    private ArrayBlockingQueue<byte[]> byteQueue = new ArrayBlockingQueue<>(500);
     private static Handler mHandler;
-
     private final VoiceRecorderCallBack mVoiceCallback = new VoiceRecorderCallBack() {
         @Override
         public void onVoiceStart(long startMillis) throws IOException {
+
             startSpeechRecognizing(mVoiceRecorder.getSampleRate(), startMillis);
         }
 
         @Override
-        public void onVoice(byte[] data, int size) {
-            recognizeSpeechStream(data, size);
+        public void onVoice(byte[] data, int size, boolean isVoice) {
+            recognizeSpeechStream(data, size, isVoice);
 
         }
 
@@ -200,25 +208,30 @@ public class SpeechService extends Service {
 
         @Override
         public void onCompleted() {
-            EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.END));
-            if (true) {
 
+            Log.d("stopcycle", "on completed");
+            EventBus.getDefault().postSticky(new PartialStatusEvent(PartialStatusEvent.END));
+
+            if (true) {
                 byte[] dataBlock = new byte[recordBufferSize];
-                int count = 0;
-                byte[] temp;
-                while (!recordByteQueue.isEmpty()) {
-                    temp = recordByteQueue.poll();
-                    System.arraycopy(temp, 0, dataBlock, count, temp.length);
-                    count += temp.length;
+                Log.d("idrate", String.valueOf(recordBufferSize));
+
+                synchronized (mLock) {
+                    int count = 0;
+                    byte[] temp;
+                    while (!recordByteQueue.isEmpty()) {
+                        temp = recordByteQueue.poll();
+                        System.arraycopy(temp, 0, dataBlock, count, temp.length);
+                        count += temp.length;
+                    }
                 }
                 float[] pcmFloat = floatMe(shortMe(dataBlock));
                 recordBufferSize = 0;
-                new FeatureExtractAsync().execute(pcmFloat);
-
-
+                FeatureExtractAsync featureAsync = new FeatureExtractAsync();
+                featureAsync.setData(recordId, recordSampleRate);
+                featureAsync.execute(pcmFloat);
             }
         }
-
     };
 
 
@@ -226,19 +239,6 @@ public class SpeechService extends Service {
 //    HashMap<Integer, ArrayList<int[]>> silenceMap= new HashMap<>();
 
     private void collectFeatureVectors(double[][] fv, int[] slnce, int id) {
-//        feature.add(fv);
-//        silence.add(slnce);
-//        if(featureMap.containsKey(id)){
-//            featureMap.get(id).add(fv);
-//            silenceMap.get(id).add(slnce);
-//        }else{
-//            ArrayList<double[][]> fvList = new ArrayList<>();
-//            ArrayList<int[]> slnceList= new ArrayList<>();
-//            fvList.add(fv);
-//            slnceList.add(slnce);
-//            featureMap.put(id,fvList);
-//            silenceMap.put(id,slnceList);
-//        }
         Realm realm = Realm.getDefaultInstance();
         realm.beginTransaction();
         FeatureRealm featureRealm = realm.where(FeatureRealm.class).equalTo("id", id).findFirst();
@@ -250,16 +250,10 @@ public class SpeechService extends Service {
             vector.setFeatureVector(feature);
             featureRealm.getFeatureVectors().add(vector);
         }
-
         featureRealm.setSilence(slnce);
-
         realm.commitTransaction();
     }
 
-
-    private int bufferTotal = 0;
-    private int sampleRate = 0;
-    private Queue<byte[]> byteQueue = new LinkedList<>();
 
     private MediaCodecCallBack audioCodecCallback = new MediaCodecCallBack() {
         @Override
@@ -274,25 +268,6 @@ public class SpeechService extends Service {
                     sampleRate = rate;
                     byteQueue.offer(buffer);
                     bufferTotal += buffer.length;
-//
-//                    if (bufferTotal >= rate * 5) {
-//                        byte[] bufferBlock = new byte[bufferTotal];
-//
-//                        int count = 0;
-//                        while (!byteQueue.isEmpty()) {
-//                            byte[] temp = byteQueue.poll();
-//                            System.arraycopy(temp, 0, bufferBlock, count, temp.length);
-//                            count += temp.length;
-//                        }
-//
-//                        float[] pcmFloat = floatMe(shortMe(bufferBlock));
-//                        SpeechDiary speechDiary = new SpeechDiary(fileId, rate);
-//                        FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
-//                        if (fv != null) {
-//                            collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), fileId);
-//                        }
-//                        bufferTotal = 0;
-//                    }
                 }
             }
         }
@@ -310,19 +285,18 @@ public class SpeechService extends Service {
 
             float[] pcmFloat = floatMe(shortMe(bufferBlock));
             SpeechDiary speechDiary = new SpeechDiary(fileId, sampleRate);
+            Log.d("idrate", String.valueOf(bufferBlock.length));
             FeatureVector fv = speechDiary.extractFeatureFromFile(pcmFloat);
             if (fv != null) {
                 collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), fileId);
             }
             bufferTotal = 0;
             fileObservable.setSpeakerDiary(false);
-            Log.d("observv", "speaker");
+            EventBus.getDefault().postSticky(new PartialFileEvent("화자 인식 완료"));
         }
     };
 
 
-    FileOutputStream os;
-    int videoBufferSize = 0;
     private MediaCodecCallBack videoCodecCallBack = new MediaCodecCallBack() {
         @Override
         public void onStart(int size, int rate) {
@@ -367,10 +341,6 @@ public class SpeechService extends Service {
         }
     };
 
-
-    private int fileSampleRate;
-    private int recordSampleRate;
-
     private StreamObserverRetrofit<LongrunningResponse> longrunningObserver
             = new StreamObserverRetrofit<LongrunningResponse>() {
         @Override
@@ -381,6 +351,11 @@ public class SpeechService extends Service {
 
         @Override
         public void onError(Throwable t) {
+            Toast.makeText(getBaseContext(), "서버가 준비되지 않았습니다", Toast.LENGTH_SHORT).show();
+            fileObservable.setInit(false);
+            fileObservable.setSpeakerDiary(false);
+            fileObservable.setRecognize(false);
+            stopRecognizing(FILE);
 
         }
 
@@ -393,6 +368,8 @@ public class SpeechService extends Service {
             }
 
             fileObservable.setRecognize(false);
+
+            EventBus.getDefault().postSticky(new PartialFileEvent("서버 요청 완료"));
         }
     };
 
@@ -433,15 +410,10 @@ public class SpeechService extends Service {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-//                featureMap.remove(fileId);
-//                silenceMap.remove(fileId);
 
 
         }
     };
-//    private ArrayList<double[][]> feature = new ArrayList<>();
-//
-//    private ArrayList<int[]> silence = new ArrayList<>();
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -515,28 +487,36 @@ public class SpeechService extends Service {
         return ((SpeechBinder) binder).getService();
     }
 
-    public void initSpeechRecognizing(final String title, final ArrayList<Integer> tags) {
+    public int createSpeechRecord(String title, final int dirId, ArrayList<TagRealm> tagIndex) {
+        realm.beginTransaction();
+        record = new RealmUtil().createObject(realm, RecordRealm.class);
+        record.setDirectoryId(dirId);
+        record.setTitle(title);
+        record.setAudioPath(FileUtil.getFilename(title));
+        recordId = record.getId();
+
+
+        for (TagRealm tag : tagIndex) {
+            record.getTagList().add(tag);
+            tag.getRecords().add(record);
+            tag.setCount(tag.getCount() + 1);
+        }
+
+        DirectoryRealm defaultDir = realm.where(DirectoryRealm.class).equalTo("id", dirId).findFirst();
+        defaultDir.getRecordRealms().add(record);
+        realm.commitTransaction();
+        return recordId;
+    }
+
+    public void initSpeechRecognizing(String title) {
         startForeground();
 
         startOfRecording = System.currentTimeMillis();
         recordSampleRate = FileUtil.getRecordSampleRate();
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                record.setTitle(title);
-                for (int i : tags) {
-                    TagRealm tagRealm = realm.where(TagRealm.class).equalTo("id", i).findFirst();
-                    tagRealm.setCount(tagRealm.getCount() + 1);
-                    record.addTagList(tagRealm);
-                }
-                record.setAudioPath(FileUtil.getFilename(title));
-                record.setStartMillis(startOfRecording);
-                recordId = record.getId();
-            }
-        });
+
         IS_RECORDING = true;
-        mVoiceRecorder = new VoiceRecorder(mVoiceCallback);
-        mVoiceRecorder.setTitle(record.getTitle());
+        mVoiceRecorder = new VoiceRecorder(mVoiceCallback, recordSampleRate);
+        mVoiceRecorder.setTitle(title);
         mVoiceRecorder.start();
 
         timer = new Timer();
@@ -544,26 +524,11 @@ public class SpeechService extends Service {
             @Override
             public void run() {
                 timerCount++;
-                EventBus.getDefault().postSticky(new PartialTimerEvent(timerCount));
+                EventBus.getDefault().postSticky(new PartialRecordEvent(timerCount));
                 Log.d(TAG, "eventbus timer start :" + timerCount);
             }
         };
         timer.schedule(timertask, 1000, 1000);    // 1초 후에
-    }
-
-    public int createSpeechRecord(final int dirId) {
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                record = new RealmUtil().createObject(realm, RecordRealm.class);
-                record.setDirectoryId(dirId);
-                recordId = record.getId();
-
-                DirectoryRealm defaultDir = realm.where(DirectoryRealm.class).equalTo("id", dirId).findFirst();
-                defaultDir.getRecordRealms().add(record);
-            }
-        });
-        return recordId;
     }
 
     public int createFileRecord(int dirId) {
@@ -593,10 +558,7 @@ public class SpeechService extends Service {
             Log.i(TAG, "API not ready. Ignoring the request.");
             return;
         }
-
         this.startOfCall = startMillis;
-
-
         SpeechContext context = SpeechContext.newBuilder().addPhrases("바이크").build();
 
         mRequestObserver = mApi.streamingRecognize(mResponseObserver);
@@ -615,76 +577,51 @@ public class SpeechService extends Service {
                 .build());
     }
 
-    private static float[] floatMe(short[] pcms) {
-        float[] floaters = new float[pcms.length];
-        for (int i = 0; i < pcms.length; i++) {
-            floaters[i] = pcms[i];
-        }
-        return floaters;
-    }
 
-    private static short[] shortMe(byte[] bytes) {
-        short[] out = new short[bytes.length / 2]; // will drop last byte if odd number
-        ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
-        for (int i = 0; i < out.length; i++) {
-            out[i] = bb.getShort();
-        }
-        return out;
-    }
+    private final Object mLock = new Object();
 
-    private boolean checkEmptyBytes(byte[] bytes) {
-        for (byte by : bytes) {
-            if (by != 0) {
-                return true;
+    public void recognizeSpeechStream(byte[] data, int size, boolean isVoice) {
+        //TODO
+        if (checkEmptyBytes(data)) {
+            synchronized (mLock) {
+                recordByteQueue.offer(data);
+                recordBufferSize += data.length;
             }
         }
-        return false;
-    }
 
-
-    private int recordBufferSize = 0;
-    private Queue<byte[]> recordByteQueue = new LinkedList<>();
-
-    public void recognizeSpeechStream(byte[] data, int size) {
         if (mRequestObserver == null) {
             return;
         }
 
-        mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
-                .setAudioContent(ByteString.copyFrom(data, 0, size))
-                .build());
-
-        //TODO
-        if (checkEmptyBytes(data)) {
-            recordByteQueue.offer(data);
-            recordBufferSize += data.length;
-
-//            if (recordBufferSize > recordSampleRate * 4) {
-//                byte[] dataBlock = new byte[recordBufferSize];
-//                int count = 0;
-//                byte[] temp;
-//                while (!recordByteQueue.isEmpty()) {
-//                    temp = recordByteQueue.poll();
-//                    System.arraycopy(temp, 0, dataBlock, count, temp.length);
-//                    count += temp.length;
-//                }
-//                float[] pcmFloat = floatMe(shortMe(dataBlock));
-//                recordBufferSize = 0;
-//                new FeatureExtractAsync().execute(pcmFloat);
-//            }
+        if (isVoice) {
+            mRequestObserver.onNext(StreamingRecognizeRequest.newBuilder()
+                    .setAudioContent(ByteString.copyFrom(data, 0, size))
+                    .build());
         }
+
+
     }
 
     class FeatureExtractAsync extends AsyncTask<float[], Void, Void> {
 
+        private int id;
+
+        private int sampleRate;
+
+        void setData(int recordId, int recordSampleRate) {
+            this.id = recordId;
+            this.sampleRate = recordSampleRate;
+
+        }
+
         @Override
         protected Void doInBackground(float[]... params) {
-            SpeechDiary speechDiary = new SpeechDiary(recordId, recordSampleRate);
+
+            SpeechDiary speechDiary = new SpeechDiary(id, sampleRate);
+            Log.d("idrate", String.valueOf(params[0].length));
             FeatureVector fv = speechDiary.extractFeatureFromFile(params[0]);
-            Log.d("record", "fv start");
             if (fv != null) {
-                Log.d("record", "fv added");
-                collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), recordId);
+                collectFeatureVectors(fv.getFeatureVector(), fv.getSilence(), id);
             }
             return null;
         }
@@ -692,22 +629,22 @@ public class SpeechService extends Service {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-
-            new ClusterAsync(recordId, new ClusterAsyncCallback() {
-                @Override
-                public void onProgress(float progress) {
-
-                }
-
-                @Override
-                public void onPostExecute(int dupId) {
-                    Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
-                }
-
-            }).execute(10);
+            Toast.makeText(getBaseContext(), "피쳐 추출 완료", Toast.LENGTH_SHORT).show();
+            Log.d("stopcycle", "fv post");
+//            new ClusterAsync(id, new ClusterAsyncCallback() {
+//                @Override
+//                public void onProgress(float progress) {
+//
+//                }
+//
+//                @Override
+//                public void onPostExecute(int dupId) {
+//                    Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
+//                }
+//
+//            }).execute(10);
         }
     }
-
 
     public void recognizeFileStream(final String title, final ArrayList<Integer> tags, final String fileName) {
         startForeground();
@@ -722,7 +659,10 @@ public class SpeechService extends Service {
                     fileRecord.setTitle(title);
                     fileRecord.setAudioPath(fileName);
                     for (int i : tags) {
-                        fileRecord.addTagList(realm.where(TagRealm.class).equalTo("id", i).findFirst());
+                        TagRealm tagRealm = realm.where(TagRealm.class).equalTo("id", i).findFirst();
+                        fileRecord.addTagList(tagRealm);
+                        tagRealm.getRecords().add(fileRecord);
+                        tagRealm.setCount(tagRealm.getCount() + 1);
                     }
                 }
             });
@@ -809,7 +749,7 @@ public class SpeechService extends Service {
                 record.getSentenceRealms().add(sentence);
                 realm.commitTransaction();
             } else {
-                EventBus.getDefault().post(new PartialEvent(text));
+                EventBus.getDefault().post(new PartialRealtimeTextEvent(text));
             }
 
         }
@@ -893,13 +833,12 @@ public class SpeechService extends Service {
                 realm.commitTransaction();
 
             } else {
-                EventBus.getDefault().post(new PartialEvent(text));
+                EventBus.getDefault().post(new PartialRealtimeTextEvent(text));
             }
 
         }
 
     }
-
 
     private int getClusterForWord(WordRealm word, int[] clusters, int err) {
         int UNIT = (int) (1000 * 0.01);
@@ -1028,6 +967,8 @@ public class SpeechService extends Service {
      * Finishes recognizing speech audio.
      */
     public void finishSpeechRecordingInterval() {
+
+        Log.d("stopcycle", "finish interval");
         if (mRequestObserver == null) {
             return;
         }
@@ -1038,12 +979,18 @@ public class SpeechService extends Service {
 
     public void stopSpeechRecognizing() {
         if (mVoiceRecorder != null) {
-            IS_RECORDING = false;
+
+            Log.d("stopcycle", "before voice stop");
+
             mVoiceRecorder.stop();
+            Log.d("stopcycle", "after voice stop");
+            IS_RECORDING = false;
             timer.cancel();
             timerCount = 0;
             startOfRecording = -1;
             mVoiceRecorder = null;
+
+            Log.d("stopcycle", "timercancel");
         }
     }
 
@@ -1284,7 +1231,31 @@ public class SpeechService extends Service {
 
     }
 
+    private static float[] floatMe(short[] pcms) {
+        float[] floaters = new float[pcms.length];
+        for (int i = 0; i < pcms.length; i++) {
+            floaters[i] = pcms[i];
+        }
+        return floaters;
+    }
 
+    private static short[] shortMe(byte[] bytes) {
+        short[] out = new short[bytes.length / 2]; // will drop last byte if odd number
+        ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+        for (int i = 0; i < out.length; i++) {
+            out[i] = bb.getShort();
+        }
+        return out;
+    }
+
+    private boolean checkEmptyBytes(byte[] bytes) {
+        for (byte by : bytes) {
+            if (by != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 

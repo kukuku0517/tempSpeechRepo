@@ -22,8 +22,11 @@ public class GoogleClientRetrofit {
         retrofitService.longrunningRequest(name, rate, body).enqueue(new Callback<LongrunningResponse>() {
             @Override
             public void onResponse(Call<LongrunningResponse> call, Response<LongrunningResponse> response) {
-                if (response.body() != null)
+                if (response.body() != null) {
                     callback.onComplete(response.body());
+                } else {
+                    onFailure(call,null);
+                }
             }
 
             @Override

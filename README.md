@@ -11,7 +11,7 @@ If you have not already done so,
 [enable the Google Speech API for your project](https://cloud.google.com/speech/docs/getting-started). You
 must be whitelisted to do this.
 
-### Set Up to Authenticate With Your Project's Credentials
+### Set Up to Authenticate With Your Project'query Credentials
 
 This Android app uses JSON credential file locally stored in the resources. ***You should not do
 this in your production app.*** Instead, you should set up your own backend server that

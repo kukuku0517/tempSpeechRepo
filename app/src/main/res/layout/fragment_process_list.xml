@@ -13,6 +13,10 @@
             type="com.google.cloud.android.speech.view.recordList.handler.ProcessHandler" />
 
         <variable
+            name="itemHandler"
+            type="com.google.cloud.android.speech.view.recordList.handler.ProcessItemHandler" />
+
+        <variable
             name="recogMode"
             type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Integer>" />
 
@@ -39,20 +43,143 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="250dp"
-            android:background="@drawable/background_main" />
+            android:layout_height="250dp" />
 
         <android.support.v4.widget.NestedScrollView
             android:id="@+id/sv_main"
-            android:overScrollMode="never"
-            android:requiresFadingEdge="vertical"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:overScrollMode="never"
+            android:requiresFadingEdge="vertical">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <android.support.v7.widget.CardView
+                        android:id="@+id/cv_record"
+
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/transition_white_gray"
+                        android:onClick="@{itemHandler::onRecordItemClick}"
+                        android:visibility="gone"
+                        app:recogMode="@{recogMode.getValue==1}"
+                        card_view:cardCornerRadius="8dp"
+                        tools:visibility="visible">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:padding="8dp">
+
+                            <ImageView
+                                android:id="@+id/iv_record"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_marginRight="8dp"
+                                android:src="@drawable/microphone_1" />
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:layout_toRightOf="@id/iv_record"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tv_record_title"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="TITLE" />
+
+                                <TextView
+                                    android:id="@+id/tv_record_process"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="00:00" />
+                            </LinearLayout>
+
+                            <ImageView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentRight="true"
+
+                                android:src="@drawable/ic_close_black_24dp"
+                                android:tint="@color/gray" />
+
+                        </RelativeLayout>
+
+
+                    </android.support.v7.widget.CardView>
+
+                    <android.support.v7.widget.CardView
+
+                        android:id="@+id/cv_file"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/transition_white_gray"
+                        android:onClick="@{(v)->handler.onClickMode(v,1)}"
+                        android:visibility="gone"
+                        app:recogMode="@{recogMode.getValue==1}"
+                        card_view:cardCornerRadius="8dp"
+                        tools:visibility="visible">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:padding="8dp">
+
+                            <ImageView
+                                android:id="@+id/iv_file"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_marginRight="8dp"
+                                android:src="@drawable/avi" />
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:layout_toRightOf="@id/iv_file"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tv_file_title"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="TITLE" />
+
+                                <TextView
+                                    android:id="@+id/tv_file_process"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="준비중" />
+                            </LinearLayout>
+
+                            <ImageView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentRight="true"
+                                android:src="@drawable/ic_close_black_24dp"
+                                android:tint="@color/gray" />
+
+                        </RelativeLayout>
+
+
+                    </android.support.v7.widget.CardView>
+                </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -440,7 +567,8 @@
                             android:textColor="@color/red"
                             android:textStyle="bold" />
 
-                        <EditText
+                        <EditText android:singleLine="true"
+                            android:imeOptions="actionDone"
                             android:id="@+id/et_title"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -557,7 +685,8 @@
                             android:padding="8dp"
                             tools:layout_height="50dp" />
 
-                        <EditText
+                        <EditText android:singleLine="true"
+                            android:imeOptions="actionDone"
                             android:id="@+id/et_tag"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -605,7 +734,7 @@
                 </android.support.v7.widget.CardView>
 
                 <android.support.v7.widget.CardView
-                    android:layout_width="wrap_content"
+                    android:layout_width="100dp"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
                     android:layout_margin="16dp"
@@ -613,16 +742,14 @@
                     android:onClick="@{handler::onClickStartRecognition}"
                     card_view:cardCornerRadius="8dp">
 
-                    <TextView
-                        android:layout_width="200dp"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="100dp"
+                        android:layout_height="40dp"
+                        android:scaleType="fitCenter"
+                        android:padding="12dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:padding="8dp"
-                        android:text="WRITE !"
-                        android:textAlignment="center"
-                        android:textColor="@color/white"
-                        android:textSize="28sp"
-                        android:textStyle="bold" />
+                        android:src="@drawable/logo_write"/>
+
                 </android.support.v7.widget.CardView>
 
             </LinearLayout>

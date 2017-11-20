@@ -184,6 +184,15 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         for (SentenceRealm sentence : sentenceList) {
             sentence.getWordList().deleteAllFromRealm();
         }
+        for(TagRealm tag:tagList){
+            for(int i=0;i<tag.getRecords().size();i++){
+                if(tag.getRecords().get(i).getId()==id){
+                    tag.getRecords().remove(i);
+                    tag.setCount(tag.getCount()-1);
+                    break;
+                }
+            }
+        }
         sentenceList.deleteAllFromRealm();
         this.deleteFromRealm();
     }

@@ -1,6 +1,7 @@
 package com.google.cloud.android.speech.view.background;
 
 import android.os.AsyncTask;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.cloud.android.speech.R;
@@ -78,6 +79,7 @@ public class ClusterAsync extends AsyncTask<Integer, Float, Integer> {
 
     @Override
     protected void onPostExecute(Integer dupId) {
+        Log.d("stopcycle","cluster complete");
 //        diary.setValue(false);
 //        Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
 //        Realm realm = Realm.getDefaultInstance();

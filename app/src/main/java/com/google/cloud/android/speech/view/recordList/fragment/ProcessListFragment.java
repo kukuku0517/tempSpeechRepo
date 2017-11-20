@@ -1,6 +1,5 @@
 package com.google.cloud.android.speech.view.recordList.fragment;
 
-import android.animation.ObjectAnimator;
 import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -22,13 +21,11 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.EditText;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,8 +37,9 @@ import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.TagRealm;
 import com.google.cloud.android.speech.databinding.DialogRenameDirBinding;
 import com.google.cloud.android.speech.event.DirEvent;
-import com.google.cloud.android.speech.event.FileEvent;
+import com.google.cloud.android.speech.event.PartialFileEvent;
 import com.google.cloud.android.speech.util.AudioUtil;
+import com.google.cloud.android.speech.util.DateUtil;
 import com.google.cloud.android.speech.util.FileUtil;
 import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.recordList.adapter.ListRealmAdapter;
@@ -50,7 +48,7 @@ import com.google.cloud.android.speech.view.recordList.handler.ProcessItemHandle
 import com.google.cloud.android.speech.view.recordList.ListActivity;
 import com.google.cloud.android.speech.view.recordList.handler.ProcessHandler;
 import com.google.cloud.android.speech.event.ProcessIdEvent;
-import com.google.cloud.android.speech.event.PartialTimerEvent;
+import com.google.cloud.android.speech.event.PartialRecordEvent;
 import com.google.cloud.android.speech.view.background.SpeechService;
 import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
 import com.google.cloud.android.speech.view.recording.RecordActivity;
@@ -91,6 +89,8 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     private static ObservableDTO<Integer> sampleRate = new ObservableDTO<>();
     private static ObservableDTO<Boolean> speaker = new ObservableDTO<>();
     private static ObservableDTO<String> curFolder = new ObservableDTO<>();
+
+
 //    private static ObjectAnimator scrollAnimator = new ObjectAnimator();
 
     private int mPageNumber;
@@ -156,12 +156,12 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         Animation on = v.getAnimation();
 
         if (visible) {
-            if(v.getVisibility()!=View.VISIBLE){
+            if (v.getVisibility() != View.VISIBLE) {
                 v.setVisibility(View.VISIBLE);
                 v.startAnimation(AnimationUtils.loadAnimation(v.getContext(), R.anim.fade_in));
             }
         } else {
-            if(v.getVisibility()==View.VISIBLE){
+            if (v.getVisibility() == View.VISIBLE) {
                 Animation animation = AnimationUtils.loadAnimation(v.getContext(), R.anim.fade_out);
                 animation.setAnimationListener(new Animation.AnimationListener() {
                     @Override
@@ -179,7 +179,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
 
                     }
                 });
-               v.startAnimation(animation);
+                v.startAnimation(animation);
             }
 
 
@@ -308,7 +308,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         binding.setSpeaker(speaker);
         binding.setCurFolder(curFolder);
         binding.setHandler(this);
-
+        binding.setItemHandler(this);
 
         originalRecyclerView = binding.rvOriginTags;
         addRecyclerView = binding.rvAddTags;
@@ -404,7 +404,6 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         addRecyclerView.setLayoutManager(addLayout);
 
 
-
         dirRecyclerView = binding.rvDir;
         dirRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         dirAdapter = new ListRealmAdapter(dirOrFiles, getActivity());
@@ -435,9 +434,9 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         for (RealmObject o : dir.getDirectoryRealms()) {
             dirOrFiles.add(o);
         }
-        curFolder.setValue("현재폴더: "+dir.getName());
-        dirAdapter .updateData(dirOrFiles);
-        dirAdapter .notifyDataSetChanged();
+        curFolder.setValue("현재폴더: " + dir.getName());
+        dirAdapter.updateData(dirOrFiles);
+        dirAdapter.notifyDataSetChanged();
     }
 
     private DirectoryRealm getDefaultDirectory() {
@@ -452,6 +451,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
 
         return dir;
     }
+
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -517,7 +517,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
 //        }
 //    }
 
-    private void startFileRecognition(String title, ArrayList<Integer>tags, String filePath, int dirId, int requestCode){
+    private void startFileRecognition(String title, ArrayList<Integer> tags, String filePath, int dirId, int requestCode) {
         mSpeechService.createFileRecord(dirId);
         switch (requestCode) {
             case REQUEST_AUDIO:
@@ -530,37 +530,55 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    public void onPartialTimerEvent(PartialTimerEvent event) {
-
-        if (binding == null && record == null) {
-
-        } else {
-            record.setDuration(event.getSecond() * 1000);
-
-        }
-        EventBus.getDefault().removeStickyEvent(event);
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onProcessIdEvent(DirEvent event) {
         moveTodir(event.getId());
 
     }
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onPartialTimerEvent(PartialRecordEvent event) {
+        if (binding == null && record == null) {
+        } else {
+            binding.tvRecordProcess.setText(DateUtil.durationToNumFormat(event.getSecond() * 1000));
+        }
+        EventBus.getDefault().removeStickyEvent(event);
+    }
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onPartialTimerEvent(PartialFileEvent event) {
+        if (binding == null && record == null) {
+        } else {
+            binding.tvFileProcess.setText(event.getMessage());
+        }
+        EventBus.getDefault().removeStickyEvent(event);
+    }
+
+
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onProcessIdEvent(ProcessIdEvent event) {
 
-//        binding.includeRecord.setIsVisible(event.isRecording());
-//        binding.includeRecordEmpty.setIsVisible(!event.isRecording());
-//        binding.includeFile.setIsVisible(event.isFiling());
-//        binding.includeFileEmpty.setIsVisible(!event.isFiling());
 
-        Log.d("lifecycle", "list process event");
         if (event.isRecording()) {
-            setRecordItem(event.getRecordId());
+            binding.cvRecord.setVisibility(View.VISIBLE);
+            realm.beginTransaction();
+            record.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getRecordId()).findFirst());
+            realm.commitTransaction();
+            binding.tvRecordTitle.setText(record.getTitle());
+        } else {
+            binding.cvRecord.setVisibility(View.GONE);
         }
         if (event.isFiling()) {
-            setFileItem(event.getFileId());
+            binding.cvFile.setVisibility(View.VISIBLE);
+            realm.beginTransaction();
+            record.setRealm(realm.where(RecordRealm.class).equalTo("id", event.getFileId()).findFirst());
+            realm.commitTransaction();
+            binding.tvFileTitle.setText(record.getTitle());
+        } else {
+            binding.cvFile.setVisibility(View.GONE);
         }
+
+
     }
 
 
@@ -571,20 +589,20 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         File file = new File(FileUtil.getFilename(title));
         if (file.exists()) {
             Toast.makeText(getContext(), "이미 존재하는 제목 입니다", Toast.LENGTH_SHORT).show();
-            svMain.smoothScrollTo(0,binding.tvTitle.getTop());
+            svMain.smoothScrollTo(0, binding.tvTitle.getTop());
             return;
         } else if (title.equals("")) {
             Toast.makeText(getContext(), "제목을 입력하세요", Toast.LENGTH_SHORT).show();
-            svMain.smoothScrollTo(0,binding.tvTitle.getTop());
+            svMain.smoothScrollTo(0, binding.tvTitle.getTop());
             return;
         } else {
-            if(addedTags.size()!=0){
+            if (addedTags.size() != 0) {
                 for (TagRealm t : addedTags) {
                     tagIds.add(t.getId());
                 }
-            }else{
+            } else {
                 Toast.makeText(getContext(), "태그를 지정하세요", Toast.LENGTH_SHORT).show();
-                svMain.smoothScrollTo(0,binding.tvTagList.getTop());
+                svMain.smoothScrollTo(0, binding.tvTagList.getTop());
                 return;
             }
         }
@@ -654,8 +672,8 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        String mediaPath=FileUtil.getPath(getActivity(), data.getData());
-        startFileRecognition(tempTitle,tempTags,mediaPath,currentDirId,requestCode);
+        String mediaPath = FileUtil.getPath(getActivity(), data.getData());
+        startFileRecognition(tempTitle, tempTags, mediaPath, currentDirId, requestCode);
 
     }
 

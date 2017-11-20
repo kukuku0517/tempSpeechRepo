@@ -22,7 +22,6 @@ public class SpeechDiary {
 
     public FeatureVector extractFeatureFromFile(float[] arrAmp) {
         prp = new PreProcess(arrAmp, sampleRate);
-
         featureExtract = new FeatureExtract(prp.framedSignal, sampleRate, FEATURE_DIMENSION);
         featureExtract.makeMfccFeatureVector();
 //            featureExtract.setSilence();

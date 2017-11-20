@@ -129,11 +129,11 @@ public class FileUtil {
         long byteRate = RECORDER_BPP * recorderSampleRate * channels / 8;
 
         byte[] data = new byte[bufferSize];
-        byte[] temp = new byte[bufferSize / 2];
+
         try {
             in = new FileInputStream(inFilename);
             out = new FileOutputStream(outFilename);
-            totalAudioLen = in.getChannel().size() / 2;
+            totalAudioLen = in.getChannel().size() / channel;
             totalDataLen = totalAudioLen + 36;
 
 
@@ -143,7 +143,7 @@ public class FileUtil {
 
             short[] stereoSamples;
             short[] monoSamples = new short[bufferSize / 4];
-
+            byte[] temp = new byte[bufferSize / 2];
             if (channel == 1) {
                 while (in.read(data) != -1) {
                     out.write(data);
