@@ -40,5 +40,7 @@
     </style>
     <style name="SearchViewStyle" parent="Widget.AppCompat.SearchView" >
         <item name="android:textSize">14sp</item>
+        <item name="submitBackground">@android:color/transparent</item>
+        <item name="queryBackground">@android:color/transparent</item>
     </style>
 </resources>

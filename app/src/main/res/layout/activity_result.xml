@@ -102,10 +102,33 @@
 
                 </android.support.v7.widget.Toolbar>
 
+                <android.support.design.widget.TabLayout
+                    android:id="@+id/tl_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:background="@color/white"
+
+
+                    app:tabIndicatorColor="@color/naver_green"
+                    app:tabSelectedTextColor="?attr/colorPrimary"
+                    app:tabTextColor="@android:color/darker_gray">
+
+                    <android.support.design.widget.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+
+                    <android.support.design.widget.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </android.support.design.widget.TabLayout>
 
             </android.support.design.widget.AppBarLayout>
 
             <RelativeLayout
+                android:id="@+id/rl_results"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
@@ -185,7 +208,7 @@
 
                     <com.github.ybq.android.spinkit.SpinKitView xmlns:app="http://schemas.android.com/apk/res-auto"
                         android:id="@+id/spin_kit"
-                        style="@style/SpinKitView.CubeGrid"
+                        style="@style/SpinKitView.WanderingCubes"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
@@ -202,6 +225,19 @@
                 </LinearLayout>
 
             </RelativeLayout>
+
+            <android.support.design.widget.FloatingActionButton
+                android:id="@+id/fab"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_margin="16dp"
+                android:layout_marginBottom="32dp"
+                android:src="@drawable/ic_edit_black_24dp"
+                android:tint="@color/white"
+                app:backgroundTint="@color/naver_green"
+
+                app:layout_anchor="@id/rl_results"
+                app:layout_anchorGravity="bottom|right|end" />
 
 
         </android.support.design.widget.CoordinatorLayout>
@@ -248,32 +284,6 @@
                     android:tint="@color/naver_green"
                     app:srcCompat="@drawable/ic_people_black_24dp" />
 
-
-                <ImageButton
-                    android:id="@+id/btn_view_origin"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:layout_toRightOf="@id/btn_diary"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:onClick="@{handler::onClickViewOrigin}"
-                    android:paddingLeft="10dp"
-                    android:tint="@color/naver_green"
-                    app:srcCompat="@drawable/ic_people_black_24dp" />
-
-
-                <ImageButton
-                    android:id="@+id/btn_view_diary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:layout_toLeftOf="@+id/btn_loop"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="@{hasDiary==-1?false:true}"
-                    android:onClick="@{handler::onClickViewDiary}"
-                    android:paddingLeft="10dp"
-                    android:tint="@color/naver_green"
-                    app:srcCompat="@drawable/ic_people_black_24dp" />
 
                 <ImageButton
                     android:id="@+id/btn_back"

@@ -16,9 +16,12 @@ import android.widget.Toast;
 
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
+import com.google.cloud.android.speech.event.ResultMenuClickEvent;
 import com.google.cloud.android.speech.util.DateUtil;
 import com.google.cloud.android.speech.databinding.ItemRecordResultBinding;
 import com.google.cloud.android.speech.view.recordResult.handler.ClusterItemClickListener;
+
+import org.greenrobot.eventbus.EventBus;
 
 import io.realm.Realm;
 
@@ -62,6 +65,11 @@ public class ResultRealmViewHolder extends RecyclerView.ViewHolder implements Cl
         realm.beginTransaction();
         sentenceRealm.getCluster().setClusterNo(3);
         realm.commitTransaction();
+    }
+
+    @Override
+    public void onMenuClick(View v) {
+//        EventBus.getDefault().post(new ResultMenuClickEvent());
     }
 
 }

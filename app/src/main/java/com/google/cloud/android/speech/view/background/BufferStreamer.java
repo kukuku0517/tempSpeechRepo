@@ -92,8 +92,7 @@ public class BufferStreamer {
 
 
         int sampleRate = 0;
-        int limitSize = 0;
-        int limitCount = 0;
+        long duration;
 
         int numTracks = mExtractor.getTrackCount();
         for (int i = 0; i < numTracks; ++i) {
@@ -102,8 +101,9 @@ public class BufferStreamer {
             if (mime.startsWith("audio/")) {
                 mExtractor.selectTrack(i);
                 sampleRate = inputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-                limitSize = API_LIMIT * sampleRate;
-                limitCount = 0;
+                duration = inputFormat.getLong(MediaFormat.KEY_DURATION);
+                Log.d("duration", String.valueOf(duration));
+                mListener.onStart(duration/1000000); //in nanos
                 mMediaCodec = MediaCodec.createDecoderByType(mime);
                 mMediaCodec.configure(inputFormat, null, null, 0);
                 break;
@@ -153,11 +153,6 @@ public class BufferStreamer {
                     noOutputCounter = 0;
                 }
 
-//                limitCount += info.size;
-//                if (limitCount > limitSize) {
-//                    limitCount = 0;
-//                    mListener.onStart();
-//                }
 
                 int outputBufIndex = res;
                 ByteBuffer buf = codecOutputBuffers[outputBufIndex];

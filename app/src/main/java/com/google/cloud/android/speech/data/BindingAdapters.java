@@ -5,6 +5,8 @@ import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.support.v4.content.ContextCompat;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -12,7 +14,10 @@ import android.widget.TextView;
 
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.event.PartialStatusEvent;
+import com.google.cloud.android.speech.event.ResultMenuClickEvent;
 import com.google.cloud.android.speech.util.DateUtil;
+
+import org.greenrobot.eventbus.EventBus;
 
 /**
  * Created by USER on 2017-11-15.
@@ -49,7 +54,7 @@ public class BindingAdapters {
                 v.setColorFilter(ContextCompat.getColor(v.getContext(), R.color.light_gray), PorterDuff.Mode.SRC_ATOP);
                 break;
             case PartialStatusEvent.VOICE:
-                v.setColorFilter(ContextCompat.getColor(v.getContext(),R.color.red), PorterDuff.Mode.SRC_ATOP);
+                v.setColorFilter(ContextCompat.getColor(v.getContext(), R.color.red), PorterDuff.Mode.SRC_ATOP);
                 break;
 
         }
@@ -70,15 +75,19 @@ public class BindingAdapters {
     @BindingAdapter("droppable")
     public static void setFocus(LinearLayout v, int focus) {
         switch (focus) {
-            case 0:
+            case 0: //default
                 v.setBackgroundColor(ContextCompat.getColor(v.getContext(), R.color.default_background));
                 break;
-            case 1:
+            case 1: //red
                 v.setBackgroundColor(ContextCompat.getColor(v.getContext(), R.color.red));
                 break;
-            case 2:
+            case 2: //gray
                 v.setBackgroundColor(ContextCompat.getColor(v.getContext(), R.color.light_gray));
                 break;
+            case 3: //gray unclick
+                v.setBackgroundColor(ContextCompat.getColor(v.getContext(), R.color.naver_green));
+                break;
+
         }
     }
 
@@ -106,12 +115,15 @@ public class BindingAdapters {
     public static void setClusterColor(ImageView v, int value) {
         switch (value) {
             case 0:
+                v.setVisibility(View.INVISIBLE);
                 v.setBackgroundColor(ContextCompat.getColor(v.getContext(), R.color.default_background));
                 break;
             case 1:
+                v.setVisibility(View.VISIBLE);
                 v.setBackgroundColor(ContextCompat.getColor(v.getContext(), R.color.cluster_a));
                 break;
             case 2:
+                v.setVisibility(View.VISIBLE);
                 v.setBackgroundColor(ContextCompat.getColor(v.getContext(), R.color.cluster_b));
                 break;
         }

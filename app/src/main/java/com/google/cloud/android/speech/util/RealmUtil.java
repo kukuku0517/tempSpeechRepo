@@ -69,13 +69,13 @@ public class RealmUtil {
         }
     }
 
-    public static void splitSentence(Realm realm, int recordId, int position, int sentenceId, int wordId, int clusterId) {
+    public static void splitSentence(Realm realm, int recordId, int position, int sentenceId, int wordId, ClusterRealm clusterId) {
 
         RecordRealm record = realm.where(RecordRealm.class).equalTo("id", recordId).findFirst();
         SentenceRealm origin = realm.where(SentenceRealm.class).equalTo("id", sentenceId).findFirst();
         WordRealm word = realm.where(WordRealm.class).equalTo("id", wordId).findFirst();
         SentenceRealm add = createObject(realm, SentenceRealm.class);
-        ClusterRealm cluster = realm.where(ClusterRealm.class).equalTo("id", clusterId).findFirst();
+        ClusterRealm cluster = clusterId;
 
 
         add.setEndMillis(origin.getEndMillis());
@@ -104,6 +104,9 @@ public class RealmUtil {
         origin.setSentence();
         add.setSentence();
         record.getSentenceRealms().add(position + 1, add);
+        int i=0;
+        i=1;
+
     }
 
     public static int duplicateRecord(Realm realm, int recordId) {

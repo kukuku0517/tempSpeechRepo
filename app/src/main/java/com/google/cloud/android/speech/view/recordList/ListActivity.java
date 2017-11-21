@@ -55,14 +55,32 @@ public class ListActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        Log.d("lifecycle", "list stop");
+
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        Log.d("lifecycle", "list resume");
+        Log.d("lifecycle", String.valueOf(binding.tlList.getSelectedTabPosition()));
+        switch (binding.tlList.getSelectedTabPosition()) {
+            case 0:
+                binding.searchView.setVisibility(View.GONE);
+                break;
+            case 1:
+                binding.ivTitle.setVisibility(View.GONE);
+                break;
+        }
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d("lifecycle","pause");
     }
 
     private void transitionTitle(int index) {
@@ -87,7 +105,6 @@ public class ListActivity extends AppCompatActivity {
                 }
             });
             binding.searchView.startAnimation(animation);
-
 
 
         } else {
@@ -115,6 +132,7 @@ public class ListActivity extends AppCompatActivity {
         }
     }
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,9 +152,8 @@ public class ListActivity extends AppCompatActivity {
         binding = DataBindingUtil.setContentView(this, R.layout.activity_list);
         setSupportActionBar(binding.toolbar);
         getSupportActionBar().setTitle(null);
-//        getSupportActionBar().setElevation(0);
         mPagerAdapter = new PagerAdapter(getSupportFragmentManager());
-
+        binding.searchView.setVisibility(View.GONE);
         binding.vpList.setAdapter(mPagerAdapter);
         binding.vpList.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override

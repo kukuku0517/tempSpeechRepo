@@ -36,12 +36,17 @@
             type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>" />
 
         <variable
+            name="isLoading"
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Boolean>" />
+
+        <variable
             name="time"
             type="com.google.cloud.android.speech.data.DTO.MediaTimeDTO" />
 
         <variable
             name="partialStatus"
-            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Integer>"/>
+            type="com.google.cloud.android.speech.data.DTO.ObservableDTO&lt;Integer>" />
+
         <variable
             name="record"
             type="com.google.cloud.android.speech.data.DTO.RecordDTO" />
@@ -130,8 +135,8 @@
 
                     <include
                         layout="@layout/item_record_current"
-                        app:sentenceString="@{sentenceString}"
-                        app:partialStatus="@{partialStatus}"/>
+                        app:partialStatus="@{partialStatus}"
+                        app:sentenceString="@{sentenceString}" />
 
                 </LinearLayout>
 
@@ -188,57 +193,7 @@
 
         </android.support.design.widget.CoordinatorLayout>
 
-        <!--<RelativeLayout-->
-        <!--android:id="@+id/rl_player"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_alignParentBottom="true">-->
 
-        <!--<ImageButton-->
-        <!--android:id="@+id/record"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_centerHorizontal="true"-->
-        <!--android:layout_weight="1"-->
-        <!--android:background="@android:color/transparent"-->
-        <!--android:padding="10dp"-->
-        <!--android:src="@drawable/ic_play_arrow_black_24dp" />-->
-
-        <!--<ImageButton-->
-        <!--android:id="@+id/stop"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_toRightOf="@id/record"-->
-        <!--android:layout_weight="1"-->
-        <!--android:background="@android:color/transparent"-->
-        <!--android:padding="10dp"-->
-        <!--android:src="@drawable/ic_stop_black_24dp" />-->
-
-
-        <!--<SeekBar-->
-        <!--android:id="@+id/sb_navigate"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_below="@id/record" />-->
-
-        <!--<TextView-->
-        <!--android:id="@+id/tv_total"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_below="@id/sb_navigate"-->
-
-
-        <!--/>-->
-
-        <!--<TextView-->
-        <!--android:id="@+id/tv_now"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_below="@id/sb_navigate"-->
-        <!--android:layout_toRightOf="@id/tv_total" />-->
-
-
-        <!--</RelativeLayout>-->
         <LinearLayout
             android:id="@+id/ll_player"
             android:layout_width="match_parent"
@@ -358,5 +313,31 @@
 
         </LinearLayout>
 
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/gray_transparent"
+            android:visibility="@{isLoading.getValue==true?View.VISIBLE:View.GONE}">
+
+            <com.github.ybq.android.spinkit.SpinKitView xmlns:app="http://schemas.android.com/apk/res-auto"
+                android:id="@+id/spin_kit"
+                style="@style/SpinKitView.Wave"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_centerVertical="true"
+                android:layout_gravity="center"
+                android:visibility="visible"
+                app:SpinKit_Color="@color/cluster_a" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/spin_kit"
+                android:layout_centerHorizontal="true"
+                android:text="음성 인식을 정리하는 중입니다..."
+                android:textAlignment="center"
+                android:textColor="@color/white" />
+        </RelativeLayout>
     </RelativeLayout>
 </layout>

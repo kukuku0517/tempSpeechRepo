@@ -75,9 +75,9 @@
             android:layout_height="match_parent"
             app:clusterColor="@{sentence.cluster.clusterNo}" />
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:paddingBottom="8dp"
             android:paddingLeft="16dp"
@@ -87,6 +87,7 @@
 
             <TextView
                 android:id="@+id/tv_start"
+                android:layout_alignParentRight="true"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
@@ -97,16 +98,29 @@
 
 
             <com.google.cloud.android.speech.view.customView.RealmSpannableTextView
+                android:id="@+id/spannable"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
                 android:textColor="@android:color/black"
                 android:textSize="16sp"
                 app:focus="@{focus}"
                 app:sid="@{sentence.id}"
                 tools:text="this is an example " />
 
+            <ImageButton
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:onClick="@{handler::onMenuClick}"
+                android:padding="6dp"
+                android:scaleType="fitStart"
+                android:src="@drawable/dot_menu"
+                android:tint="@color/gray" />
 
-        </LinearLayout>
+        </RelativeLayout>
 
     </LinearLayout>
 

@@ -49,6 +49,7 @@ public class AudioUtil {
             for (int i = 0; i < numTracks; ++i) {
                 MediaFormat inputFormat = mExtractor.getTrackFormat(i);
                 String mime = inputFormat.getString(MediaFormat.KEY_MIME);
+
                 if (mime.startsWith("audio/")) {
                     mExtractor.selectTrack(i);
                     return mExtractor.getTrackFormat(i).getInteger(MediaFormat.KEY_SAMPLE_RATE);

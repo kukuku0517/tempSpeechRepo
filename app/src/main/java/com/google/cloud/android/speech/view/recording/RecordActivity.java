@@ -50,6 +50,7 @@ import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.event.PartialStatusEvent;
 import com.google.cloud.android.speech.event.PartialRecordEvent;
+import com.google.cloud.android.speech.event.RecordEndEvent;
 import com.google.cloud.android.speech.view.recordList.adapter.TagRealmAdapter;
 import com.google.cloud.android.speech.view.recordList.handler.TagHandler;
 import com.google.cloud.android.speech.view.customView.rvInteractions.ItemTouchHelperCallBack;
@@ -133,6 +134,8 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
     private ArrayList<TagRealm> tagTags = new ArrayList<>();
     ObservableDTO<Boolean> isPlaying = new ObservableDTO<>();
     ObservableDTO<String> currentText = new ObservableDTO<>();
+
+    ObservableDTO<Boolean> isLoading = new ObservableDTO<>();
     MediaTimeDTO timeDTO = new MediaTimeDTO();
     RecordDTO recordDTO;
     RealmList<SentenceRealm> records = new RealmList<>();
@@ -149,7 +152,9 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         seekBar = activityRecordBinding.sbNavigate;
         //data초기화
         isPlaying.setValue(false);
+        isLoading.setValue(false);
 
+        activityRecordBinding.setIsLoading(isLoading);
         activityRecordBinding.setHandler(this);
         activityRecordBinding.setTime(timeDTO);
         activityRecordBinding.setIsPlaying(isPlaying);
@@ -323,14 +328,22 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
     @Override
     public void onClickStop(View v) {
+        isLoading.setValue(true);
+        activityRecordBinding.executePendingBindings();
         stopVoiceRecorder();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    public void onRecordEndEvent(RecordEndEvent event) {
+        EventBus.getDefault().removeStickyEvent(event);
         serviceBinded = false;
         unbindService(mServiceConnection);
-        stopService(new Intent(context, SpeechService.class));
         mSpeechService = null;
         isPlaying.setValue(false);
+
         onBackPressed();
     }
+
 
     private boolean checkPermissions(Context context, String... permissions) {
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
@@ -342,6 +355,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         }
         return true;
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,

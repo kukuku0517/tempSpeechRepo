@@ -17,4 +17,5 @@ public interface ResultHandler {
     void onClickTitle(View v);
     void onClickViewOrigin(View v);
     void onClickViewDiary(View v);
+    void onFabClick(View v);
 }

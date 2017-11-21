@@ -8,7 +8,7 @@ import java.io.IOException;
  */
 
 public interface MediaCodecCallBack {
-    void onStart(int bufferSize,int sampleRate);
+    void onStart(long duration);
     void onBufferRead(byte[] buffer,int sampleRate) throws IOException;
     void onCompleted() throws IOException;
 }

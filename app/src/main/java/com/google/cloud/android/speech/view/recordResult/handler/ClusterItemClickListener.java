@@ -8,4 +8,5 @@ import android.view.View;
 
 public interface ClusterItemClickListener {
     void onClickCluster(View v);
+    void onMenuClick(View v);
 }

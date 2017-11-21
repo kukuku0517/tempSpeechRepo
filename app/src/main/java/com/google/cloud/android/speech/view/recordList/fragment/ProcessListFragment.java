@@ -267,6 +267,8 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         Intent intent = new Intent(getActivity(), SpeechService.class);
         getActivity().startService(intent);
         getActivity().bindService(intent, mServiceConnection, getActivity().BIND_AUTO_CREATE);
+
+        binding.svMain.smoothScrollTo(0,0);
     }
 
     @Override
@@ -532,7 +534,6 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onProcessIdEvent(DirEvent event) {
         moveTodir(event.getId());
-
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)

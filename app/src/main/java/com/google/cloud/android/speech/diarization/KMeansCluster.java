@@ -1,11 +1,14 @@
 package com.google.cloud.android.speech.diarization;
 
+import android.util.Log;
+
 import com.google.cloud.android.speech.data.realm.ClusterDataRealm;
 import com.google.cloud.android.speech.data.realm.ClusterRealm;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.data.realm.VectorRealm;
 import com.google.cloud.android.speech.data.realm.WordRealm;
+import com.google.cloud.android.speech.data.realm.primitive.DoubleRealm;
 import com.google.cloud.android.speech.data.realm.primitive.IntegerRealm;
 import com.google.cloud.android.speech.util.LogUtil;
 import com.google.cloud.android.speech.util.RealmUtil;
@@ -91,8 +94,11 @@ public class KMeansCluster {
 
 
         for (int i = 0; i < size; i++) {
-            for (int j = 0; j < data.get(i).getFeatureVector().size(); j++) {
-                classifiedData[i][j] = data.get(i).getFeatureVector().get(j).get();
+
+            RealmList<DoubleRealm> fv = data.get(i).getFeatureVector();
+            int size = fv.size();
+            for (int j = 0; j < size; j++) {
+                classifiedData[i][j] = fv.get(j).get();
             }
         }
 
@@ -134,9 +140,13 @@ public class KMeansCluster {
      */
     private void initKmeansPlus() {
         Random random = new Random();
+        String s = "";
         ArrayList<double[]> cents = new ArrayList<>();
-        cents.add(classifiedData[random.nextInt(classifiedData.length)]); //첫 centroids는 랜덤
+        int randomIndex = random.nextInt(classifiedData.length);
+        cents.add(classifiedData[randomIndex]); //첫 centroids는 랜덤
+        s += randomIndex + ",";
         double[] d = new double[classifiedData.length];
+
 
         while (cents.size() < noOfCluster) { // 이후 가장 거리가 먼 점을 centroid로 선정
             for (int i = 0; i < classifiedData.length; i++) {
@@ -145,7 +155,9 @@ public class KMeansCluster {
             }
             int i = getByPossibility(d);
             cents.add(classifiedData[i]);
+            s += i + ",";
         }
+        Log.d("kcluster22", "index: " + s);
 
         for (int i = 0; i < noOfCluster; i++) { //선정된 centroid 저장
             for (int j = 0; j < featureDimension; j++) {
@@ -153,6 +165,55 @@ public class KMeansCluster {
             }
         }
 
+    }
+
+    /**
+     * The run method essentially creates new centroids. Firstly, it resets the value of n as this counts
+     * how many data objects belong to a centroid - it needs to be 0 as the centroids modify themelf at
+     * every iteration. The closestCentroid variable holds the index of the closest centroid of certain data,
+     * it does this using Euclidean Distance. It sums up all datum sharing the same closest centroid in order
+     * to get the mean of all the data belonging to that centroid.
+     * It calls the terminator method to check for stability between old and new centroids, stability will
+     * cause the run method to terminate.
+     * It then calls the getClassification method to assign centroids to a classication value, then print
+     * output to file.
+     */
+
+
+    public int[] iterRun(int time) throws IOException {
+
+        /**
+         * centroids와 전체 클러스터의 error값을 map에 저장
+         */
+
+        for (int i = 0; i < time; i++) {
+            double cents[][];
+            double err;
+            initKmeansPlus();
+            cents = run();
+            err = getErr();
+            mListener.onSpeakerDiaryComplete(i);
+            map.put(err, cents);
+
+        }
+
+        double min = Integer.MAX_VALUE;
+        for (Map.Entry<Double, double[][]> entry : this.map.entrySet()) {
+            min = Math.min(min, entry.getKey());
+        }
+        Log.d("kcluster2", "size" + map.size());
+        String s = String.valueOf(min) + "of";
+        double[][] cents = new double[0][];
+        for (Map.Entry<Double, double[][]> entry : this.map.entrySet()) {
+            if (entry.getKey() == min) {
+                cents = entry.getValue();
+//                break;
+            } else {
+                s += entry.getKey() + ",";
+            }
+        }
+        Log.d("kcluster222", "details: " + s);
+        return getClassification(classifiedData, cents);
     }
 
     /**
@@ -190,6 +251,7 @@ public class KMeansCluster {
 
     private double min;
     private int closestIndex;
+
     private double d;
 
     public int getClosestCentroid(double[] datum) {
@@ -235,24 +297,12 @@ public class KMeansCluster {
     }
 
     /**
-     * The run method essentially creates new centroids. Firstly, it resets the value of n as this counts
-     * how many data objects belong to a centroid - it needs to be 0 as the centroids modify themelf at
-     * every iteration. The closestCentroid variable holds the index of the closest centroid of certain data,
-     * it does this using Euclidean Distance. It sums up all datum sharing the same closest centroid in order
-     * to get the mean of all the data belonging to that centroid.
-     * It calls the terminator method to check for stability between old and new centroids, stability will
-     * cause the run method to terminate.
-     * It then calls the getClassification method to assign centroids to a classication value, then print
-     * output to file.
-     */
-
-
-    /**
      * @param time iteration times
      * time 횟수 만큼 kcluster를 반복한후
      * 가장 최적의 cluster를 return
      */
-    private HashMap<double[][], Double> map = new HashMap<>();
+    private HashMap<Double, double[][]> map = new HashMap<>();
+
 
     private int[] medianFilter(int[] results) {
         int filterSize = 30;
@@ -272,41 +322,6 @@ public class KMeansCluster {
         }
 
         return filteredResult;
-    }
-
-
-    public int[] iterRun(int time) throws IOException {
-
-        /**
-         * centroids와 전체 클러스터의 error값을 map에 저장
-         */
-
-
-        for (int i = 0; i < time; i++) {
-            double cents[][];
-            double err;
-            initKmeansPlus();
-            cents = run();
-            err = getErr();
-            mListener.onSpeakerDiaryComplete(i);
-            map.put(cents, err);
-
-        }
-
-        double min = Integer.MAX_VALUE;
-        for (Map.Entry<double[][], Double> entry : this.map.entrySet()) {
-            min = Math.min(min, entry.getValue());
-        }
-
-        double[][] cents = new double[0][];
-        for (Map.Entry<double[][], Double> entry : this.map.entrySet()) {
-            if (entry.getValue() == min) {
-                cents = entry.getKey();
-                break;
-            }
-        }
-
-        return getClassification(classifiedData, cents);
     }
 
     public double[][] run() {
@@ -360,7 +375,7 @@ public class KMeansCluster {
                 System.arraycopy(newCentroids[i], 0, centroids[i], 0, featureDimension);
             }
         }
-        return centroids;
+        return newCentroids;
     }
 
     /**
@@ -481,9 +496,7 @@ public class KMeansCluster {
         int end = (int) ((word.getEndMillis() + err) / UNIT);
         if (end > clusters.length) end = clusters.length;
         int clusterCount[] = new int[noOfCluster];
-        for (int i = 0; i < noOfCluster; i++) {
-            clusterCount[i] = 0;
-        }
+        Arrays.fill(clusterCount, 0);
         for (int i = start; i < end; i++) {
             int cluster = clusters[i];
             if (cluster == 0) {
@@ -506,6 +519,40 @@ public class KMeansCluster {
         return maxIndex;
     }
 
+    private float getClusterRatioForeWord(WordRealm word, int[] clusters, int err, float unit) {
+        boolean includeZero = false;
+        err = 0;
+
+        int UNIT = (int) (1000 * unit);
+        int noOfCluster = 3;
+
+        int start = (int) ((word.getStartMillis() + err) / UNIT);
+        int end = (int) ((word.getEndMillis() + err) / UNIT);
+        if (end > clusters.length) end = clusters.length;
+        int clusterCount[] = new int[noOfCluster];
+        Arrays.fill(clusterCount, 0);
+        for (int i = start; i < end; i++) {
+            int cluster = clusters[i];
+            if (cluster == 0) {
+                if (includeZero) {
+                    clusterCount[cluster]++;
+                }
+            } else {
+                clusterCount[cluster]++;
+            }
+
+        }
+        float max = -1;
+        int maxIndex = -1;
+        for (int i = 0; i < noOfCluster; i++) {
+            if (clusterCount[i] > max) {
+                max = clusterCount[i];
+                maxIndex = i;
+            }
+        }
+        return clusterCount[1] / (float) clusters.length;
+    }
+
     public void applyClusterToRealm(int k, int[] results, final int fileId, float unit) {
 
         Realm realm = Realm.getDefaultInstance();
@@ -523,6 +570,28 @@ public class KMeansCluster {
         /**************************************************************/
 
         if (fileRecord[0] != null) {
+/****
+ *     RecordRealm temp = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
+ RealmList<SentenceRealm> tempSentence = temp.getSentenceRealms();
+ float[][] clusterRatios = new float[tempSentence.size()][];
+
+ float averageForOne = 0;
+ int count=0;
+ for (int i = 0; i < tempSentence.size(); i++) {
+ RealmList<WordRealm> words = tempSentence.get(i).getWordList();
+ float[] sentenceRatios = new float[words.size()];
+ for (int j = 0; j < words.size(); j++) {
+ float ratios = getClusterRatioForeWord(words.get(j), results, 0, unit);
+ sentenceRatios[j] = ratios;
+ averageForOne+=ratios;
+ count++;
+ }
+ }
+ averageForOne/=(float)count;
+
+ */
+
+
             int sentenceIndex = 0;
             int err = 0;
             for (int i : results) {
@@ -562,7 +631,7 @@ public class KMeansCluster {
                         continue;
                     } else { //기존, 현재 cluster가 다를경우 문장 분리
                         realm.beginTransaction();
-                        RealmUtil.splitSentence(realm, record.getId(), sentenceIndex, sentence.getId(), word.getId(), cluster.getId());
+                        RealmUtil.splitSentence(realm, record.getId(), sentenceIndex, sentence.getId(), word.getId(), cluster);
                         realm.commitTransaction();
                         break;
                     }

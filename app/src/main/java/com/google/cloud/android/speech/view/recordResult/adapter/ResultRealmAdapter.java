@@ -4,15 +4,22 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 
+import com.google.cloud.android.speech.data.realm.WordRealm;
 import com.google.cloud.android.speech.event.SeekEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
 import com.google.cloud.android.speech.util.RealmUtil;
+import com.google.cloud.android.speech.view.customView.AlternativeDialogFragment;
 import com.google.cloud.android.speech.view.customView.rvInteractions.ItemTouchHelperAdpater;
+import com.google.cloud.android.speech.view.recordResult.handler.SpannableItemClickListener;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -27,10 +34,20 @@ import io.realm.RealmRecyclerViewAdapter;
 public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, ResultRealmViewHolder> implements ItemTouchHelperAdpater {
 
     //    private MyItemClickListener listener;
-    Context context;
-    Realm realm;
-    int focus = 0;
-    int recordId = -1;
+    private Context context;
+    private Realm realm;
+    private int focus = 0;
+    private int recordId = -1;
+    private int lastPosition = -1;
+    private boolean editMode = false;
+
+
+    public void setEditMode() {
+        this.editMode = !editMode;
+        notifyDataSetChanged();
+    }
+    public boolean isEditMode() {return editMode;
+    }
 
 
     public ResultRealmAdapter(@Nullable OrderedRealmCollection<SentenceRealm> data, int recordId, boolean autoUpdate, boolean updateOnModification, Context context) {
@@ -40,6 +57,10 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
         realm = Realm.getDefaultInstance();
     }
 
+    public void updateData(@Nullable OrderedRealmCollection<SentenceRealm> data, int recordId) {
+        super.updateData(data);
+        this.recordId = recordId;
+    }
 
     @Override
     public ResultRealmViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -47,29 +68,63 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
         return new ResultRealmViewHolder(v, context);
     }
 
-
-    //    @BindingAdapter("dragFocusIndex")
-//    public static void setDroppable(LinearLayout v, boolean focus) {
-//        if (focus) {
-//            v.setBackgroundColor(context.getResources().getColor(R.color.light_gray));
-//        } else {
-//            v.setBackgroundColor(context.getResources().getColor(R.color.default_background));
-//        }
-//    }
-//
     @Override
     public void onBindViewHolder(ResultRealmViewHolder holder, final int position) {
-        SentenceRealm sentenceRealm = getItem(position);
+        final SentenceRealm sentenceRealm = getItem(position);
         holder.onBindView(sentenceRealm);
         holder.focus(focus == position);
 
-        if (dragFocusIndex != position) {
-            holder.binding.setDroppableState(0);
-        } else if (!dragDroppable) {
-            holder.binding.setDroppableState(1);
+        if (editMode) {
+            holder.binding.setDroppableState(3);
+
         } else {
-            holder.binding.setDroppableState(2);
+            if (dragFocusIndex != position) {
+                holder.binding.setDroppableState(0);
+            } else if (!dragDroppable) {
+                holder.binding.setDroppableState(1);
+            } else {
+                holder.binding.setDroppableState(2);
+            }
         }
+
+
+        holder.binding.spannable.setListener(new SpannableItemClickListener() {
+            @Override
+            public void onClickItem(int id, int pos) {
+                if (editMode) {
+                    realm.beginTransaction();
+                    WordRealm word = realm.where(WordRealm.class).equalTo("id", id).findFirst();
+                    realm.commitTransaction();
+
+                    AlternativeDialogFragment dialog = new AlternativeDialogFragment();
+                    dialog.setWord(word);
+                    dialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "NewRecordDialogFragment");
+                } else {
+                    realm.beginTransaction();
+                    WordRealm word = realm.where(WordRealm.class).equalTo("id", id).findFirst();
+                    realm.commitTransaction();
+                    EventBus.getDefault().post(new SeekEvent(word.getStartMillis()));
+                }
+
+            }
+
+            @Override
+            public void onLongClickItem(int id, int pos) {
+                if (editMode) {
+                    realm.beginTransaction();
+                    RealmUtil.splitSentence(realm, recordId, position, getItem(position).getId(), id, getItem(position).getCluster());
+                    realm.commitTransaction();
+                } else {
+                    realm.beginTransaction();
+                    WordRealm word = realm.where(WordRealm.class).equalTo("id", id).findFirst();
+                    word.setHighlight(!word.isHighlight());
+                    realm.commitTransaction();
+                }
+
+            }
+
+
+        }, getItem(position).getId());
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -78,6 +133,17 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
                 EventBus.getDefault().post(new SeekEvent(time));
             }
         });
+//        setAnimation(holder.itemView, position);
+
+    }
+
+    private void setAnimation(View viewToAnimate, int position) {
+        // If the bound view wasn't previously displayed on screen, it's animated
+        if (position > lastPosition) {
+            Animation animation = AnimationUtils.loadAnimation(context, android.R.anim.fade_in);
+            viewToAnimate.startAnimation(animation);
+            lastPosition = position;
+        }
     }
 
     @Override
@@ -107,7 +173,7 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
 
             builder.setMessage("병합 하시겠습니까?")
 
-                   .setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                    .setPositiveButton("확인", new DialogInterface.OnClickListener() {
                         // 확인 버튼 클릭시 설정
                         public void onClick(DialogInterface dialog, int whichButton) {
                             Realm realm = Realm.getDefaultInstance();
@@ -140,6 +206,7 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
 
     @Override
     public boolean onItemMove(int from, int to) {
+
         int temp = dragFocusIndex;
         if (temp != to) {
             dragFocusIndex = to;
@@ -150,6 +217,7 @@ public class ResultRealmAdapter extends RealmRecyclerViewAdapter<SentenceRealm, 
         notifyItemChanged(dragFocusIndex);
 
         return true;
+
     }
 
     @Override

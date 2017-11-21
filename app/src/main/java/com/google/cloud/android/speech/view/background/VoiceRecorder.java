@@ -102,58 +102,15 @@ public class VoiceRecorder {
     /**
      * Stops recording audio.
      */
+
     public void stop() {
-        synchronized (mLock) {
-            Log.d("idrate", "countsize" + countSize);
-            Log.d("idrate", "sendSize" + sendSize);
 
-            if (mThread != null) {
-                mThread.interrupt();
-                mThread = null;
-                Log.d("stopcycle", "interrupt");
-            }
-
-            if (mAudioRecord != null) {
-                mAudioRecord.stop();
-                mAudioRecord.release();
-                mAudioRecord = null;
-                Log.d("stopcycle", "record stop");
-            }
-
-            mBuffer = null;
-            if (isRecording) {
-                isRecording = false;
-
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d("stopcycle", "os close start");
-                        try {
-                            os.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                        Log.d("stopcycle", "os close stop");
-                        FileUtil.copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE), recorderSampleRate, RECORDER_BPP, bufferSize, 1);
-                        Log.d("buffersize", String.valueOf(bufferSize));
-                        deleteTempFile();
-
-                        Handler handler = new Handler(Looper.getMainLooper());
-
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mCallback.onConvertEnd();
-                            }
-                        });
-                    }
-                }).start();
-
-            }
-            dismiss();
-
+        if (mThread != null) {
+            mThread.interrupt();
+            mThread = null;
         }
+
+
     }
 
 
@@ -162,7 +119,7 @@ public class VoiceRecorder {
      */
     public void dismiss() {
         if (mLastVoiceHeardMillis != Long.MAX_VALUE) {
-            Log.d("stopcycle", "dismiss");
+
             mCallback.onVoiceEnd();
             mLastVoiceHeardMillis = Long.MAX_VALUE;
         }
@@ -223,8 +180,34 @@ public class VoiceRecorder {
             while (true) {
                 synchronized (mLock) {
                     if (Thread.currentThread().isInterrupted()) {
+                        Log.d("isRecording","interrupt break;");
+
+                        if (mAudioRecord != null) {
+                            mAudioRecord.stop();
+                            mAudioRecord.release();
+                            mAudioRecord = null;
+                        }
+                        mBuffer = null;
+                        if (isRecording) {
+                            isRecording = false;
+                            Log.d("isRecording","falseeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+                            try {
+                                os.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            FileUtil.copyWaveFile(FileUtil.getTempFilename(), FileUtil.getFilename(TITLE), recorderSampleRate, RECORDER_BPP, bufferSize, 1);
+                            deleteTempFile();
+                            dismiss();
+                            mCallback.onConvertEnd();
+                        }
                         break;
                     }
+                    if(isRecording==false) {
+                        Log.d("isRecording", "false break;");
+                        break;
+                    }else{
+                        Log.d("isRecording","true");}
 
                     int size = 0;
                     if (mAudioRecord != null) {
