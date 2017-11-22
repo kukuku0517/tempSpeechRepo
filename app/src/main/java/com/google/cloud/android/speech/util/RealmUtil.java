@@ -104,8 +104,7 @@ public class RealmUtil {
         origin.setSentence();
         add.setSentence();
         record.getSentenceRealms().add(position + 1, add);
-        int i=0;
-        i=1;
+
 
     }
 

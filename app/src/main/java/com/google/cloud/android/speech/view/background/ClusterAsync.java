@@ -80,14 +80,6 @@ public class ClusterAsync extends AsyncTask<Integer, Float, Integer> {
     @Override
     protected void onPostExecute(Integer dupId) {
         Log.d("stopcycle","cluster complete");
-//        diary.setValue(false);
-//        Toast.makeText(getBaseContext(), R.string.speaker_complete, Toast.LENGTH_SHORT).show();
-//        Realm realm = Realm.getDefaultInstance();
-//        swapRecord(aVoid);
-//        hasDiary.setValue(duplicateRecordId);
-//        realm.beginTransaction();
-//        record.setCluster(results);
-//        realm.commitTransaction();
         callback.onPostExecute(dupId);
     }
 }

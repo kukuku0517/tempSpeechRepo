@@ -39,6 +39,7 @@ import com.google.cloud.android.speech.event.SeekEvent;
 import com.google.cloud.android.speech.R;
 import com.google.cloud.android.speech.data.realm.RecordRealm;
 import com.google.cloud.android.speech.data.realm.SentenceRealm;
+import com.google.cloud.android.speech.util.LogUtil;
 import com.google.cloud.android.speech.util.RealmUtil;
 import com.google.cloud.android.speech.view.customView.CenterLinearLayoutManager;
 import com.google.cloud.android.speech.view.recordList.adapter.TagRealmAdapter;
@@ -225,8 +226,21 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         }
 
         FeatureRealm fv = realm.where(FeatureRealm.class).equalTo("id", originRecordId).findFirst();
-        if (fv != null)
-            Log.d("fv", String.valueOf(fv.getFeatureVectors().size()));
+        if (fv != null){
+//            Log.d("fv", String.valueOf(fv.getFeatureVectors().size()));
+//
+//            double[][] f = new double[fv.getFeatureVectors().size()][];
+//            for(int j=0;j<fv.getFeatureVectors().size();j++){
+//                double[] ff = new double[fv.getFeatureVectors().get(j).getFeatureVector().size()];
+//                for(int i=0;i<ff.length;i++){
+//                    ff[i]=fv.getFeatureVectors().get(j).getFeatureVector().get(i).get();
+//                }
+//                f[j]=ff;
+//            }
+//            LogUtil.writeToFileAsWhole(f,"fvresults");
+        }
+
+
         //init values from data
         RealmList<SentenceRealm> sentenceResults = record.getSentenceRealms();
 

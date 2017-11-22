@@ -2,6 +2,7 @@ package com.google.cloud.android.speech.diarization.formular;
 import android.util.Log;
 
 import com.google.cloud.android.speech.diarization.EndPointDetection;
+import com.google.cloud.android.speech.util.LogUtil;
 
 /**
  * 预处理过程
@@ -38,15 +39,15 @@ public class PreProcess {
         this.samplePerFrame = (int) (samplingRate * windowSize);
         this.samplePerStep = (int) (samplingRate * windowStep);
         this.samplingRate = samplingRate;
-        originalSignal = preEmphasis(originalSignal);
+        this.originalSignal = preEmphasis(originalSignal);
+        normalizePCM();
         doFraming();
-        //        normalizePCM();
         //        epd = new EndPointDetection(this.originalSignal, this.samplingRate);
         //        afterEndPtDetection = epd.doEndPointDetection();
         //        Log.d("preprocess epd", String.valueOf(afterEndPtDetection.length));
         // ArrayWriter.printFloatArrayToFile(afterEndPtDetection, "endPt.txt");
         //		if(afterEndPtDetection.length>=samplePerFrame){
-        //        doWindowing();
+        doWindowing();
         //		}
     }
 
@@ -60,6 +61,9 @@ public class PreProcess {
 
     private void normalizePCM() {
         float max = originalSignal[0];
+
+        LogUtil.writeToFile(originalSignal,"before normalize pcm");
+
         for (int i = 1; i < originalSignal.length; i++) {
             if (max < Math.abs(originalSignal[i])) {
                 max = Math.abs(originalSignal[i]);
@@ -69,6 +73,8 @@ public class PreProcess {
         for (int i = 0; i < originalSignal.length; i++) {
             originalSignal[i] = originalSignal[i] / max;
         }
+
+        LogUtil.writeToFile(originalSignal,"after normalize pcm");
     }
 
     /**

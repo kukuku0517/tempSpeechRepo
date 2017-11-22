@@ -41,6 +41,8 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -290,11 +292,11 @@ public class ResultListFragment extends Fragment implements ListHandler {
 
         int count = dir.getDepth();
         String path = dir.getName();
-        int tempId=dir.getUpperId();
+        int tempId = dir.getUpperId();
         while (count > 0) {
             DirectoryRealm tempDir = realm.where(DirectoryRealm.class).equalTo("id", tempId).findFirst();
             path = tempDir.getName() + "/" + path;
-            tempId=tempDir.getUpperId();
+            tempId = tempDir.getUpperId();
             count--;
         }
         currentFolder.setValue(path);
@@ -302,14 +304,35 @@ public class ResultListFragment extends Fragment implements ListHandler {
 
         dirOrFiles.clear();
 
-        for (RealmObject o : dir.getDirectoryRealms()) {
-            dirOrFiles.add(o);
-        }
+
         for (RealmObject o : dir.getRecordRealms()) {
             if (((RecordRealm) o).isConverted()) {
                 dirOrFiles.add(o);
             }
         }
+        for (RealmObject o : dir.getDirectoryRealms()) {
+            dirOrFiles.add(o);
+        }
+
+        Collections.sort(dirOrFiles, new Comparator<RealmObject>() {
+            @Override
+            public int compare(RealmObject o1, RealmObject o2) {
+                if (o1 instanceof RecordRealm) {
+                    if (o2 instanceof RecordRealm) {
+                        return (int) (((RecordRealm) o2).getStartMillis() - ((RecordRealm) o1).getStartMillis());
+                    } else {
+                        return 1;
+                    }
+                } else {
+                    if (o2 instanceof RecordRealm) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+
+            }
+        });
 
         adapter.updateData(dirOrFiles);
         adapter.notifyDataSetChanged();

@@ -1,5 +1,9 @@
 package com.google.cloud.android.speech.diarization.formular;
 
+import android.util.Log;
+
+import com.google.cloud.android.speech.util.LogUtil;
+
 import static com.google.cloud.android.speech.diarization.FeatureExtract.logBase;
 
 public class MFCC {
@@ -33,8 +37,9 @@ public class MFCC {
 
     public double[] doMFCC(float[] framedSignal, int index) {
         fftFrameNow = magnitudeSpectrum(framedSignal);
-                int len = fftFrameNow.length;
+        int len = fftFrameNow.length;
         fftAbs=new double[len];
+//        LogUtil.print(fftFrameNow,"f");
         System.arraycopy(fftFrameNow, 0, fftAbs, 0, len);
         for (int i = 0; i < len; i++) {
             fftAbs[i] = fftAbs[i] / len;
@@ -71,15 +76,15 @@ public class MFCC {
 
         double feature[] = new double[featureDimension];
         System.arraycopy(cepc, 0, feature, 8, numCepstra);
-        feature[3] = spectralCentroid(fftFrameNow);
-        feature[4] = spectralSpread();
-        feature[5] = spectralEntropy();
+        feature[3] = spectralCentroid(fftFrameNow)*100;
+        feature[4] = spectralSpread()*100;
+        feature[5] = spectralEntropy()*10;
         if (hasPrev) {
-            feature[6] = spectralFlux(fftFramePrev);
+            feature[6] = spectralFlux(fftFramePrev)*100;
         } else {
-            feature[6] = spectralFlux(fftAbs);
+            feature[6] = spectralFlux(fftAbs)*100;
         }
-        feature[7] = spectralRollOff(0.9f);
+        feature[7] = spectralRollOff(0.9f)*100;
         fftFramePrev = fftAbs;
         return feature;
     }
@@ -98,6 +103,7 @@ public class MFCC {
         for (int k = 0; k < frameLengthPowOfTwo / 2 + 1; k++) {
 //            magSpectrum[k] = (fft.re[k] * fft.re[k] + fft.im[k] * fft.im[k]) / (1024);
             magSpectrum[k] = Math.sqrt(fft.re[k] * fft.re[k] + fft.im[k] * fft.im[k]);
+
 
         }
         return magSpectrum;

@@ -381,6 +381,7 @@ public class KMeansCluster {
     /**
      * @return total error of the cluster (by distances)
      */
+
     public double getErr() {
         double total = 0;
         for (int i = 0; i < classifiedData.length; i++) { //ALL data objects
@@ -401,6 +402,9 @@ public class KMeansCluster {
             clusterNumber[i] = closest;
         }
 
+        for(double[] d:centroid){
+            LogUtil.print(d,"centroids");
+        }
         //TODO
         getSilenceCluster();
         LogUtil.print(clusterNumber, "kcluster");

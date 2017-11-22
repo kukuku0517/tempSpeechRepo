@@ -120,9 +120,9 @@ public class FeatureExtract {
             // for each frame i, make mfcc from current framed signal
 
             mfccFeature[i] = mfcc.doMFCC(framedSignal[i], i);// 2D data
-            mfccFeature[i][0] = zeroCrossingRate(framedSignal[i]);
-            mfccFeature[i][1] = energy(framedSignal[i]);
-            mfccFeature[i][2] = energyEntropy(framedSignal[i]);
+            mfccFeature[i][0] = zeroCrossingRate(framedSignal[i])*100;
+            mfccFeature[i][1] = energy(framedSignal[i])*10;
+            mfccFeature[i][2] = energyEntropy(framedSignal[i])*10;
 
 
 //			LogUtil.maxInArray(mfccFeature[i],"after dct");
