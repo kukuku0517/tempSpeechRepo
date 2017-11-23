@@ -62,8 +62,6 @@ public class PreProcess {
     private void normalizePCM() {
         float max = originalSignal[0];
 
-        LogUtil.writeToFile(originalSignal,"before normalize pcm");
-
         for (int i = 1; i < originalSignal.length; i++) {
             if (max < Math.abs(originalSignal[i])) {
                 max = Math.abs(originalSignal[i]);
@@ -74,7 +72,6 @@ public class PreProcess {
             originalSignal[i] = originalSignal[i] / max;
         }
 
-        LogUtil.writeToFile(originalSignal,"after normalize pcm");
     }
 
     /**

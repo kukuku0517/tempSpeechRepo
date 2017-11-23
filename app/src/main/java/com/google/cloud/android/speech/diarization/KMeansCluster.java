@@ -402,8 +402,8 @@ public class KMeansCluster {
             clusterNumber[i] = closest;
         }
 
-        for(double[] d:centroid){
-            LogUtil.print(d,"centroids");
+        for (double[] d : centroid) {
+            LogUtil.print(d, "centroids");
         }
         //TODO
         getSilenceCluster();
@@ -594,7 +594,24 @@ public class KMeansCluster {
  averageForOne/=(float)count;
 
  */
-
+            realm.beginTransaction();
+            RecordRealm temp = realm.where(RecordRealm.class).equalTo("id", fileId).findFirst();
+            RealmList<SentenceRealm> tempSentence = temp.getSentenceRealms();
+            float averageForOne = 0;
+            int count=0;
+            for (int i = 0; i < tempSentence.size(); i++) {
+                RealmList<WordRealm> words = tempSentence.get(i).getWordList();
+//                float[] sentenceRatios = new float[words.size()];
+                for (int j = 0; j < words.size(); j++) {
+                    float ratios = getClusterRatioForeWord(words.get(j), results, 0, unit);
+//                    sentenceRatios[j] = ratios;
+                    words.get(j).setRatioForOne(ratios);
+                    averageForOne+=ratios;
+                    count++;
+                }
+            }
+            averageForOne/=(float)count;
+            realm.commitTransaction();
 
             int sentenceIndex = 0;
             int err = 0;
@@ -613,7 +630,9 @@ public class KMeansCluster {
                 for (int i = 0; i < sentence.getWordList().size(); i++) {
                     realm.beginTransaction();
                     WordRealm word = sentence.getWordList().get(i);
-                    clusterIndx = getClusterForWord(word, results, err, unit);
+//                    clusterIndx = getClusterForWord(word, results, err, unit);
+                    float ratioForOne = word.getRatioForOne();
+                    clusterIndx = ratioForOne<averageForOne?1:2;
                     ClusterRealm cluster;
                     if (!record.hasCluster(clusterIndx)) {
                         cluster = RealmUtil.createObject(realm, ClusterRealm.class);

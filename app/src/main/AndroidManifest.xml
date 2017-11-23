@@ -31,21 +31,21 @@
         android:theme="@style/Theme.Speech"
         tools:ignore="GoogleAppIndexingWarning">
         <activity android:name=".view.recording.RecordActivity" />
-
         <activity android:name=".view.recordList.ListActivity">
+
+        </activity>
+        <activity android:name=".view.recordResult.RecordResultActivity" />
+
+        <service android:name=".view.background.SpeechService" />
+        <!-- android:enabled="true" -->
+        <!-- android:exported="true" -->
+        <activity android:name=".view.splash.SplashActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".view.recordResult.RecordResultActivity" />
-
-        <service
-            android:name=".view.background.SpeechService"
-         ></service>
-        <!--android:enabled="true"-->
-        <!--android:exported="true"-->
     </application>
 
 </manifest>

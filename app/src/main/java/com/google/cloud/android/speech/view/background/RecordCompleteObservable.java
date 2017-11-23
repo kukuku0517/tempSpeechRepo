@@ -9,7 +9,37 @@ import java.util.Observable;
 
 public class RecordCompleteObservable extends Observable {
     int featureSize = 0;
+    int requestSize = 0;
+
+    public int getFeatureSize() {
+        return featureSize;
+    }
+
+    public int getRequestSize() {
+        return requestSize;
+    }
+
+    public void setRequestSize(int requestSize) {
+        this.requestSize = requestSize;
+        measurementsChanged();
+    }
+
+    public void setFeatureSize(int featureSize) {
+        this.featureSize = featureSize;
+        measurementsChanged();
+    }
+
     boolean recordComplete = false;
+    boolean init = false;
+
+    public boolean isInit() {
+        return init;
+    }
+
+    public void setInit(boolean init) {
+        this.init = init;
+        measurementsChanged();
+    }
 
     public int isFeatureComplete() {
         return featureSize;

@@ -215,7 +215,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         title = getIntent().getStringExtra("title");
         tags = Parcels.unwrap(getIntent().getParcelableExtra("tags"));
         dirId = getIntent().getIntExtra("dirId", 1);
-
+        speaker = getIntent().getBooleanExtra("speaker", false);
         if (tags != null && tags.size() != 0) {
             for (int i : tags) {
                 tagTags.add(realm.where(TagRealm.class).equalTo("id", i).findFirst());
@@ -232,6 +232,8 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
     }
 
+    private boolean speaker = false;
+
     private void initService() {
         Intent intent = new Intent(context, SpeechService.class);
         startService(intent);
@@ -247,7 +249,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
             if (SpeechService.IS_RECORDING) {
                 recordId = mSpeechService.getRecordId();
             } else {
-                recordId = mSpeechService.createSpeechRecord(title, dirId, tagTags);
+                recordId = mSpeechService.createSpeechRecord(title, dirId, tagTags,speaker);
             }
 
             realm.beginTransaction();
@@ -292,7 +294,7 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
 
     @Override
     protected void onStop() {
-        if (serviceBinded) {
+        if (serviceBinded && mServiceConnection!=null) {
             unbindService(mServiceConnection);
         }
         super.onStop();
@@ -333,9 +335,9 @@ public class RecordActivity extends AppCompatActivity implements MessageDialogFr
         stopVoiceRecorder();
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    @Subscribe(threadMode = ThreadMode.MAIN)
     public void onRecordEndEvent(RecordEndEvent event) {
-        EventBus.getDefault().removeStickyEvent(event);
+
         serviceBinded = false;
         unbindService(mServiceConnection);
         mSpeechService = null;

@@ -226,7 +226,7 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
         }
 
         FeatureRealm fv = realm.where(FeatureRealm.class).equalTo("id", originRecordId).findFirst();
-        if (fv != null){
+        if (fv != null) {
 //            Log.d("fv", String.valueOf(fv.getFeatureVectors().size()));
 //
 //            double[][] f = new double[fv.getFeatureVectors().size()][];
@@ -243,8 +243,6 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
         //init values from data
         RealmList<SentenceRealm> sentenceResults = record.getSentenceRealms();
-
-
         timeDTO.setTotal(record.getDuration());
         timeDTO.setNow(0);
 
@@ -286,6 +284,29 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
             @Override
             public void onClick(View v) {
                 onFabClick(v);
+            }
+        });
+        binding.rvRecordResult.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                switch (newState) {
+                    case RecyclerView.SCROLL_STATE_IDLE:
+                    case RecyclerView.SCROLL_STATE_SETTLING:
+                        if (recyclerView.getVerticalScrollbarPosition()<0||recyclerView.getVerticalScrollbarPosition()>recyclerView.getScrollBarSize()||binding.fab.getVisibility() == View.GONE)
+                            binding.fab.show();
+                        break;
+                    case RecyclerView.SCROLL_STATE_DRAGGING:
+                        if (binding.fab.getVisibility() == View.VISIBLE)
+                            binding.fab.hide();
+                        break;
+
+                }
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
             }
         });
         //set tag recyclerview
@@ -530,31 +551,38 @@ public class RecordResultActivity extends AppCompatActivity implements ResultHan
 
     @Override
     public void onClickDiary(View v) {
+        RecordRealm temp = realm.where(RecordRealm.class).equalTo("id",originRecordId).findFirst();
 
-        final DialogAlertBinding binding = DataBindingUtil.inflate(LayoutInflater.from(this), R.layout.dialog_alert, null, false);
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(binding.getRoot());
+        if (temp.isSpeaker()){
 
-        binding.setTitle("화자 인식");
-        binding.setCategory("화자 인식을 시작합니다.\n (조금 걸릴 수도 있습니다)");
-        final Dialog dialog = builder.create();
-        dialog.show();
-        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(0));
-        dialog.findViewById(R.id.rl_confirm).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                diary.setValue(true);
-                binding.executePendingBindings();
-                dialog.dismiss();
-                new ClusterAsync().execute(10);
-            }
-        });
-        dialog.findViewById(R.id.btn_cancel).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialog.dismiss();
-            }
-        });
+            final DialogAlertBinding binding = DataBindingUtil.inflate(LayoutInflater.from(this), R.layout.dialog_alert, null, false);
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setView(binding.getRoot());
+
+            binding.setTitle("화자 인식");
+            binding.setCategory("화자 인식을 시작합니다.\n (조금 걸릴 수도 있습니다)");
+            final Dialog dialog = builder.create();
+            dialog.show();
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(0));
+            dialog.findViewById(R.id.rl_confirm).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    diary.setValue(true);
+                    binding.executePendingBindings();
+                    dialog.dismiss();
+                    new ClusterAsync().execute(10);
+                }
+            });
+            dialog.findViewById(R.id.btn_cancel).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.dismiss();
+                }
+            });
+        }else{
+            Toast.makeText(this, "화자 인식 데이터가 없습니다", Toast.LENGTH_SHORT).show();
+        }
+
 
     }
 

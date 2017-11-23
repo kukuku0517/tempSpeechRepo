@@ -60,7 +60,7 @@
                 android:id="@+id/app_bar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/colorPrimary"
+                android:background="@color/blue_gray"
                 android:theme="@style/ThemeOverlay.AppCompat.Dark">
 
 
@@ -68,7 +68,6 @@
                     android:id="@+id/toolbar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@android:color/white"
                     android:paddingLeft="16dp"
                     android:paddingRight="8dp"
                     android:titleTextColor="@color/naver_green">
@@ -84,7 +83,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal"
                             android:text="@{record.title}"
-                            android:textColor="@android:color/background_dark"
+                            android:textColor="@color/white"
                             android:textSize="20dp"
                             android:textStyle="bold"
                             tools:text="Title" />
@@ -107,7 +106,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom"
-                    android:background="@color/white"
 
 
                     app:tabIndicatorColor="@color/naver_green"
@@ -138,19 +136,27 @@
                     android:id="@+id/rv_record_result"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_above="@+id/sv_video"
+                    android:layout_above="@+id/sv_video_frame"
                     android:layout_alignParentTop="true"
                     android:nestedScrollingEnabled="false"
                     android:visibility="@{diary.getValue==false?View.VISIBLE:View.GONE}" />
 
-                <SurfaceView
-                    android:id="@+id/sv_video"
+                <FrameLayout
+                    android:id="@+id/sv_video_frame"
                     android:layout_width="match_parent"
                     android:layout_height="200dp"
+                    android:background="@color/default_background"
                     android:layout_alignParentBottom="true"
-                    android:visibility="@{record.videoPath==null?View.GONE:View.VISIBLE}"
+                    android:visibility="@{record.videoPath==null?View.GONE:View.VISIBLE}">
 
-                    />
+                    <SurfaceView
+                        android:id="@+id/sv_video"
+                        android:layout_width="match_parent"
+                        android:layout_height="200dp"
+
+                        />
+                </FrameLayout>
+
 
                 <FrameLayout
                     android:layout_width="match_parent"
@@ -224,20 +230,17 @@
                         tools:text="loading" />
                 </LinearLayout>
 
+                <android.support.design.widget.FloatingActionButton
+                    android:id="@+id/fab"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_margin="16dp"
+                    android:src="@drawable/ic_edit_black_24dp"
+                    android:tint="@color/white"
+                    app:backgroundTint="@color/naver_green" />
+
             </RelativeLayout>
-
-            <android.support.design.widget.FloatingActionButton
-                android:id="@+id/fab"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:layout_margin="16dp"
-                android:layout_marginBottom="32dp"
-                android:src="@drawable/ic_edit_black_24dp"
-                android:tint="@color/white"
-                app:backgroundTint="@color/naver_green"
-
-                app:layout_anchor="@id/rl_results"
-                app:layout_anchorGravity="bottom|right|end" />
 
 
         </android.support.design.widget.CoordinatorLayout>

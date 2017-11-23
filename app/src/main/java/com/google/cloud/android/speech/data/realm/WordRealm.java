@@ -16,6 +16,15 @@ public class WordRealm  extends RealmObject implements PrimaryRealm {
     private long startMillis;
     private long endMillis;
     private int sentenceId;
+    private float ratioForOne=0;
+
+    public float getRatioForOne() {
+        return ratioForOne;
+    }
+
+    public void setRatioForOne(float ratioForOne) {
+        this.ratioForOne = ratioForOne;
+    }
 
     public long getEndMillis() {
         return endMillis;

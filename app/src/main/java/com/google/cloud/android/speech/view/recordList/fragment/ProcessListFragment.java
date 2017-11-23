@@ -201,6 +201,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     public void onClickSpeaker(View v) {
         v.setSelected(!v.isSelected());
         TextView tv = (TextView) v.findViewById(R.id.tv_speaker);
+        speaker.setValue(true);
         tv.setText(v.isSelected() ? "ON" : "OFF");
 
     }
@@ -361,6 +362,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         });
 
         RealmResults<TagRealm> tags = realm.where(TagRealm.class).findAll();
+        originalTags.clear();
         for (TagRealm tag : tags) {
             originalTags.add(tag);
         }
@@ -472,7 +474,6 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
         EventBus.getDefault().unregister(this);
         if (mSpeechService != null) {
             getActivity().unbindService(mServiceConnection);
-
             Log.d("lifecycle", "list unbind longrunningRequestRetrofit in stop");
         }
 
@@ -519,14 +520,14 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
 //        }
 //    }
 
-    private void startFileRecognition(String title, ArrayList<Integer> tags, String filePath, int dirId, int requestCode) {
+    private void startFileRecognition(String title, ArrayList<Integer> tags, String filePath, int dirId,boolean speaker, int requestCode) {
         mSpeechService.createFileRecord(dirId);
         switch (requestCode) {
             case REQUEST_AUDIO:
-                mSpeechService.recognizeFileStream(title, tags, filePath);
+                mSpeechService.recognizeFileStream(title, tags, speaker,  filePath);
                 break;
             case REQUEST_VIDEO:
-                mSpeechService.recognizeVideoStream(title, tags, filePath);
+                mSpeechService.recognizeVideoStream(title, tags,speaker,  filePath);
                 break;
         }
     }
@@ -603,7 +604,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
                 }
             } else {
                 Toast.makeText(getContext(), "태그를 지정하세요", Toast.LENGTH_SHORT).show();
-                svMain.smoothScrollTo(0, binding.tvTagList.getTop());
+                svMain.smoothScrollTo(0, binding.tvTagList.getBottom());
                 return;
             }
         }
@@ -630,6 +631,8 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
             intent.putExtra("sampleRate", sampleRateInteger);
             intent.putExtra("tags", Parcels.wrap(tagIds));
             intent.putExtra("dirId", currentDirId);
+            intent.putExtra("speaker",speaker.getValue());
+
             startActivity(intent);
         } else if (recogMode.getValue() == REQUEST_FILE_AUDIO_PERMISSION) {
             tempTitle = title;
@@ -674,7 +677,7 @@ public class ProcessListFragment extends Fragment implements ProcessHandler, Pro
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         String mediaPath = FileUtil.getPath(getActivity(), data.getData());
-        startFileRecognition(tempTitle, tempTags, mediaPath, currentDirId, requestCode);
+        startFileRecognition(tempTitle, tempTags, mediaPath, currentDirId,speaker.getValue(), requestCode);
 
     }
 

@@ -6,6 +6,7 @@ import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -141,7 +142,7 @@ public class ListActivity extends AppCompatActivity {
         if (realm == null) {
             realm.init(this);
             RealmConfiguration config = new RealmConfiguration.Builder()
-//                    .deleteRealmIfMigrationNeeded()
+                    .deleteRealmIfMigrationNeeded()
                     .build();
             Realm.setDefaultConfiguration(config);
             realm = Realm.getDefaultInstance();
@@ -204,6 +205,8 @@ public class ListActivity extends AppCompatActivity {
                 return true;
             }
         });
+
+        binding.searchView.setBackgroundColor(ContextCompat.getColor(this,R.color.transparent));
     }
 
 

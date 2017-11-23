@@ -12,7 +12,7 @@ public abstract class RecordCompleteObserver implements Observer {
     public void update(Observable o, Object arg) {
         if (o instanceof RecordCompleteObservable) {
             RecordCompleteObservable obj = (RecordCompleteObservable) o;
-            if(obj.featureSize==0&&obj.isRecordComplete()){
+            if(!obj.isInit() && obj.featureSize==0&&obj.isRecordComplete()&&obj.getRequestSize()<=0){
                 onComplete();
             }
         }

@@ -76,8 +76,7 @@
             android:layout_below="@id/rl_dirback"
             android:layout_margin="8dp"
             app:cardBackgroundColor="@color/default_background"
-            app:cardCornerRadius="8dp"
-            tools:visibility="invisible">
+            app:cardCornerRadius="8dp">
 
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/rv_record"
@@ -88,21 +87,17 @@
             </android.support.v7.widget.RecyclerView>
         </android.support.v7.widget.CardView>
 
-
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/fab"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
             android:layout_margin="16dp"
-            android:layout_marginBottom="32dp"
             android:onClick="@{handler::onClickMakeDir}"
             android:src="@drawable/fab_add"
             android:tint="@color/white"
-            app:backgroundTint="@color/naver_green"
-            app:layout_anchor="@id/cv_dir"
-            app:layout_anchorGravity="bottom|right|end" />
+            android:layout_centerHorizontal="true"
+            app:backgroundTint="@color/naver_green" />
+
 
     </RelativeLayout>
 

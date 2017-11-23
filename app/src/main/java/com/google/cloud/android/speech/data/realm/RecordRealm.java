@@ -24,6 +24,16 @@ public class RecordRealm extends RealmObject implements PrimaryRealm {
         this.directoryId = directoryId;
     }
 
+    private boolean speaker=false;
+
+    public boolean isSpeaker() {
+        return speaker;
+    }
+
+    public void setSpeaker(boolean speaker) {
+        this.speaker = speaker;
+    }
+
     private String title = "";
     private String audioPath;
     private String videoPath;
